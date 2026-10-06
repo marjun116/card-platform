@@ -24,6 +24,11 @@ export const spades: GameFile = {
     nil: { label: 'Allow nil bids', type: 'boolean', default: true },
     blindNil: { label: 'Allow blind nil', type: 'boolean', default: false },
     targetScore: { label: 'Play to', type: 'choice', values: [300, 500, 1000], default: 500 },
+    mercyRule: {
+      label: 'End the game when a team falls to -200',
+      type: 'boolean',
+      default: true,
+    },
   },
   zones: {
     hand: { per: 'player', visibility: 'owner' },
@@ -78,7 +83,10 @@ export const spades: GameFile = {
       { if: "player.bid == 'blindNil'", add: 'player.tricks == 0 ? 200 : -200', to: 'team' },
     ],
   },
-  endCondition: { when: 'anyTeam.score >= options.targetScore', winner: 'highestScore' },
+  endCondition: {
+    when: 'anyTeam.score >= options.targetScore || (options.mercyRule && anyTeam.score <= -200)',
+    winner: 'highestScore',
+  },
 };
 
 /** The spec's Sevens Up example (with the starting card setting the active suit). */

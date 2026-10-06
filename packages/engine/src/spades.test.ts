@@ -207,3 +207,37 @@ describe('spades scoring', () => {
     expect(scored([3, 'blindNil', 3, 2], [3, 1, 3, 6], 0, blind).teamB?.score).toBe(-200 + 25);
   });
 });
+
+describe('spades game end', () => {
+  /** Scores a round where every team bid 2 and took nothing (-20 each), from these scores. */
+  function endOfRound(scores: [number, number], options = {}) {
+    const { state } = dealt('end', options);
+    const s = draft(afterBidding(state, [1, 1, 1, 1]));
+    s.teams.forEach((team, i) => (team.score = scores[i] ?? 0));
+    scoreRound(s);
+    return { s };
+  }
+
+  it('ends when a team reaches the target score', () => {
+    const { s } = endOfRound([520, 100]);
+    expect(s.status).toBe('over');
+    expect(s.winners).toEqual(s.teams[0]?.players);
+  });
+
+  it('ends when a team falls to -200 (mercy rule, on by default)', () => {
+    const { s } = endOfRound([-190, 100]);
+    expect(s.teams[0]?.score).toBe(-210);
+    expect(s.status).toBe('over');
+    expect(s.winners).toEqual(s.teams[1]?.players);
+  });
+
+  it('keeps going below -200 when the mercy rule is off', () => {
+    const { s } = endOfRound([-190, 100], { mercyRule: false });
+    expect(s.teams[0]?.score).toBe(-210);
+    expect(s.status).toBe('inProgress');
+  });
+
+  it('keeps going when neither limit is reached', () => {
+    expect(endOfRound([-150, 100]).s.status).toBe('inProgress');
+  });
+});

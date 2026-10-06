@@ -85,7 +85,7 @@ When a family saves its own set of toggles, it becomes a **variant**: a named, s
 
 ## Example 1: Spades
 
-This is a complete built-in game in about 90 lines, with three house rule toggles. Standard rules: four players in two partnerships, each player bids, spades are always trump, and the first team to 500 wins.
+This is a complete built-in game in about 90 lines, with four house rule toggles. Standard rules: four players in two partnerships, each player bids, spades are always trump, and the first team to 500 wins. A team that falls to -200 loses (the "mercy rule", on by default).
 
 ```json
 {
@@ -102,7 +102,8 @@ This is a complete built-in game in about 90 lines, with three house rule toggle
   "options": {
     "nil":        { "label": "Allow nil bids",   "type": "boolean", "default": true },
     "blindNil":   { "label": "Allow blind nil",  "type": "boolean", "default": false },
-    "targetScore":{ "label": "Play to", "type": "choice", "values": [300, 500, 1000], "default": 500 }
+    "targetScore":{ "label": "Play to", "type": "choice", "values": [300, 500, 1000], "default": 500 },
+    "mercyRule":  { "label": "End the game when a team falls to -200", "type": "boolean", "default": true }
   },
   "zones": {
     "hand":  { "per": "player", "visibility": "owner" },
@@ -163,7 +164,7 @@ This is a complete built-in game in about 90 lines, with three house rule toggle
     ]
   },
   "endCondition": {
-    "when": "anyTeam.score >= options.targetScore",
+    "when": "anyTeam.score >= options.targetScore || (options.mercyRule && anyTeam.score <= -200)",
     "winner": "highestScore"
   }
 }

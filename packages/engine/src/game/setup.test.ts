@@ -66,6 +66,7 @@ describe('createGame', () => {
       nil: true,
       blindNil: false,
       targetScore: 500,
+      mercyRule: true,
     });
     expect(createGame(spades, { targetScore: 300 }, 4, 'o').options.targetScore).toBe(300);
   });

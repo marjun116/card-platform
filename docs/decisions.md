@@ -121,3 +121,11 @@ The spec's action library mixes moves a player chooses with things the engine do
 
 - Sets (same rank) and runs (same suit, consecutive in `cardOrder.ranks`) with a minimum
   size. Wild cards in melds come later (Phase 5).
+
+## 2026-10-06: Spades mercy rule
+
+- Spades has a `mercyRule` option, **on by default**: the game ends when a team falls to
+  -200 or below, and the team with the higher score wins. Table hosts can turn it off.
+- End condition: `anyTeam.score >= options.targetScore || (options.mercyRule && anyTeam.score <= -200)`.
+- Why: without it, a game with consistently bad bidding can go on forever, and the Phase 2
+  random-play simulation needs every game to finish.
