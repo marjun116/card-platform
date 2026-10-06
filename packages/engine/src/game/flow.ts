@@ -225,6 +225,8 @@ function completeTrick(state: GameState): void {
   const leader = trick.winner;
   const handEmpty = zoneCards(state, zoneKey(state, 'hand', leader)).length === 0;
   if ((phase.repeat !== undefined && state.cursor.tricks >= phase.repeat) || handEmpty) {
+    // The finished trick stays visible as lastTrick; there is no current trick.
+    state.trick = null;
     endPhase(state);
   } else {
     startTrick(state, leader);

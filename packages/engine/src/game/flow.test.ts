@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { tinyTricks } from '../__fixtures__/games';
-import { hand, id, play } from '../__fixtures__/helpers';
+import { hand, id, play } from '../testing';
 import {
   applyMove,
   createGame,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { card } from '../__fixtures__/helpers';
+import { card } from '../testing';
 import { jokerCard, RANKS, suitedCard } from '../cards/card';
 import { combinations } from './common';
 import { canLayOff, findMelds, meldKind, sortMeld } from './melds';

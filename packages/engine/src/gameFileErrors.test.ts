@@ -7,7 +7,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { tinyTricks } from './__fixtures__/games';
-import { id } from './__fixtures__/helpers';
+import { id } from './testing';
 import { applyMove } from './api';
 import { ExprError, GameFileError } from './errors';
 import { startGame as createGame } from './game/setup';

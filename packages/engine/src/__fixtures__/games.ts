@@ -207,7 +207,8 @@ export const miniRummy: GameFile = {
         },
         { actions: [{ type: 'discard', to: 'discard' }] },
       ],
-      whenEmpty: { stock: 'reshuffleDiscardExceptTop' },
+      // The round ends when the stock runs out (otherwise random play can go on forever).
+      whenEmpty: { stock: 'endRound' },
     },
   ],
   scoring: {

@@ -1,80 +1,90 @@
 /**
- * Random-play smoke test: every fixture game, many seeds, random legal moves
- * to the end. Checks after every move that no cards appear or vanish and
- * exactly one player is expected to act; every so often, that no player's
- * view contains another player's hidden cards. (Phase 2 turns this into the
- * full 1,000-game simulation for built-in games.)
+ * Random play of every test game to the end, using the shared harness in
+ * src/testing. Built-in games get the full 1,000-game run in packages/games.
  */
 import { describe, expect, it } from 'vitest';
-import { allFixtures } from './__fixtures__/games';
-import { simulate } from './__fixtures__/simulate';
-import { replay, viewFor } from './api';
-import type { Move } from './game/move';
+import { allFixtures, tinyTricks } from './__fixtures__/games';
 import type { GameState } from './game/state';
-
-const PLAYERS: Record<keyof typeof allFixtures, number[]> = {
-  spades: [4],
-  sevensUp: [2, 3, 6],
-  tinyTricks: [2],
-  miniRummy: [2, 4],
-  passing: [4],
-};
-const SEEDS: Record<keyof typeof allFixtures, number> = {
-  spades: 3,
-  sevensUp: 10,
-  tinyTricks: 20,
-  miniRummy: 5,
-  passing: 5,
-};
+import {
+  findHiddenCardLeak,
+  preferring,
+  randomStrategy,
+  SimulationError,
+  simulateGame,
+  simulateMany,
+} from './testing';
 
 /**
- * Purely random play can go on forever in some games (spades teams that always
- * overbid, rummy players who never meld), so this player is a little sensible:
- * it bids low and melds whenever it can. Everything else is random.
+ * Purely random play can go on forever in some games (rummy players who never
+ * meld), so this player melds whenever it can and bids low.
  */
-function sensible(moves: Move[], pick: (n: number) => number): Move {
-  const low = moves.filter((m) => m.type === 'bid' && typeof m.value === 'number' && m.value <= 3);
-  const melds = moves.filter((m) => m.type === 'meld' || m.type === 'layOff');
-  const pool = low.length > 0 ? low : melds.length > 0 ? melds : moves;
-  return pool[pick(pool.length)] as Move;
-}
+const sensible = preferring(
+  (m) =>
+    m.type === 'meld' ||
+    m.type === 'layOff' ||
+    (m.type === 'bid' && typeof m.value === 'number' && m.value <= 3),
+);
 
-function checkHiddenCards(state: GameState, moveNumber: number) {
-  if (moveNumber % 25 !== 0) return;
-  for (const viewer of state.players) {
-    // The log is left out: it names cards that were public when played (an earlier
-    // round, the face-up discard pile) or that the viewer passed themselves, which
-    // says nothing about where they are now. Log redaction has its own tests.
-    const current = { ...viewFor(state, viewer.id), log: [] };
-    const view = JSON.stringify(current);
-    for (const [key, cards] of Object.entries(state.zones)) {
-      if (!key.startsWith('hand@') || key === `hand@${viewer.id}`) continue;
-      for (const card of cards) {
-        if (view.includes(`"${card.id}"`)) {
-          throw new Error(`Player ${viewer.id} can see ${card.id} in ${key}`);
-        }
-      }
-    }
-  }
-}
+const GAMES: Record<keyof typeof allFixtures, number> = {
+  spades: 5,
+  sevensUp: 30,
+  tinyTricks: 30,
+  miniRummy: 10,
+  passing: 10,
+};
 
 describe('random play', () => {
   for (const [name, file] of Object.entries(allFixtures)) {
-    const key = name as keyof typeof allFixtures;
-    for (const players of PLAYERS[key]) {
-      it(`${name} with ${players} players finishes cleanly`, () => {
-        for (let i = 0; i < SEEDS[key]; i++) {
-          const seed = `${name}-${players}-${i}`;
-          const { state, moves } = simulate(file, players, seed, {
-            choose: sensible,
-            check: checkHiddenCards,
-          });
-          expect(state.status).toBe('over');
-          expect(state.winners.length).toBeGreaterThan(0);
-          // The seed and move list fully describe the game.
-          expect(replay(file, {}, players, seed, moves)).toEqual(state);
-        }
+    it(`${name} finishes cleanly`, () => {
+      const report = simulateMany(file, {
+        games: GAMES[name as keyof typeof allFixtures],
+        seedPrefix: name,
+        strategy: sensible,
+        replayEvery: 5,
       });
-    }
+      expect(report.averageMoves).toBeGreaterThan(0);
+    });
   }
+});
+
+describe('the simulation harness', () => {
+  it('reports the seed and move count when something goes wrong', () => {
+    const failing = () =>
+      simulateGame(tinyTricks, 2, 'boom', {
+        check: (_state, n) => {
+          if (n === 3) throw new Error('bad state');
+        },
+      });
+    expect(failing).toThrow(SimulationError);
+    expect(failing).toThrow('Error: bad state\n  (seed "boom", 2 players, after 3 moves)');
+  });
+
+  it('rejects a strategy that picks an illegal move', () => {
+    const cheat = () =>
+      simulateGame(tinyTricks, 2, 'cheat', {
+        strategy: (moves) => ({ ...(moves[0] as object), card: 'AS.0' }) as never,
+      });
+    expect(cheat).toThrow("The strategy chose a move that isn't legal");
+  });
+
+  it('gives up on games that run too long', () => {
+    expect(() => simulateGame(tinyTricks, 2, 'long', { maxMoves: 3 })).toThrow(
+      "didn't finish within 3 moves",
+    );
+  });
+
+  it('reports games that cannot start', () => {
+    expect(() => simulateGame(tinyTricks, 5, 'x')).toThrow('createGame failed');
+  });
+
+  it('notices a hidden card that a player can see', () => {
+    const { state } = simulateGame(tinyTricks, 2, 'leak', { strategy: randomStrategy });
+    expect(findHiddenCardLeak(state)).toBeNull();
+    // Pretend the game keeps a hidden card's id in public state.
+    const won = Object.entries(state.zones).find(
+      ([k, cards]) => k.startsWith('won') && cards.length > 0,
+    );
+    const leaky: GameState = { ...state, vars: { peek: won?.[1][0]?.id ?? '' } };
+    expect(findHiddenCardLeak(leaky)).toMatch(/^Player \d can see .+ \(in won@\d\)$/);
+  });
 });

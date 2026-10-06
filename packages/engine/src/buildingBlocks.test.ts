@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { tinyTricks } from './__fixtures__/games';
-import { hand, id, play, withZones } from './__fixtures__/helpers';
+import { hand, id, play, withZones } from './testing';
 import { applyMove, createGame, getLegalMoves } from './api';
 import type { Move } from './game/move';
 import type { GameFile } from './game/types';

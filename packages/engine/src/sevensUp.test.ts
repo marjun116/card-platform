@@ -1,7 +1,7 @@
 /** Scenario tests for the spec's Sevens Up example: wild 7s, queens, drawing, reshuffling. */
 import { describe, expect, it } from 'vitest';
 import { sevensUp } from './__fixtures__/games';
-import { hand, id, play, withZones } from './__fixtures__/helpers';
+import { hand, id, play, withZones } from './testing';
 import { applyMove, createGame, getLegalMoves, getScores, viewFor } from './api';
 import type { Move } from './game/move';
 import { draft, type VarValue } from './game/state';

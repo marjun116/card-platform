@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { miniRummy, spades, tinyTricks } from '../__fixtures__/games';
-import { card, id, play, withZones } from '../__fixtures__/helpers';
+import { card, id, play, withZones } from '../testing';
 import { createGame } from '../api';
 import { evaluate } from '../expr/evaluate';
 import { findCard } from './cards';

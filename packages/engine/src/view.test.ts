@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { sevensUp, spades, tinyTricks } from './__fixtures__/games';
-import { id, play } from './__fixtures__/helpers';
+import { id, play } from './testing';
 import { createGame, viewFor } from './api';
 import type { GameState } from './game/state';
 

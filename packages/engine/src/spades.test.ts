@@ -1,7 +1,7 @@
 /** Scenario tests for the spec's spades example: bidding, leading, trumps and scoring. */
 import { describe, expect, it } from 'vitest';
 import { spades } from './__fixtures__/games';
-import { id, play, withZones } from './__fixtures__/helpers';
+import { id, play, withZones } from './testing';
 import { applyMove, createGame, getLegalMoves, viewFor } from './api';
 import type { Move } from './game/move';
 import { draft, type GameState } from './game/state';

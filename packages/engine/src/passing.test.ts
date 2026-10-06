@@ -1,7 +1,7 @@
 /** Passing cards (hearts-style): one at a time, held until everyone has passed. */
 import { describe, expect, it } from 'vitest';
 import { passing } from './__fixtures__/games';
-import { hand, play } from './__fixtures__/helpers';
+import { hand, play } from './testing';
 import { passTarget } from './actions/cardMovement';
 import { applyMove, createGame, getLegalMoves, viewFor } from './api';
 import type { Move } from './game/move';

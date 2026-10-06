@@ -1,7 +1,7 @@
 /** Multi-step turns (draw → meld/lay off → discard) using the mini rummy fixture. */
 import { describe, expect, it } from 'vitest';
 import { miniRummy } from './__fixtures__/games';
-import { hand, id, play, withZones } from './__fixtures__/helpers';
+import { hand, id, play, withZones } from './testing';
 import { applyMove, createGame, getLegalMoves, viewFor } from './api';
 import type { Move } from './game/move';
 
