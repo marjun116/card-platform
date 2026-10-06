@@ -136,7 +136,7 @@ This is a complete built-in game in about 90 lines, with three house rule toggle
           "followSuit": true,
           "leadRestriction": {
             "cannotLead": "spades",
-            "unless": "state.spadesBroken || hand.allSpades"
+            "unless": "state.spadesBroken || hand.onlySuit('spades')"
           }
         }
       ],
@@ -209,7 +209,8 @@ Suppose the family answers: 2–6 players; you may play the drawn card; the star
     "shuffle": true,
     "deal": { "to": "hand", "count": 7 },
     "rest": "stock",
-    "flip": { "from": "stock", "to": "discard", "triggerEffects": false }
+    "flip": { "from": "stock", "to": "discard", "triggerEffects": false,
+              "set": { "state.activeSuit": "card.suit" } }
   },
   "phases": [
     {
