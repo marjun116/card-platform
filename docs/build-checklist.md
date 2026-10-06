@@ -61,14 +61,14 @@ Full spec: docs/game-format.md. Build plan: docs/build-checklist.md.
 
 Get the repo, tools and docs in place so every later session starts from the same baseline.
 
-- [ ] Install Node.js (LTS), pnpm, Git and Claude Code
-- [ ] Create a private GitHub repository
-- [ ] Create a free hosted Postgres database for development (e.g. Neon or Supabase) and copy its connection string
-- [ ] Export the **Game format** tab of this doc to Markdown and save it as `docs/game-format.md`
-- [ ] Export this tab and save it as `docs/build-checklist.md`
-- [ ] Save the standing instructions above as `CLAUDE.md`
-- [ ] Create an empty `docs/decisions.md`
-- [ ] Run the prompt below
+- [x] Install Node.js (LTS), pnpm, Git and Claude Code
+- [x] Create a private GitHub repository
+- [x] Create a free hosted Postgres database for development (e.g. Neon or Supabase) and copy its connection string
+- [x] Export the **Game format** tab of this doc to Markdown and save it as `docs/game-format.md`
+- [x] Export this tab and save it as `docs/build-checklist.md`
+- [x] Save the standing instructions above as `CLAUDE.md`
+- [x] Create an empty `docs/decisions.md`
+- [x] Run the prompt below
 - [ ] Pick a working name for the platform (the instructions use "Card Table" as a placeholder)
 
 ```text
