@@ -1,3 +1,21 @@
+// Public API of the rules engine.
+export {
+  applyMove,
+  createGame,
+  getLegalMoves,
+  getScores,
+  isGameOver,
+  playersToAct,
+  replay,
+  viewFor,
+} from './api';
+
 export * from './cards/card';
 export { buildDeck, type DeckDef } from './cards/deck';
-export { ExprError, GameFileError, IllegalMoveError } from './errors';
+export type { TrickRule } from './cards/order';
+export { ExprError, GameFileError, IllegalMoveError, SetupError } from './errors';
+export type { BidValue, Move, MoveType, PlayerId, ZoneKey } from './game/move';
+export type { GameState, PlayerState, TeamState, VarValue } from './game/state';
+export type * from './game/types';
+export type { Scores } from './scoring';
+export type { PlayerView, PublicMove, TrickView, ZoneView } from './view';

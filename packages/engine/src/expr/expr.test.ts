@@ -7,12 +7,13 @@ import {
   evaluateNumber,
   openObject,
   type Scope,
+  scopeOf,
   type Value,
 } from './evaluate';
 import { tokenize } from './lexer';
 import { MAX_DEPTH, MAX_LENGTH, parse } from './parser';
 
-const scope = (names: Record<string, Value> = {}): Scope => ({ names });
+const scope = (names: Record<string, Value> = {}): Scope => scopeOf(names);
 const ev = (source: string, names: Record<string, Value> = {}) => evaluate(source, scope(names));
 
 describe('lexer', () => {
@@ -210,7 +211,7 @@ describe('quantifiers', () => {
     { hand: { count: 0 }, score: 40 },
   ];
   const teams = [{ score: 300 }, { score: 520 }];
-  const q: Scope = { names: { target: 500 }, players: () => players, teams: () => teams };
+  const q: Scope = scopeOf({ target: 500 }, { players: () => players, teams: () => teams });
 
   it('anyPlayer is true if any player matches', () => {
     expect(evaluate('anyPlayer.hand.count == 0', q)).toBe(true);
@@ -236,8 +237,8 @@ describe('quantifiers', () => {
   });
 
   it('is false (any) or true (every) with nobody to check', () => {
-    expect(evaluate('anyPlayer.score > 0', { names: {} })).toBe(false);
-    expect(evaluate('everyPlayer.score > 0', { names: {} })).toBe(true);
+    expect(evaluate('anyPlayer.score > 0', scopeOf({}))).toBe(false);
+    expect(evaluate('everyPlayer.score > 0', scopeOf({}))).toBe(true);
   });
 
   it('needs a true/false body', () => {

@@ -12,24 +12,51 @@ export interface ExprObject {
 }
 
 /**
- * Marks an object whose missing properties read as null instead of being an
- * error. Used for `state`, where custom values start out unset.
+ * Engine objects (player, team, zones, …) answer property reads through a
+ * single function stored under this symbol, so nothing is computed until an
+ * expression reads it. The function returns undefined for unknown names.
  */
-export const OPEN = Symbol('open');
-export function openObject(values: Record<string, Value>): ExprObject {
-  return Object.assign(Object.create(null) as ExprObject, values, { [OPEN]: true });
+const GET = Symbol('get');
+type Getter = (name: string) => Value | undefined;
+
+export function lookupObject(get: Getter): ExprObject {
+  return { [GET]: get };
+}
+
+/** An object whose missing properties read as null. Used for `state`, whose values start unset. */
+export function openObject(values: Readonly<Record<string, Value>>): ExprObject {
+  return lookupObject((name) => (Object.hasOwn(values, name) ? values[name] : null));
+}
+
+/** Reads a property the way an expression would; undefined if it doesn't exist. */
+export function getProperty(object: ExprObject, name: string): Value | undefined {
+  const get = (object as { [GET]?: Getter })[GET];
+  if (get) return get(name);
+  return Object.hasOwn(object, name) ? object[name] : undefined;
 }
 
 export const QUANTIFIERS = ['anyPlayer', 'everyPlayer', 'anyTeam', 'everyTeam'] as const;
 export type Quantifier = (typeof QUANTIFIERS)[number];
 
 export interface Scope {
-  /** Names the expression can use: player, hand, card, state, options, … */
-  readonly names: Readonly<Record<string, Value>>;
+  /**
+   * The value of a name (player, hand, card, state, options, …), or
+   * undefined if the name doesn't exist. Values are computed only when an
+   * expression actually uses them.
+   */
+  readonly lookup: (name: string) => Value | undefined;
   /** Objects that anyPlayer/everyPlayer range over (active players). */
   readonly players?: () => readonly ExprObject[];
   /** Objects that anyTeam/everyTeam range over. */
   readonly teams?: () => readonly ExprObject[];
+}
+
+/** A scope backed by a fixed set of names. */
+export function scopeOf(
+  names: Readonly<Record<string, Value>>,
+  extra: Omit<Scope, 'lookup'> = {},
+): Scope {
+  return { ...extra, lookup: (name) => (Object.hasOwn(names, name) ? names[name] : undefined) };
 }
 
 export interface Compiled {
@@ -93,16 +120,15 @@ function walk(node: Node, visit: (node: Node) => void): void {
 export function evaluate(expr: string | Compiled, scope: Scope): Value {
   const compiled = typeof expr === 'string' ? compile(expr) : expr;
   const q = compiled.quantifier;
-  if (q === null) return new Evaluator(compiled.source, scope.names).run(compiled.ast);
+  if (q === null) return new Evaluator(compiled.source, scope.lookup).run(compiled.ast);
 
   const subjects = (q.endsWith('Player') ? scope.players : scope.teams)?.() ?? [];
-  const results = subjects.map((subject) => {
-    const result = new Evaluator(compiled.source, { ...scope.names, [q]: subject }).run(
-      compiled.ast,
-    );
+  const holds = (subject: ExprObject) => {
+    const lookup = (name: string) => (name === q ? subject : scope.lookup(name));
+    const result = new Evaluator(compiled.source, lookup).run(compiled.ast);
     return asBool(result, compiled.source, `an expression using ${q}`);
-  });
-  return q.startsWith('any') ? results.some(Boolean) : results.every(Boolean);
+  };
+  return q.startsWith('any') ? subjects.some(holds) : subjects.every(holds);
 }
 
 /** Evaluates and requires a true/false answer (null counts as false). */
@@ -138,11 +164,11 @@ export function typeName(value: Value): string {
   return `${typeof value} ${JSON.stringify(value)}`;
 }
 
-function isList(value: Value): value is readonly Value[] {
+export function isList(value: Value): value is readonly Value[] {
   return Array.isArray(value);
 }
 
-function isObject(value: Value): value is ExprObject {
+export function isObject(value: Value): value is ExprObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
@@ -153,7 +179,8 @@ export function valuesEqual(a: Value, b: Value): boolean {
     return a.length === b.length && a.every((item, i) => valuesEqual(item, b[i] as Value));
   }
   if (isObject(a) && isObject(b)) {
-    return typeof a.id === 'string' && a.id === b.id;
+    const id = getProperty(a, 'id');
+    return typeof id === 'string' && id === getProperty(b, 'id');
   }
   return false;
 }
@@ -161,7 +188,7 @@ export function valuesEqual(a: Value, b: Value): boolean {
 class Evaluator {
   constructor(
     private readonly source: string,
-    private readonly names: Readonly<Record<string, Value>>,
+    private readonly lookup: (name: string) => Value | undefined,
   ) {}
 
   private fail(message: string): never {
@@ -174,9 +201,11 @@ class Evaluator {
         return node.value;
       case 'array':
         return node.items.map((item) => this.run(item));
-      case 'name':
-        if (!Object.hasOwn(this.names, node.name)) this.fail(`Unknown name "${node.name}"`);
-        return this.names[node.name] as Value;
+      case 'name': {
+        const value = this.lookup(node.name);
+        if (value === undefined) return this.fail(`Unknown name "${node.name}"`);
+        return value;
+      }
       case 'member':
         return this.member(this.run(node.object), node.name);
       case 'call':
@@ -200,9 +229,9 @@ class Evaluator {
       return this.fail(`Lists only have a "count" property, not "${name}"`);
     }
     if (!isObject(object)) return this.fail(`Can't read "${name}" of ${typeName(object)}`);
-    if (Object.hasOwn(object, name)) return object[name] as Value;
-    if (OPEN in object) return null;
-    return this.fail(`Unknown property "${name}"`);
+    const value = getProperty(object, name);
+    if (value === undefined) return this.fail(`Unknown property "${name}"`);
+    return value;
   }
 
   private call(node: Extract<Node, { kind: 'call' }>): Value {

@@ -3,6 +3,11 @@ export class IllegalMoveError extends Error {
   override name = 'IllegalMoveError';
 }
 
+/** createGame was called with an unsupported player count or invalid options. */
+export class SetupError extends Error {
+  override name = 'SetupError';
+}
+
 /** The game file asks for something the engine can't do or doesn't understand. */
 export class GameFileError extends Error {
   override name = 'GameFileError';
