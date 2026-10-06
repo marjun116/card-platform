@@ -1,0 +1,5 @@
+pnpm-lock.yaml
+apps/server/src/generated/
+# Hand-written docs exported from elsewhere; keep their formatting as-is.
+docs/
+CLAUDE.md
