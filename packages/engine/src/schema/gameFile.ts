@@ -216,6 +216,8 @@ export const endConditionSchema = z.strictObject({
 });
 
 export const gameFileSchema = z.strictObject({
+  /** Lets editors find the JSON Schema; ignored by the engine. */
+  $schema: z.string().optional(),
   meta: metaSchema,
   deck: deckSchema,
   cardOrder: cardOrderSchema.optional(),
