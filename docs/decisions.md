@@ -59,7 +59,8 @@ The spec's action library mixes moves a player chooses with things the engine do
 - Reading a property of `null` gives `null`, so `discard.top.rank` is `null` when the pile is
   empty.
 - `anyPlayer`, `everyPlayer`, `anyTeam` and `everyTeam` mean "true for at least one / for
-  all". The whole expression is evaluated once per player (or team). Only one of them may
+  all". The whole expression is evaluated once per active (not eliminated) player, or once
+  per team. Only one of them may
   appear in an expression.
 - Custom values (`state.x`) start as `null` and are reset at the start of every round.
   Values that must last across rounds (such as bags) use scoring `track`.
