@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "db:check": "pnpm --filter @card-table/server db:check"
+    "db:check": "pnpm --filter @card-table/server db:check",
+    "play": "pnpm --filter @card-table/games play"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

@@ -109,7 +109,9 @@ describe('createGame', () => {
   });
 
   it('notices when a game uses blind bids', () => {
-    expect(createGame(spades, {}, 4, 'b').lookRequired).toBe(true);
+    expect(createGame(spades, { blindNil: true }, 4, 'b').lookRequired).toBe(true);
+    // Blind nil is off by default, so nobody can bid blind: hands start face up.
+    expect(createGame(spades, {}, 4, 'b').lookRequired).toBe(false);
     expect(createGame(sevensUp, {}, 4, 'b').lookRequired).toBe(false);
   });
 });

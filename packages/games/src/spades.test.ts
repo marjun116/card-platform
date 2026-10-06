@@ -48,7 +48,8 @@ function bidAll(state: GameState, bids: Bids): GameState {
     ...[0, 1, 2, 3].flatMap((i) => {
       const seat = (a + i) % 4;
       const value = bids[i] as number | string;
-      return value === 'blindNil' ? [bid(seat, value)] : [look(seat), bid(seat, value)];
+      const needsLook = state.lookRequired && value !== 'blindNil';
+      return needsLook ? [look(seat), bid(seat, value)] : [bid(seat, value)];
     }),
   );
 }

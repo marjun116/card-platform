@@ -1,7 +1,8 @@
 import { buildDeck } from '../cards/deck';
 import { applySet } from '../effects';
 import { GameFileError, SetupError } from '../errors';
-import { evaluateNumber } from '../expr/evaluate';
+import { compile, evaluateNumber } from '../expr/evaluate';
+import type { Node } from '../expr/parser';
 import { randomInt, seedRng, shuffle } from '../rng';
 import { enterPhase, settle } from './flow';
 import type { PlayerId } from './move';
@@ -30,10 +31,11 @@ export function startGame(
   checkPlayerCount(file, playerCount);
   const teams = buildTeams(file, playerCount);
   const rng = seedRng(seed);
+  const resolved = resolveOptions(file, options);
 
   const state: GameState = {
     file,
-    options: resolveOptions(file, options),
+    options: resolved,
     seed,
     rng,
     players: Array.from({ length: playerCount }, (_, id) => ({
@@ -65,7 +67,7 @@ export function startGame(
     trick: null,
     lastTrick: null,
     pending: null,
-    lookRequired: JSON.stringify(file).includes('hasLookedAtHand'),
+    lookRequired: usesBlindBids(file, resolved),
     status: 'inProgress',
     winners: [],
     log: [],
@@ -74,6 +76,41 @@ export function startGame(
   startRound(state);
   settle(state);
   return state;
+}
+
+/**
+ * Whether players start with their own hand face down (for blind bids such as
+ * blind nil). True if any expression mentions player.hasLookedAtHand, except
+ * ones switched off by an option: in "options.blindNil && !player.hasLookedAtHand"
+ * with blindNil off, nobody can ever bid blind, so hands start face up.
+ */
+function usesBlindBids(file: GameFile, options: Record<string, OptionValue>): boolean {
+  const strings: string[] = [];
+  const collect = (value: unknown): void => {
+    if (typeof value === 'string') strings.push(value);
+    else if (Array.isArray(value)) value.forEach(collect);
+    else if (value && typeof value === 'object') Object.values(value).forEach(collect);
+  };
+  collect(file);
+  return strings
+    .filter((s) => s.includes('hasLookedAtHand'))
+    .some((source) => !conjuncts(compile(source).ast).some((part) => isOffOption(part, options)));
+}
+
+/** The parts of a && b && c. */
+function conjuncts(node: Node): Node[] {
+  return node.kind === 'binary' && node.op === '&&'
+    ? [...conjuncts(node.left), ...conjuncts(node.right)]
+    : [node];
+}
+
+function isOffOption(node: Node, options: Record<string, OptionValue>): boolean {
+  return (
+    node.kind === 'member' &&
+    node.object.kind === 'name' &&
+    node.object.name === 'options' &&
+    options[node.name] === false
+  );
 }
 
 function checkPlayerCount(file: GameFile, count: number): void {

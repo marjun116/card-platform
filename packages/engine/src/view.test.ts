@@ -13,10 +13,7 @@ function othersHiddenCards(state: GameState, viewer: number): string[] {
 
 describe('viewFor', () => {
   it("shows your own hand but only the size of everyone else's", () => {
-    const state = play(createGame(spades, {}, 4, 'view'), {
-      player: createGame(spades, {}, 4, 'view').cursor.current,
-      type: 'lookAtHand',
-    });
+    const state = createGame(spades, {}, 4, 'view');
     const me = state.cursor.current;
     const view = viewFor(state, me);
     expect(view.zones[`hand@${me}`]).toEqual({ kind: 'cards', cards: state.zones[`hand@${me}`] });

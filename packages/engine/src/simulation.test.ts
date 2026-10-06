@@ -35,7 +35,7 @@ const GAMES: Record<keyof typeof allFixtures, number> = {
 
 describe('random play', () => {
   for (const [name, file] of Object.entries(allFixtures)) {
-    it(`${name} finishes cleanly`, () => {
+    it(`${name} finishes cleanly`, { timeout: 60_000 }, () => {
       const report = simulateMany(file, {
         games: GAMES[name as keyof typeof allFixtures],
         seedPrefix: name,

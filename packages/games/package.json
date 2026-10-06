@@ -7,8 +7,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p scripts",
+    "test": "vitest run",
+    "play": "tsx scripts/play.ts"
   },
   "dependencies": {
     "@card-table/engine": "workspace:*"

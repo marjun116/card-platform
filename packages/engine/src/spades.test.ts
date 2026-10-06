@@ -28,7 +28,8 @@ function afterBidding(state: GameState, bids: (number | string)[]): GameState {
     state,
     ...order.flatMap((seat, i) => {
       const value = bids[i] ?? 1;
-      return value === 'blindNil' ? [bid(seat, value)] : [look(seat), bid(seat, value)];
+      const needsLook = state.lookRequired && value !== 'blindNil';
+      return needsLook ? [look(seat), bid(seat, value)] : [bid(seat, value)];
     }),
   );
 }

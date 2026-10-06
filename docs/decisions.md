@@ -149,3 +149,6 @@ The spec's action library mixes moves a player chooses with things the engine do
 - Expressions are checked for names that don't exist or aren't available in that place
   (for example `card` outside card actions, or `player` in the end condition), undeclared
   options, and misspelled suits and ranks.
+- Hands start face down (for blind bids) only if a blind bid is possible: an expression that
+  mentions `player.hasLookedAtHand` doesn't count when it also requires an option that is
+  switched off. So spades with blind nil off (the default) deals hands face up.
