@@ -11,5 +11,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "demo": "tsx scripts/demo.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.5"
   }
 }
