@@ -1,3 +1,16 @@
-// Built-in game files (JSON) will be exported from here, starting with
-// spades in Phase 2.
-export const builtInGames: readonly string[] = [];
+import { formatIssues, type GameFile, validate } from '@card-table/engine';
+import spadesJson from '../spades.json';
+
+/** Checks a built-in game file when it's loaded, so a broken file fails loudly and early. */
+function load(name: string, json: unknown): GameFile {
+  const result = validate(json);
+  if (!result.ok)
+    throw new Error(`Built-in game "${name}" is invalid:\n${formatIssues(result.errors)}`);
+  return result.file;
+}
+
+export const builtInGames = {
+  spades: load('spades', spadesJson),
+} as const satisfies Record<string, GameFile>;
+
+export type BuiltInGameName = keyof typeof builtInGames;

@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "name": "Spades",
+    "players": 4,
+    "teams": [
+      [0, 2],
+      [1, 3]
+    ]
+  },
+  "deck": { "copies": 1, "jokers": 0 },
+  "cardOrder": {
+    "ranks": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"],
+    "trump": "spades"
+  },
+  "options": {
+    "nil": { "label": "Allow nil bids", "type": "boolean", "default": true },
+    "blindNil": { "label": "Allow blind nil", "type": "boolean", "default": false },
+    "targetScore": {
+      "label": "Play to",
+      "type": "choice",
+      "values": [300, 500, 1000],
+      "default": 500
+    },
+    "mercyRule": {
+      "label": "End the game when a team falls to -200",
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "zones": {
+    "hand": { "per": "player", "visibility": "owner" },
+    "trick": { "shared": true, "visibility": "all" },
+    "won": { "per": "team", "visibility": "none", "countVisible": true }
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": { "to": "hand", "count": 13 },
+    "dealerRotation": "left"
+  },
+  "phases": [
+    {
+      "name": "bidding",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "actions": [
+        { "type": "bid", "values": { "range": [1, 13] } },
+        { "type": "bid", "values": ["nil"], "if": "options.nil" },
+        {
+          "type": "bid",
+          "values": ["blindNil"],
+          "if": "options.blindNil && !player.hasLookedAtHand"
+        }
+      ]
+    },
+    {
+      "name": "play",
+      "repeat": 13,
+      "leader": { "first": "leftOfDealer", "then": "lastTrickWinner" },
+      "actions": [
+        {
+          "type": "playToTrick",
+          "followSuit": true,
+          "leadRestriction": {
+            "cannotLead": "spades",
+            "unless": "state.spadesBroken || hand.onlySuit('spades')"
+          }
+        }
+      ],
+      "afterTrick": [
+        { "resolveTrick": "highestTrumpElseHighestLed" },
+        { "moveTrick": "won", "of": "winnerTeam" },
+        { "set": "state.spadesBroken", "if": "trick.containsSuit('spades')" }
+      ]
+    }
+  ],
+  "scoring": {
+    "perTeam": [
+      {
+        "if": "team.tricks >= team.bid",
+        "add": "team.bid * 10 + (team.tricks - team.bid)",
+        "track": { "bags": "team.tricks - team.bid" }
+      },
+      { "if": "team.tricks < team.bid", "add": "-team.bid * 10" },
+      { "if": "team.bags >= 10", "add": -100, "track": { "bags": -10 } }
+    ],
+    "perPlayer": [
+      { "if": "player.bid == 'nil'", "add": "player.tricks == 0 ? 100 : -100", "to": "team" },
+      { "if": "player.bid == 'blindNil'", "add": "player.tricks == 0 ? 200 : -200", "to": "team" }
+    ]
+  },
+  "endCondition": {
+    "when": "anyTeam.score >= options.targetScore || (options.mercyRule && anyTeam.score <= -200)",
+    "winner": "highestScore"
+  }
+}

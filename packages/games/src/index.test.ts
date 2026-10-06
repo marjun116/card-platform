@@ -1,13 +1,21 @@
-import { SUITS } from '@card-table/engine';
+import { validate } from '@card-table/engine';
 import { describe, expect, it } from 'vitest';
 import { builtInGames } from './index';
 
-describe('games placeholder', () => {
-  it('can import the engine through the workspace link', () => {
-    expect(SUITS).toContain('spades');
+describe('built-in games', () => {
+  it.each(Object.entries(builtInGames))('%s is valid, with no warnings', (_name, file) => {
+    const result = validate(file);
+    expect(result.ok).toBe(true);
+    expect(result.warnings).toEqual([]);
   });
 
-  it('has no built-in games yet', () => {
-    expect(builtInGames).toEqual([]);
+  it('includes spades with its four house rule options', () => {
+    expect(builtInGames.spades.meta.name).toBe('Spades');
+    expect(Object.keys(builtInGames.spades.options ?? {})).toEqual([
+      'nil',
+      'blindNil',
+      'targetScore',
+      'mercyRule',
+    ]);
   });
 });
