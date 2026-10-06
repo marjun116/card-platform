@@ -41,10 +41,10 @@ export function withZones(
     displaced.push(...(next.zones[key] ?? []));
     next.zones[key] = specs.map(card);
   }
-  // Cards pushed out of the listed zones go to the spare zone, so none vanish.
+  // Cards pushed out of the listed zones go underneath the spare zone, so none vanish.
   if (displaced.length > 0) {
     if (!spare) throw new Error(`withZones: ${displaced.length} cards need a spare zone`);
-    next.zones[spare]?.push(...displaced);
+    next.zones[spare]?.unshift(...displaced);
   }
   return next;
 }

@@ -18,6 +18,8 @@ export interface SimulationOptions {
   maxMoves?: number;
   /** Picks a move; defaults to uniform random. */
   choose?: (moves: Move[], pick: (n: number) => number) => Move;
+  /** Extra checks to run after every move. */
+  check?: (state: GameState, moveNumber: number) => void;
 }
 
 export function totalCards(state: GameState): number {
@@ -32,7 +34,7 @@ export function simulate(
   file: GameFile,
   playerCount: number,
   seed: string,
-  { options = {}, maxMoves = 20_000, choose }: SimulationOptions = {},
+  { options = {}, maxMoves = 20_000, choose, check }: SimulationOptions = {},
 ): SimulationResult {
   const rng = seedRng(`moves:${seed}`);
   const pick = (n: number) => randomInt(rng, n);
@@ -55,6 +57,7 @@ export function simulate(
     if (totalCards(state) !== deckSize) {
       throw new Error(`Cards appeared or vanished after move ${moves.length}`);
     }
+    check?.(state, moves.length);
   }
   return { state, moves };
 }
