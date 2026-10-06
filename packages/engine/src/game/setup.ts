@@ -16,8 +16,12 @@ import {
 } from './state';
 import type { GameFile, OptionValue } from './types';
 
-/** Starts a new game. Same file, options, player count and seed always give the same game. */
-export function createGame(
+/**
+ * Starts a game from a file that has already been validated (createGame in
+ * api.ts validates first). Same file, options, player count and seed always
+ * give the same game.
+ */
+export function startGame(
   file: GameFile,
   options: Record<string, OptionValue>,
   playerCount: number,

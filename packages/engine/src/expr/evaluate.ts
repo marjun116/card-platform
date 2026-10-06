@@ -86,7 +86,8 @@ export function compile(source: string): Compiled {
   return compiled;
 }
 
-function walk(node: Node, visit: (node: Node) => void): void {
+/** Visits every node of an expression tree. */
+export function walk(node: Node, visit: (node: Node) => void): void {
   visit(node);
   switch (node.kind) {
     case 'array':

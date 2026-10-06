@@ -129,3 +129,23 @@ The spec's action library mixes moves a player chooses with things the engine do
 - End condition: `anyTeam.score >= options.targetScore || (options.mercyRule && anyTeam.score <= -200)`.
 - Why: without it, a game with consistently bad bidding can go on forever, and the Phase 2
   random-play simulation needs every game to finish.
+
+## 2026-10-06: Game file validation (Phase 2)
+
+- `createGame` validates every game file before playing it (once per file object) and
+  throws a `GameFileError` listing every problem. `validate(file)` can be called directly
+  and also returns warnings (things that are probably mistakes but not fatal).
+- Unknown keys are errors, so typos like `"visiblity"` are caught.
+- Every game needs a per-player zone called `hand`: trick play, passing and "next player
+  draws" all use it.
+- These names can't be zone names because expressions already use them: `player`, `team`,
+  `card`, `state`, `options`, `round`, `activePlayers`, `cardValue`, `sum`, `min`, `max`,
+  `abs`, `anyPlayer`, `everyPlayer`, `anyTeam`, `everyTeam`.
+- Every phase must be able to end: trick phases end by themselves; other phases need
+  `rounds`, `until`, or a `whenEmpty` rule that ends the round.
+- The starting card (`setup.flip.from`) must come from the undealt cards (`setup.rest`).
+- `resolveTrick`, `moveTrick` and `winnerLeads` only work in `afterTrick`; `choose` only in
+  an action's effects (where there is a player to choose).
+- Expressions are checked for names that don't exist or aren't available in that place
+  (for example `card` outside card actions, or `player` in the end condition), undeclared
+  options, and misspelled suits and ranks.

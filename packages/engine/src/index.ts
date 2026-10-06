@@ -17,5 +17,12 @@ export { ExprError, GameFileError, IllegalMoveError, SetupError } from './errors
 export type { BidValue, Move, MoveType, PlayerId, ZoneKey } from './game/move';
 export type { GameState, PlayerState, TeamState, VarValue } from './game/state';
 export type * from './game/types';
+export { gameFileSchema } from './schema/gameFile';
+export {
+  formatIssues,
+  validate,
+  type ValidationIssue,
+  type ValidationResult,
+} from './schema/validate';
 export type { Scores } from './scoring';
 export type { PlayerView, PublicMove, TrickView, ZoneView } from './view';

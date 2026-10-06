@@ -1,15 +1,40 @@
 /** The engine's public API. Every function is pure: inputs are never changed. */
-import { IllegalMoveError } from './errors';
+import { GameFileError, IllegalMoveError } from './errors';
 import { performMove, settle } from './game/flow';
 import { candidates, findCandidate, getLegalMoves } from './game/legal';
 import type { Move, PlayerId } from './game/move';
-import { createGame } from './game/setup';
+import { startGame } from './game/setup';
 import { draft, type GameState } from './game/state';
 import type { GameFile, OptionValue } from './game/types';
+import { formatIssues, validate } from './schema/validate';
 import { getScores } from './scoring';
 import { viewFor } from './view';
 
-export { createGame, getLegalMoves, getScores, viewFor };
+export { getLegalMoves, getScores, viewFor };
+
+// Files that passed validation, so each file object is only checked once.
+const validated = new WeakSet<object>();
+
+/**
+ * Starts a new game. The file is validated first (once per file object);
+ * an invalid file throws GameFileError listing every problem. Same file,
+ * options, player count and seed always give the same game.
+ */
+export function createGame(
+  file: GameFile,
+  options: Record<string, OptionValue>,
+  playerCount: number,
+  seed: string,
+): GameState {
+  if (!validated.has(file)) {
+    const result = validate(file);
+    if (!result.ok) {
+      throw new GameFileError(`${file.meta.name} has problems:\n${formatIssues(result.errors)}`);
+    }
+    validated.add(file);
+  }
+  return startGame(file, options, playerCount, seed);
+}
 
 /** Returns the state after the move. Throws IllegalMoveError if the move isn't legal now. */
 export function applyMove(state: GameState, move: Move): GameState {

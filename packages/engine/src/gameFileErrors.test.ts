@@ -1,13 +1,16 @@
 /**
- * Game files that ask for something impossible must fail with a clear
- * GameFileError, never hang or crash obscurely. (Phase 2's validator will
- * catch most of these before a game starts.)
+ * The engine's runtime safety nets. createGame validates files first, so
+ * these tests start games with startGame, which skips validation, to prove
+ * that a broken file which somehow got past the validator still fails with
+ * a clear GameFileError instead of hanging or crashing obscurely.
+ * validate.test.ts checks that the validator catches the same mistakes.
  */
 import { describe, expect, it } from 'vitest';
 import { tinyTricks } from './__fixtures__/games';
 import { id } from './__fixtures__/helpers';
-import { applyMove, createGame } from './api';
+import { applyMove } from './api';
 import { ExprError, GameFileError } from './errors';
+import { startGame as createGame } from './game/setup';
 import type { EffectDef, GameFile, PhaseDef } from './game/types';
 
 const trickPhase = tinyTricks.phases[0] as PhaseDef;

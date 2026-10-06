@@ -26,6 +26,8 @@ export default defineConfig([
       'no-eval': 'error',
       'no-implied-eval': 'error',
       'no-new-func': 'error',
+      // Allow dropping keys with rest destructuring: const { a: _a, ...rest } = obj
+      '@typescript-eslint/no-unused-vars': ['error', { ignoreRestSiblings: true }],
     },
   },
 
