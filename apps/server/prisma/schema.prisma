@@ -1,0 +1,11 @@
+// Database schema. Tables arrive in Phase 3; for now this only describes
+// how to connect. The connection string lives in prisma.config.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
