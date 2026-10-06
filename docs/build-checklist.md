@@ -89,16 +89,16 @@ Propose the plan first, then build it.
 
 Build the engine as a pure library with no server or UI. This is the most important code in the project; everything else depends on it being correct.
 
-- [ ] Card, deck and zone types; deck builder supporting copies, ranks, suits and jokers
-- [ ] Seeded random number generator, so any game can be replayed exactly
-- [ ] Expression evaluator for conditions (`hand.count == 0`, `card.rank in [...]`), with a fixed set of operators and no loops
-- [ ] Game state model: players, teams, zones, scores, phase, whose turn, custom state values
-- [ ] Phase and turn machine: phase order, repeats, `until` conditions, leader rules, turn order
-- [ ] Action library from the spec: card movement, trick-taking, bidding, turn control
-- [ ] `getLegalMoves(state, player)` and `applyMove(state, move)` as the main API
-- [ ] `viewFor(state, player)` that strips hidden cards using each zone's `visibility`
-- [ ] Scoring and end-of-game evaluation
-- [ ] Move log, so a game is fully described by its seed plus its list of moves
+- [x] Card, deck and zone types; deck builder supporting copies, ranks, suits and jokers
+- [x] Seeded random number generator, so any game can be replayed exactly
+- [x] Expression evaluator for conditions (`hand.count == 0`, `card.rank in [...]`), with a fixed set of operators and no loops
+- [x] Game state model: players, teams, zones, scores, phase, whose turn, custom state values
+- [x] Phase and turn machine: phase order, repeats, `until` conditions, leader rules, turn order
+- [x] Action library from the spec: card movement, trick-taking, bidding, turn control
+- [x] `getLegalMoves(state, player)` and `applyMove(state, move)` as the main API
+- [x] `viewFor(state, player)` that strips hidden cards using each zone's `visibility`
+- [x] Scoring and end-of-game evaluation
+- [x] Move log, so a game is fully described by its seed plus its list of moves
 
 ```text
 Read CLAUDE.md and docs/game-format.md. Build packages/engine: a pure
