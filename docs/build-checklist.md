@@ -129,13 +129,13 @@ approval before implementing.
 
 Lock down the game file format with a strict validator, then prove it end to end with spades. The validator matters twice: it catches mistakes in built-in games now, and in AI-written custom games later.
 
-- [ ] Schema for the game format (Zod), generating a JSON Schema file as well
-- [ ] Validator with clear, human-readable error messages ("phase 'play' refers to zone 'tricks', which doesn't exist")
-- [ ] Static checks beyond the schema: deck large enough for the deal, every referenced zone and option exists, an end condition is reachable
-- [ ] `packages/games/spades.json`, matching the example in the spec, with all three options
-- [ ] Random-play simulation test: 1,000 seeded games choosing random legal moves, checking that each finishes with no crashes and a valid winner
-- [ ] Scenario tests for tricky rules: spades not yet broken, following suit, nil and blind nil scoring, bag penalty
-- [ ] Command-line tool to play a game in the terminal, for quick manual testing
+- [x] Schema for the game format (Zod), generating a JSON Schema file as well
+- [x] Validator with clear, human-readable error messages ("phase 'play' refers to zone 'tricks', which doesn't exist")
+- [x] Static checks beyond the schema: deck large enough for the deal, every referenced zone and option exists, an end condition is reachable
+- [x] `packages/games/spades.json`, matching the example in the spec, with all three options
+- [x] Random-play simulation test: 1,000 seeded games choosing random legal moves, checking that each finishes with no crashes and a valid winner
+- [x] Scenario tests for tricky rules: spades not yet broken, following suit, nil and blind nil scoring, bag penalty
+- [x] Command-line tool to play a game in the terminal, for quick manual testing
 
 ```text
 Read CLAUDE.md and docs/game-format.md. In packages/engine, add a Zod schema

@@ -85,8 +85,53 @@ check on every push (see `.github/workflows/ci.yml`). CI doesn't need a database
 | ------------------------------ | ---------------------------------------------------------------- |
 | `pnpm demo [seed]`             | Deals spades and Sevens Up and plays a few moves, printing them. |
 | `pnpm test:coverage`           | Runs the engine tests; fails if coverage drops below 90%.        |
+| `pnpm schema`                  | Regenerates `game-file.schema.json` after changing the schema.   |
 
 Hand-written test games live in `packages/engine/src/__fixtures__/games.ts`.
+
+### Game files and validation
+
+The game format is defined once, as a Zod schema in `packages/engine/src/schema/gameFile.ts`.
+`validate(file)` checks a file against it and then checks the whole file: zones and options
+that are referenced must exist, expressions must make sense where they're used, the deck
+must cover the deal, every phase must be able to end. Errors say where the problem is:
+
+```text
+phases[1] ("play").actions[0].to: Zone "tricks" doesn't exist. Did you mean "trick"?
+```
+
+`createGame` refuses to start an invalid game. `packages/engine/game-file.schema.json` is
+the same format as JSON Schema; point your editor at it to get checking while you edit a
+game file (in VS Code, add `"$schema": "../engine/game-file.schema.json"` at the top).
+
+### Testing a game
+
+`@card-table/engine/testing` has the tools for testing any game file:
+
+- `simulateMany(file, { games: 1000 })` plays seeded random games to the end, checking
+  after every move that the game is in a legal state and that no player can see cards they
+  shouldn't. A failure reports the seed and move number, so the game can be replayed.
+- `withZones`, `card`, `id` and `play` set up exact hands for scenario tests.
+
+## Built-in games
+
+Built-in games are JSON files in `packages/games` (so far `spades.json`). Each must pass:
+
+- validation, with no warnings
+- scenario tests for its tricky rules (`packages/games/src/spades.test.ts`)
+- the simulation: 1,000 random games plus 50 games by a "sensible" player
+  (`packages/games/src/simulation.test.ts`)
+
+### Play in the terminal
+
+```sh
+pnpm play spades
+pnpm play spades --seat 2 --seed my-game --option targetScore=300 --option blindNil=true
+```
+
+You play one seat; the bots play the others. Each turn shows the scores, bids, the current
+trick, your hand and your legal moves, numbered. Type a number to play it, or `q` to quit.
+The same `--seed` deals the same cards again.
 
 ## Guard rails
 
