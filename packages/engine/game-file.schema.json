@@ -1,0 +1,1044 @@
+{
+  "$id": "https://card-table.local/game-file.schema.json",
+  "title": "Card Table game file",
+  "description": "A card game described as data. See docs/game-format.md.",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "meta": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "players": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 10
+            },
+            {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                },
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 10
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "teams": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema0"
+          }
+        },
+        "custom": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "players"
+      ],
+      "additionalProperties": false
+    },
+    "deck": {
+      "type": "object",
+      "properties": {
+        "copies": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        },
+        "ranks": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema2"
+          }
+        },
+        "suits": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "jokers": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    "cardOrder": {
+      "type": "object",
+      "properties": {
+        "ranks": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema2"
+          }
+        },
+        "trump": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema3"
+            },
+            {
+              "type": "string",
+              "const": "declared"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "options": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/__schema4"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "boolean",
+              "choice"
+            ]
+          },
+          "values": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema5"
+            }
+          },
+          "default": {
+            "$ref": "#/$defs/__schema5"
+          }
+        },
+        "required": [
+          "label",
+          "type",
+          "default"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "zones": {
+      "type": "object",
+      "propertyNames": {
+        "$ref": "#/$defs/__schema4"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "per": {
+            "type": "string",
+            "enum": [
+              "player",
+              "team"
+            ]
+          },
+          "shared": {
+            "type": "boolean"
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "owner",
+              "all",
+              "none",
+              "topCardOnly"
+            ]
+          },
+          "countVisible": {
+            "type": "boolean"
+          },
+          "melds": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "visibility"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "setup": {
+      "type": "object",
+      "properties": {
+        "shuffle": {
+          "type": "boolean"
+        },
+        "deal": {
+          "type": "object",
+          "properties": {
+            "to": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "count": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "$ref": "#/$defs/__schema6"
+                }
+              ]
+            }
+          },
+          "required": [
+            "to",
+            "count"
+          ],
+          "additionalProperties": false
+        },
+        "rest": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "flip": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "to": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "triggerEffects": {
+              "type": "boolean"
+            },
+            "set": {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/__schema7"
+              }
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        "dealerRotation": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right",
+            "none"
+          ]
+        }
+      },
+      "required": [
+        "deal"
+      ],
+      "additionalProperties": false
+    },
+    "phases": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema8"
+      }
+    },
+    "scoring": {
+      "type": "object",
+      "properties": {
+        "perTeam": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema16"
+          }
+        },
+        "perPlayer": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema16"
+          }
+        },
+        "cardValue": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string",
+                "const": "rankNumber"
+              }
+            ]
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "elimination": {
+      "type": "object",
+      "properties": {
+        "when": {
+          "$ref": "#/$defs/__schema6"
+        }
+      },
+      "required": [
+        "when"
+      ],
+      "additionalProperties": false
+    },
+    "endCondition": {
+      "type": "object",
+      "properties": {
+        "when": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "winner": {
+          "type": "string",
+          "enum": [
+            "highestScore",
+            "lowestScore",
+            "lastActivePlayer"
+          ]
+        },
+        "ties": {
+          "type": "string",
+          "enum": [
+            "playOn",
+            "share"
+          ]
+        }
+      },
+      "required": [
+        "when",
+        "winner"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "meta",
+    "deck",
+    "zones",
+    "setup",
+    "phases",
+    "scoring",
+    "endCondition"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "__schema0": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema1"
+      }
+    },
+    "__schema1": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "__schema2": {
+      "type": "string",
+      "enum": [
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "10",
+        "J",
+        "Q",
+        "K",
+        "A"
+      ]
+    },
+    "__schema3": {
+      "type": "string",
+      "enum": [
+        "clubs",
+        "diamonds",
+        "hearts",
+        "spades"
+      ]
+    },
+    "__schema4": {
+      "type": "string",
+      "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+    },
+    "__schema5": {
+      "type": [
+        "boolean",
+        "number",
+        "string"
+      ]
+    },
+    "__schema6": {
+      "type": "string",
+      "minLength": 1,
+      "description": "An expression, e.g. \"hand.count == 0\""
+    },
+    "__schema7": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/__schema6"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        }
+      ]
+    },
+    "__schema8": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "if": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "order": {
+          "type": "string",
+          "enum": [
+            "leftOfDealer",
+            "clockwise",
+            "counterclockwise",
+            "dealer"
+          ]
+        },
+        "rounds": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "repeat": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "until": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "leader": {
+          "type": "object",
+          "properties": {
+            "first": {
+              "type": "string",
+              "enum": [
+                "leftOfDealer",
+                "dealer"
+              ]
+            },
+            "then": {
+              "type": "string",
+              "const": "lastTrickWinner"
+            }
+          },
+          "additionalProperties": false
+        },
+        "actions": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema9"
+          }
+        },
+        "turn": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema15"
+          }
+        },
+        "afterTrick": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema12"
+          }
+        },
+        "whenEmpty": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/__schema4"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "enum": [
+              "reshuffleDiscardExceptTop",
+              "endRound"
+            ]
+          }
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "__schema9": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "play"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            },
+            "to": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "from": {
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "playToTrick"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            },
+            "to": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "followSuit": {
+              "type": "boolean"
+            },
+            "leadRestriction": {
+              "type": "object",
+              "properties": {
+                "cannotLead": {
+                  "$ref": "#/$defs/__schema3"
+                },
+                "unless": {
+                  "$ref": "#/$defs/__schema6"
+                }
+              },
+              "required": [
+                "cannotLead"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "draw"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            },
+            "from": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "to": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "then": {
+              "type": "string",
+              "const": "mayPlayDrawnCard"
+            }
+          },
+          "required": [
+            "type",
+            "from"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "discard"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            },
+            "to": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "from": {
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "pass"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            },
+            "count": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "direction": {
+              "type": "string",
+              "enum": [
+                "left",
+                "right",
+                "across",
+                "rotate"
+              ]
+            },
+            "from": {
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "count",
+            "direction"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "meld"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            },
+            "to": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "kinds": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema13"
+              }
+            },
+            "minSize": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "from": {
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "layOff"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            },
+            "to": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "from": {
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "pickUpPile"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            },
+            "from": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "to": {
+              "$ref": "#/$defs/__schema4"
+            }
+          },
+          "required": [
+            "type",
+            "from"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "bid"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            },
+            "values": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "range": {
+                      "type": "array",
+                      "prefixItems": [
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "integer",
+                          "minimum": -9007199254740991,
+                          "maximum": 9007199254740991
+                        }
+                      ],
+                      "items": false,
+                      "minItems": 2,
+                      "maxItems": 2
+                    }
+                  },
+                  "required": [
+                    "range"
+                  ],
+                  "additionalProperties": false
+                },
+                {
+                  "minItems": 1,
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/__schema14"
+                  }
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "values"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "passBid"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "declareTrump"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema10"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema11"
+            },
+            "suits": {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema3"
+              }
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "__schema10": {
+      "$ref": "#/$defs/__schema6"
+    },
+    "__schema11": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema12"
+      }
+    },
+    "__schema12": {
+      "type": "object",
+      "properties": {
+        "if": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "set": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "object",
+              "propertyNames": {
+                "type": "string"
+              },
+              "additionalProperties": {
+                "$ref": "#/$defs/__schema7"
+              }
+            }
+          ]
+        },
+        "choose": {
+          "type": "string",
+          "const": "suit"
+        },
+        "resolveTrick": {
+          "type": "string",
+          "enum": [
+            "highestLed",
+            "highestTrumpElseHighestLed"
+          ]
+        },
+        "moveTrick": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "of": {
+          "type": "string",
+          "enum": [
+            "winner",
+            "winnerTeam"
+          ]
+        },
+        "nextPlayer": {
+          "type": "object",
+          "properties": {
+            "draw": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "from": {
+              "$ref": "#/$defs/__schema4"
+            },
+            "skip": {
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        },
+        "skip": {
+          "type": "boolean"
+        },
+        "reverse": {
+          "type": "boolean"
+        },
+        "winnerLeads": {
+          "type": "boolean"
+        },
+        "breakSuit": {
+          "$ref": "#/$defs/__schema3"
+        }
+      },
+      "additionalProperties": false
+    },
+    "__schema13": {
+      "type": "string",
+      "enum": [
+        "set",
+        "run"
+      ]
+    },
+    "__schema14": {
+      "type": [
+        "number",
+        "string"
+      ]
+    },
+    "__schema15": {
+      "type": "object",
+      "properties": {
+        "actions": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema9"
+          }
+        },
+        "optional": {
+          "type": "boolean"
+        },
+        "repeatable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "actions"
+      ],
+      "additionalProperties": false
+    },
+    "__schema16": {
+      "type": "object",
+      "properties": {
+        "if": {
+          "$ref": "#/$defs/__schema6"
+        },
+        "add": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema6"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        "track": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/__schema4"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/__schema6"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          }
+        },
+        "to": {
+          "type": "string",
+          "enum": [
+            "team",
+            "player"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

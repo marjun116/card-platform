@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p scripts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "demo": "tsx scripts/demo.ts"
+    "demo": "tsx scripts/demo.ts",
+    "schema": "tsx scripts/write-schema.ts"
   },
   "dependencies": {
     "zod": "4.6.5"
