@@ -71,8 +71,22 @@ To work on one package only, run commands inside its folder (e.g.
 `cd packages/engine && pnpm test`) or use a filter:
 `pnpm --filter @card-table/engine test`.
 
-GitHub Actions runs `format:check`, `lint`, `typecheck` and `test` on every push
-(see `.github/workflows/ci.yml`). CI doesn't need a database.
+GitHub Actions runs `format:check`, `lint`, `typecheck`, `test` and the engine's coverage
+check on every push (see `.github/workflows/ci.yml`). CI doesn't need a database.
+
+## The rules engine
+
+`packages/engine` runs any game described by the JSON game format. Its main functions are
+`createGame`, `getLegalMoves`, `applyMove`, `viewFor`, `isGameOver`, `getScores` and
+`replay` (see `packages/engine/src/index.ts`). Design decisions are in
+[docs/decisions.md](docs/decisions.md).
+
+| Command (in `packages/engine`) | What it does                                                     |
+| ------------------------------ | ---------------------------------------------------------------- |
+| `pnpm demo [seed]`             | Deals spades and Sevens Up and plays a few moves, printing them. |
+| `pnpm test:coverage`           | Runs the engine tests; fails if coverage drops below 90%.        |
+
+Hand-written test games live in `packages/engine/src/__fixtures__/games.ts`.
 
 ## Guard rails
 
