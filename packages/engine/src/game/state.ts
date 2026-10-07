@@ -53,6 +53,33 @@ export interface Cursor {
   skipNext: number;
 }
 
+/**
+ * What happened in one finished round, kept for the round summary. Only
+ * public information: bids, trick counts and scores, never cards.
+ */
+export interface RoundResult {
+  round: number;
+  dealer: PlayerId;
+  teams: {
+    id: number;
+    /** Points this round (can be negative). */
+    points: number;
+    /** Total score after this round. */
+    score: number;
+    tricks: number;
+    /** Counters such as bags, after this round. */
+    tracks: Record<string, number>;
+  }[];
+  players: {
+    id: PlayerId;
+    bid: BidValue | null;
+    tricks: number;
+    tracks: Record<string, number>;
+    /** Knocked out at the end of this round. */
+    eliminated: boolean;
+  }[];
+}
+
 /** A decision the engine is waiting on before the turn can continue. */
 export type Pending =
   | {
@@ -99,6 +126,8 @@ export interface GameState {
   status: 'inProgress' | 'over';
   winners: PlayerId[];
   log: Move[];
+  /** Every finished round, oldest first. */
+  history: RoundResult[];
   /** Moves made this round, to catch game files that never end a round. */
   roundMoves: number;
 }
@@ -221,6 +250,8 @@ export function draft(state: GameState): GameState {
     pending: state.pending && { ...state.pending },
     winners: [...state.winners],
     log: [...state.log],
+    // Entries are never changed once added.
+    history: [...state.history],
   };
 }
 

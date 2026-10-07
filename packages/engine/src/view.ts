@@ -4,7 +4,14 @@
  */
 import type { Card, CardId } from './cards/card';
 import type { BidValue, Move, PlayerId, ZoneKey } from './game/move';
-import { type GameState, parseZoneKey, type TrickState, zoneDef, zoneKey } from './game/state';
+import {
+  type GameState,
+  parseZoneKey,
+  type RoundResult,
+  type TrickState,
+  zoneDef,
+  zoneKey,
+} from './game/state';
 import type { OptionValue } from './game/types';
 
 /** What a player sees of one zone. */
@@ -54,6 +61,8 @@ export interface PlayerView {
   pending: { kind: 'chooseSuit' | 'mayPlayDrawnCard'; player: PlayerId; card?: CardId } | null;
   zones: Record<ZoneKey, ZoneView>;
   log: PublicMove[];
+  /** Every finished round, oldest first (public: bids, tricks and scores only). */
+  history: RoundResult[];
 }
 
 export interface TrickView {
@@ -171,5 +180,6 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     },
     zones,
     log: state.log.map((m) => publicMove(state, m, viewer)),
+    history: state.history,
   };
 }

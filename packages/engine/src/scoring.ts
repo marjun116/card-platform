@@ -11,6 +11,8 @@ import type { ScoreRuleDef } from './game/types';
 export function scoreRound(state: GameState): boolean {
   const { scoring, elimination, endCondition } = state.file;
   const liveTeams = state.teams.filter((t) => t.players.some((p) => state.players[p]?.active));
+  const scoresBefore = state.teams.map((t) => t.score);
+  const activeBefore = state.players.map((p) => p.active);
 
   for (const team of liveTeams) {
     for (const rule of scoring.perTeam ?? []) applyRule(state, rule, { team: team.id }, team, team);
@@ -30,6 +32,25 @@ export function scoreRound(state: GameState): boolean {
     // If everyone would be knocked out at once, nobody is.
     if (out.length < active.length) for (const p of out) p.active = false;
   }
+
+  state.history.push({
+    round: state.round,
+    dealer: state.dealer,
+    teams: state.teams.map((t, i) => ({
+      id: t.id,
+      points: t.score - (scoresBefore[i] ?? 0),
+      score: t.score,
+      tricks: t.tricks,
+      tracks: { ...t.tracks },
+    })),
+    players: state.players.map((p, i) => ({
+      id: p.id,
+      bid: p.bid,
+      tricks: p.tricks,
+      tracks: { ...p.tracks },
+      eliminated: (activeBefore[i] ?? false) && !p.active,
+    })),
+  });
 
   if (!evaluateCondition(endCondition.when, buildScope(state))) return false;
   const winners = findWinners(state);

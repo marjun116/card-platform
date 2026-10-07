@@ -72,6 +72,7 @@ export function startGame(
     status: 'inProgress',
     winners: [],
     log: [],
+    history: [],
     roundMoves: 0,
   };
   startRound(state);
