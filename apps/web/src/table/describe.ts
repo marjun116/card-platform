@@ -1,0 +1,117 @@
+/** Words for moves: button labels, the game log and screen reader announcements. */
+import type { BidValue, Move, PublicMove } from '@card-table/engine';
+import type { TableInfo } from '@card-table/server/protocol';
+import { cardFromId, shortLabel, spokenLabel, SUIT_SYMBOL, suitName } from './cards';
+import { humanize, parseZoneKey } from './zones';
+
+/** Display names by seat. */
+export type SeatNames = (seat: number) => string;
+
+export function seatNames(table: TableInfo | null, you: number | null): SeatNames {
+  return (seat) => {
+    if (seat === you) return 'You';
+    return table?.seats.find((s) => s.seat === seat)?.user?.displayName ?? `Seat ${seat + 1}`;
+  };
+}
+
+/** "3" or "Nil" or "Blind nil". */
+export function bidLabel(value: BidValue): string {
+  return typeof value === 'number' ? String(value) : humanize(value);
+}
+
+/** "Q♠" or "Queen of spades"; card ids always name their card. */
+function cardText(id: string, spoken: boolean): string {
+  const card = cardFromId(id);
+  if (!card) return id;
+  return spoken ? spokenLabel(card) : shortLabel(card);
+}
+
+function pileText(name: string): string {
+  return `the ${humanize(name).toLowerCase()}`;
+}
+
+/** Label for a button that makes this move, e.g. "Play Q♠" or "Draw from the stock". */
+export function moveLabel(move: Move, names: SeatNames): string {
+  switch (move.type) {
+    case 'playToTrick':
+      return `Play ${cardText(move.card, false)}`;
+    case 'play':
+      return `Play ${cardText(move.card, false)} to ${pileText(move.to)}`;
+    case 'discard':
+      return `Discard ${cardText(move.card, false)}`;
+    case 'layOff': {
+      const { name, seat } = parseZoneKey(move.meld.zone);
+      const owner =
+        seat === null ? pileText(name) : `${names(seat)}'s ${humanize(name).toLowerCase()}`;
+      return `Lay ${cardText(move.card, false)} off on ${owner} (group ${move.meld.index + 1})`;
+    }
+    case 'draw':
+      return `Draw from ${pileText(move.from)}`;
+    case 'pickUpPile':
+      return `Pick up ${pileText(move.from)}`;
+    case 'pass':
+      return `Pass ${move.cards.length} card${move.cards.length === 1 ? '' : 's'}`;
+    case 'meld':
+      return `Meld ${move.cards.length} cards`;
+    case 'bid':
+      return `Bid ${bidLabel(move.value)}`;
+    case 'passBid':
+      return 'Pass';
+    case 'declareTrump':
+      return `${SUIT_SYMBOL[move.suit]} ${suitName(move.suit)} are trump`;
+    case 'chooseSuit':
+      return `${SUIT_SYMBOL[move.suit]} ${suitName(move.suit)}`;
+    case 'lookAtHand':
+      return 'Look at your cards';
+    case 'endTurn':
+      return 'End turn';
+  }
+}
+
+/** A log line, e.g. "Raj played 9 of hearts". Uses spoken card names so it reads well aloud. */
+export function describeMove(move: PublicMove, names: SeatNames): string {
+  const who = names(move.player);
+  const their = who === 'You' ? 'your' : 'their';
+  if ('hidden' in move) {
+    if (move.type === 'pass') return `${who} passed cards`;
+    return `${who} ${move.type === 'play' ? 'played' : 'discarded'} a card face down`;
+  }
+  const card = (id: string) => cardText(id, true);
+  switch (move.type) {
+    case 'playToTrick':
+      return `${who} played ${card(move.card)}`;
+    case 'play':
+      return `${who} played ${card(move.card)} to ${pileText(move.to)}`;
+    case 'discard':
+      return `${who} discarded ${card(move.card)}`;
+    case 'layOff':
+      return `${who} laid off ${card(move.card)}`;
+    case 'draw':
+      return `${who} drew from ${pileText(move.from)}`;
+    case 'pickUpPile':
+      return `${who} picked up ${pileText(move.from)}`;
+    case 'pass':
+      return `${who} passed ${move.cards.map(card).join(', ')}`;
+    case 'meld':
+      return `${who} melded ${move.cards.map(card).join(', ')}`;
+    case 'bid':
+      return `${who} bid ${bidLabel(move.value).toLowerCase()}`;
+    case 'passBid':
+      return `${who} passed`;
+    case 'declareTrump':
+      return `${who} made ${move.suit} trump`;
+    case 'chooseSuit':
+      return `${who} chose ${move.suit}`;
+    case 'lookAtHand':
+      return `${who} looked at ${their} cards`;
+    case 'endTurn':
+      return `${who} ended ${their} turn`;
+  }
+}
+
+/** "Ana" for a one-player team, otherwise "Team 1 (You & Sam)". */
+export function teamName(team: { id: number; players: number[] }, names: SeatNames): string {
+  const players = team.players.map(names);
+  if (players.length === 1) return players[0] ?? `Team ${team.id + 1}`;
+  return `Team ${team.id + 1} (${players.join(' & ')})`;
+}
