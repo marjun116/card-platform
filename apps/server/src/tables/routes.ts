@@ -12,7 +12,7 @@ import { createGame, IllegalMoveError, type OptionValue, SetupError } from '@car
 import type { WebSocket } from '@fastify/websocket';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
-import { newInviteCode, newToken } from '../auth/tokens';
+import { newInviteCode } from '../auth/tokens';
 import type { Deps } from '../deps';
 import { type GameCatalog, playerCounts } from '../games/catalog';
 import { ConflictError, type Table, type User } from '../store/types';
@@ -130,29 +130,31 @@ export function tableRoutes(
         void rooms.leave(room, socket);
       });
 
-      const allow = rateLimiter();
+      const allow = rateLimiter(config.messageBurst, config.messagesPerSecond);
       const onMessage = (data: unknown) => {
-        if (!allow()) {
-          send(socket, {
-            type: 'error',
-            id: null,
-            code: 'RATE_LIMITED',
-            message: 'Too many messages; slow down',
-          });
-          return;
-        }
         let parsed: unknown;
         try {
           parsed = JSON.parse(String(data));
         } catch {
           parsed = undefined;
         }
-        const message = clientMessageSchema.safeParse(parsed);
-        if (!message.success) {
-          const id = (parsed as { id?: unknown } | undefined)?.id;
+        // Every error echoes the message's id when it has one, so the client can match it up.
+        const rawId = (parsed as { id?: unknown } | undefined)?.id;
+        const id = typeof rawId === 'string' || typeof rawId === 'number' ? rawId : null;
+        if (!allow()) {
           send(socket, {
             type: 'error',
-            id: typeof id === 'string' || typeof id === 'number' ? id : null,
+            id,
+            code: 'RATE_LIMITED',
+            message: 'Too many messages; slow down',
+          });
+          return;
+        }
+        const message = clientMessageSchema.safeParse(parsed);
+        if (!message.success) {
+          send(socket, {
+            type: 'error',
+            id,
             code: 'BAD_MESSAGE',
             message: "The server didn't understand that message",
           });
@@ -181,7 +183,7 @@ export function tableRoutes(
           gameVersionId,
           options,
           playerCount,
-          seed: newToken(),
+          seed: deps.newSeed(),
         });
       } catch (error) {
         if (!(error instanceof ConflictError) || attempt >= 4) throw error;
@@ -211,7 +213,7 @@ export function tableRoutes(
  * Allows a burst of messages, refilled steadily: far more than any real
  * player needs, but a flood can't pile up work in the table's queue.
  */
-function rateLimiter(burst = 40, perSecond = 20): () => boolean {
+function rateLimiter(burst: number, perSecond: number): () => boolean {
   let tokens = burst;
   let last = performance.now();
   return () => {

@@ -22,6 +22,8 @@ export async function testServer(overrides: Partial<Deps> = {}): Promise<TestSer
   const emails: TestServer['emails'] = [];
   const nudges: TurnNudge[] = [];
   let time = Date.parse('2026-10-07T12:00:00Z');
+  // Fixed seeds, so every run deals the same cards and a failure can be replayed.
+  let tables = 0;
   const app = await buildApp({
     store,
     mailer: {
@@ -36,8 +38,10 @@ export async function testServer(overrides: Partial<Deps> = {}): Promise<TestSer
         return Promise.resolve();
       },
     },
-    config: { ...defaultConfig, publicUrl: 'http://cards.test' },
+    // Test players move far faster than people, so they get a much higher message limit.
+    config: { ...defaultConfig, publicUrl: 'http://cards.test', messageBurst: 10_000 },
     now: () => new Date(time),
+    newSeed: () => `test-table-${++tables}`,
     ...overrides,
   });
   return { app, store, emails, nudges, advance: (ms) => (time += ms) };

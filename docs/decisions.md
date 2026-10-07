@@ -248,7 +248,9 @@ Agreed before building `apps/server`.
 - **Connections that close while being set up** are removed from the table straight away
   (before this, they stayed listed as "connected" forever).
 - **Rate limit per WebSocket:** a burst of 40 messages, refilled at 20 a second. Extra
-  messages get a `RATE_LIMITED` error; the connection stays open. At most 50 messages are
+  messages get a `RATE_LIMITED` error carrying the message's id, so the client always gets an
+  answer; the connection stays open. Tests use a much higher limit (bots move far faster
+  than people), except the test of the limit itself. At most 50 messages are
   held while a connection is being set up; more than that closes it.
 - **Logs** never contain sign-in tokens (they're replaced with `[redacted]` in logged URLs).
 - **Unexpected server errors** are logged in full, but clients only see "Something went
@@ -258,3 +260,5 @@ Agreed before building `apps/server`.
 - **Left for Phase 8** (security review and rate limits): limits on how often one person can
   create guests, tables and sign-in emails to many different addresses; and closing a
   user's open WebSockets when they sign out.
+- **Test tables use fixed seeds** (`test-table-1`, `test-table-2`, ...) instead of random ones,
+  so every test run deals the same cards and a failure can be replayed exactly.

@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import { consoleMailer } from './auth/mailer';
 import { authRoutes } from './auth/routes';
 import { registerSessions } from './auth/session';
+import { newToken } from './auth/tokens';
 import { defaultConfig } from './config';
 import type { Deps } from './deps';
 import { GameCatalog } from './games/catalog';
@@ -45,6 +46,7 @@ export async function buildApp(overrides: Partial<Deps> = {}): Promise<FastifyIn
     notifier: loggingNotifier((message) => app.log.info(message)),
     config: defaultConfig,
     now: () => new Date(),
+    newSeed: newToken,
     ...overrides,
   };
 

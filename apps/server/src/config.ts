@@ -14,6 +14,10 @@ export interface Config {
   nudgeCooldownMs: number;
   /** Minimum time between sign-in emails to the same address. */
   emailCooldownMs: number;
+  /** WebSocket rate limit: a burst of this many messages... */
+  messageBurst: number;
+  /** ...refilled at this many per second. */
+  messagesPerSecond: number;
 }
 
 const HOUR = 60 * 60 * 1000;
@@ -26,6 +30,8 @@ export const defaultConfig: Config = {
   idleCheckEveryMs: 10 * 60 * 1000,
   nudgeCooldownMs: 5 * 60 * 1000,
   emailCooldownMs: 60 * 1000,
+  messageBurst: 40,
+  messagesPerSecond: 20,
 };
 
 export function configFromEnv(env: NodeJS.ProcessEnv = process.env): Config {

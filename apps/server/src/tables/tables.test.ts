@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { guest, testServer, type TestServer, withSession } from '../testing';
 import { TestClient } from '../testing/client';
 import { createTable, listen, type Player, playRandomly, spadesTable } from '../testing/tables';
+import { defaultConfig } from '../config';
 import { MemoryStore } from '../store/memory';
 import type { Store } from '../store/types';
 import type { TableInfo } from './protocol';
@@ -171,16 +172,23 @@ describe('connecting', () => {
     expect(res.json<{ table: TableInfo }>().table.seats[0]?.connected).toBe(false);
   });
 
-  it('slows down a client that floods the server, without disconnecting it', async () => {
+  it('slows down a client that floods the server, answering every message', async () => {
+    // A server with the real limit (test servers normally allow far more).
+    await server.app.close();
+    server = await testServer({ config: { ...defaultConfig, publicUrl: 'http://cards.test' } });
+    baseUrl = await listen(server);
     const { token } = await guest(server.app, 'Host');
     const client = await connect(await createTable(server, token), token);
     await client.waitFor((m) => m.type === 'table', 'table');
-    for (let i = 0; i < 100; i++)
-      client.sendRaw(JSON.stringify({ id: `flood-${i}`, type: 'stand' }));
-    await client.waitFor((m) => m.type === 'error' && m.id === 'flood-39', 'reply 39');
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    const limited = client.messages.filter((m) => m.type === 'error' && m.code === 'RATE_LIMITED');
+
+    // Every message gets a reply, refused ones included, so no client waits forever.
+    const replies = await Promise.all(
+      Array.from({ length: 100 }, () => client.request({ type: 'stand' })),
+    );
+    const limited = replies.filter((r) => r.type === 'error' && r.code === 'RATE_LIMITED');
     expect(limited.length).toBeGreaterThan(40);
+    expect(limited.length).toBeLessThanOrEqual(60);
+
     // A moment later, it can carry on.
     await new Promise((resolve) => setTimeout(resolve, 500));
     await client.ok({ type: 'sit', seat: 0 });

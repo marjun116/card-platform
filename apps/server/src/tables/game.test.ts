@@ -63,6 +63,19 @@ describe('a full game over WebSockets', () => {
   );
 });
 
+describe('a long game', () => {
+  it('keeps up over hundreds of moves', async () => {
+    server = await testServer();
+    const baseUrl = await listen(server);
+    const { players } = await spadesTable(server, baseUrl, {
+      options: { mercyRule: false, targetScore: 1000 },
+    });
+    clients.push(...players.map((p) => p.client));
+    expect(await playRandomly(players, 'long', { maxMoves: 400 })).toBe(400);
+    for (const p of players) expect(p.client.lastGame?.seq).toBe(400);
+  });
+});
+
 describe('reconnecting', () => {
   it('sends a returning player the current table and their view', async () => {
     server = await testServer();

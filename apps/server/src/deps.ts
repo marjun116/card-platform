@@ -11,4 +11,6 @@ export interface Deps {
   config: Config;
   /** The clock. Tests can move it forward. */
   now: () => Date;
+  /** A seed for a new table's shuffles. Random, except in tests. */
+  newSeed: () => string;
 }
