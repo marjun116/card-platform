@@ -175,7 +175,8 @@ describe('connecting', () => {
     const { token } = await guest(server.app, 'Host');
     const client = await connect(await createTable(server, token), token);
     await client.waitFor((m) => m.type === 'table', 'table');
-    for (let i = 0; i < 100; i++) client.sendRaw(JSON.stringify({ id: `flood-${i}`, type: 'stand' }));
+    for (let i = 0; i < 100; i++)
+      client.sendRaw(JSON.stringify({ id: `flood-${i}`, type: 'stand' }));
     await client.waitFor((m) => m.type === 'error' && m.id === 'flood-39', 'reply 39');
     await new Promise((resolve) => setTimeout(resolve, 200));
     const limited = client.messages.filter((m) => m.type === 'error' && m.code === 'RATE_LIMITED');
