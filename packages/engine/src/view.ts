@@ -3,6 +3,7 @@
  * only this to a client, never the full state.
  */
 import type { Card, CardId } from './cards/card';
+import { turnSteps } from './game/legal';
 import type { BidValue, Move, PlayerId, ZoneKey } from './game/move';
 import {
   type GameState,
@@ -57,6 +58,8 @@ export interface PlayerView {
   direction: 1 | -1;
   trick: TrickView | null;
   lastTrick: TrickView | null;
+  /** Names of the zones tricks are played into, so a client can draw them as tricks, not piles. */
+  trickZones: string[];
   /** A decision the game is waiting on; `card` is shown only to the player deciding. */
   pending: { kind: 'chooseSuit' | 'mayPlayDrawnCard'; player: PlayerId; card?: CardId } | null;
   zones: Record<ZoneKey, ZoneView>;
@@ -108,6 +111,18 @@ function zoneView(cards: Card[], level: Access): ZoneView {
     case 'hidden':
       return { kind: 'hidden' };
   }
+}
+
+function trickZones(state: GameState): string[] {
+  const names = new Set<string>();
+  for (const phase of state.file.phases) {
+    for (const step of turnSteps(phase)) {
+      for (const action of step.actions) {
+        if (action.type === 'playToTrick') names.add(action.to ?? 'trick');
+      }
+    }
+  }
+  return [...names];
 }
 
 function trickView(state: GameState, trick: TrickState | null, viewer: PlayerId): TrickView | null {
@@ -174,6 +189,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     direction: state.cursor.direction,
     trick: trickView(state, state.trick, viewer),
     lastTrick: trickView(state, state.lastTrick, viewer),
+    trickZones: trickZones(state),
     pending: pending && {
       kind: pending.kind,
       player: pending.player,

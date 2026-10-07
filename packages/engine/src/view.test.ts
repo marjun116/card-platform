@@ -66,6 +66,8 @@ describe('viewFor', () => {
       { player: leader, card: state.trick?.plays[0]?.card },
     ]);
     expect(viewFor(state, other).trick?.zone).toBe('trick');
+    expect(viewFor(start, other).trickZones).toEqual(['trick']);
+    expect(viewFor(createGame(sevensUp, {}, 3, 'trick'), 0).trickZones).toEqual([]);
     expect(viewFor(state, other).log).toEqual(state.log);
   });
 
