@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { guest, testServer, type TestServer, withSession } from '../testing';
 import { TestClient } from '../testing/client';
 import { createTable, listen, type Player, playRandomly, spadesTable } from '../testing/tables';
+import { MemoryStore } from '../store/memory';
+import type { Store } from '../store/types';
 import type { TableInfo } from './protocol';
 
 let server: TestServer;
@@ -117,7 +119,34 @@ describe('games and tables over HTTP', () => {
   });
 });
 
+/** A MemoryStore that answers every call after a delay, like a hosted database. */
+function slowStore(delayMs: number): Store {
+  const store = new MemoryStore();
+  return new Proxy(store, {
+    get(target, key) {
+      const value: unknown = Reflect.get(target, key, target);
+      if (typeof value !== 'function') return value;
+      return async (...args: unknown[]) => {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        return (value as (...a: unknown[]) => unknown).apply(target, args);
+      };
+    },
+  });
+}
+
 describe('connecting', () => {
+  it("doesn't lose messages sent while the server is still looking up the table", async () => {
+    await server.app.close();
+    server = await testServer({ store: slowStore(50) });
+    baseUrl = await listen(server);
+    const { token } = await guest(server.app, 'Host');
+    const code = await createTable(server, token);
+    const client = await connect(code, token);
+    // Sent the moment the socket opens, before the server has loaded the table.
+    await client.ok({ type: 'sit', seat: 0 });
+    await client.ok({ type: 'stand' });
+  });
+
   it('needs a session, a real table and our own origin', async () => {
     const { token } = await guest(server.app, 'Host');
     const code = await createTable(server, token);

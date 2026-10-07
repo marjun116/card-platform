@@ -95,13 +95,16 @@ export function tableRoutes(
       },
     },
     async (socket, request) => {
-      const user = request.user as User;
-      const table = (await tableFromParams(request)) as Table;
       // Hold messages until the room is ready, so none are lost or handled out of order.
+      // This must happen before the first `await`: the socket is already open,
+      // and messages that arrive with no listener are dropped.
       const early: unknown[] = [];
       socket.on('message', (data) => early.push(data));
+      const user = request.user as User;
       let room: TableRoom;
       try {
+        const table = await tableFromParams(request);
+        if (!table) throw new Error('Table disappeared while connecting');
         room = await rooms.join(table, socket, user);
       } catch (error) {
         sendError(socket, null, error);
