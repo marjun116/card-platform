@@ -599,6 +599,17 @@ kbd {
 .seat.acting {
   border-color: var(--playable);
 }
+/* Seven or more players: smaller panels, and a taller table to fit them. */
+.felt.crowded {
+  height: clamp(460px, calc(100dvh - 360px), 720px);
+}
+.felt.crowded .seat {
+  min-width: 118px;
+  max-width: 160px;
+  padding: 0.3em 0.5em;
+  font-size: 0.78rem;
+  gap: 0.15em;
+}
 .seat-head,
 .seat-body {
   display: flex;
@@ -623,6 +634,10 @@ kbd {
 .seat-facts {
   margin-left: 0.4em;
 }
+.seat .nudge {
+  color: var(--felt-text);
+  font-size: 0.85em;
+}
 .seat .presence.off {
   color: var(--felt-text);
 }
@@ -635,6 +650,10 @@ kbd {
 }
 .zone-label {
   opacity: 0.85;
+}
+.zone-line {
+  font-size: 0.85em;
+  opacity: 0.9;
 }
 .fan,
 .melds,
@@ -663,9 +682,9 @@ kbd {
   gap: 24px;
 }
 .trick {
+  /* Width and height are set by trickLayout(), to fit the number of players. */
   position: relative;
-  width: calc(var(--card-w) * 3.6);
-  height: calc(var(--card-w) * 3.6);
+  flex: none;
 }
 .trick-card {
   position: absolute;
@@ -957,7 +976,8 @@ kbd {
     margin: 0 0 8px;
   }
 
-  .felt {
+  .felt,
+  .felt.crowded {
     flex: 1;
     height: auto;
     min-height: 0;
@@ -973,13 +993,16 @@ kbd {
     display: flex;
     gap: 6px;
     overflow-x: auto;
+    scroll-behavior: smooth;
   }
   .seat {
     position: static;
     transform: none;
     order: var(--order);
+    /* Share the width, but never narrower than this: with many players the strip scrolls. */
     min-width: 0;
-    flex: 1 1 0;
+    max-width: none;
+    flex: 1 0 88px;
     padding: 0.35em 0.45em;
     font-size: 0.8rem;
   }
@@ -1015,5 +1038,8 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .hand-card {
     transition: none;
+  }
+  .seats {
+    scroll-behavior: auto;
   }
 }

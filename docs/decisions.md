@@ -330,3 +330,17 @@ Agreed before building `apps/web`.
   scores and log fold away behind a "Scores" button, and your hand and buttons stay pinned to
   the bottom of the screen. The hand overlaps more as it grows so 13 cards fit at phone width;
   past that it scrolls sideways.
+
+## 2026-10-07: Tables with more than 4 players
+
+- Games can have up to 10 players (engine, server and web all allow it); built-in and custom
+  games alike.
+- **The trick** is a ring of cards, each on the side of the player who played it. The ring
+  grows until no two cards overlap (`trickLayout` in `apps/web/src/table/zones.ts`), and uses
+  smaller cards from 5 players up.
+- **Seats**: from 7 players the seat panels are smaller and the table taller. Piles at a seat
+  that can only be counted (like another player's won tricks) are a line of text, not a
+  picture. "Nudge" sits next to the player's name, so a panel doesn't grow on their turn.
+- **Phones**: the strip of other players scrolls sideways when they don't fit, and scrolls to
+  whoever is to play.
+- **Scoreboard**: one-player teams take one line each (name, score, bid and tricks).

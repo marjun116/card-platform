@@ -1,5 +1,5 @@
 /** The scoreboard, round summaries and the history of every round. */
-import type { PlayerView, RoundResult } from '@card-table/engine';
+import type { BidValue, PlayerView, RoundResult } from '@card-table/engine';
 import { type ReactNode, useEffect, useRef } from 'react';
 import { bidLabel, type SeatNames, teamName } from './describe';
 import { ZoneDisplay } from './ZoneViews';
@@ -11,6 +11,10 @@ function tracksText(tracks: Record<string, number>): string {
   return Object.entries(tracks)
     .map(([name, value]) => `${humanize(name)} ${value}`)
     .join(' · ');
+}
+
+function bidText(bid: BidValue | null): string {
+  return bid === null ? '–' : bidLabel(bid).toLowerCase();
 }
 
 function signed(n: number): string {
@@ -44,7 +48,20 @@ export function Scoreboard({
                 <span className="team-score">{team.score}</span>
               </div>
               {tracks && <div className="muted">{tracks}</div>}
-              {(showBids || showTricks) && team.players.length > 0 && (
+              {/* One-player teams already show their name; their bid and tricks fit on one line. */}
+              {(showBids || showTricks) && team.players.length === 1 && (
+                <div className="muted">
+                  {[
+                    showBids
+                      ? `bid ${bidText(view.players[team.players[0] ?? 0]?.bid ?? null)}`
+                      : null,
+                    showTricks ? `won ${view.players[team.players[0] ?? 0]?.tricks ?? 0}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </div>
+              )}
+              {(showBids || showTricks) && team.players.length > 1 && (
                 <ul className="team-players">
                   {team.players.map((seat) => {
                     const player = view.players[seat];
@@ -52,11 +69,7 @@ export function Scoreboard({
                     return (
                       <li key={seat}>
                         <span>{names(seat)}</span>
-                        {showBids && (
-                          <span>
-                            bid {player.bid === null ? '–' : bidLabel(player.bid).toLowerCase()}
-                          </span>
-                        )}
+                        {showBids && <span>bid {bidText(player.bid)}</span>}
                         {showTricks && <span>won {player.tricks}</span>}
                       </li>
                     );

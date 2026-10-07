@@ -3,17 +3,29 @@ import type { Card as CardData, Move, PlayerView, TrickView, ZoneView } from '@c
 import { CardBack, CardFace, type CardSize } from './Card';
 import { spokenLabel } from './cards';
 import { moveLabel, type SeatNames } from './describe';
-import { humanize, type PlacedZone, seatPosition, zoneCount } from './zones';
+import { humanize, type PlacedZone, trickAreaSize, trickLayout, zoneCount } from './zones';
 
 function countText(n: number): string {
   return `${n} card${n === 1 ? '' : 's'}`;
 }
 
 /** A zone drawn small: at a player's seat, in your area or in the scoreboard. */
-export function ZoneDisplay({ zone, size = 'tiny' }: { zone: PlacedZone; size?: CardSize }) {
+export function ZoneDisplay({
+  zone,
+  size = 'tiny',
+  compact = false,
+}: {
+  zone: PlacedZone;
+  size?: CardSize;
+  /** Piles that can only be counted are written as one line of text. */
+  compact?: boolean;
+}) {
   const label = humanize(zone.name);
   const view = zone.view;
   if (view.kind === 'hidden') return null;
+  if (view.kind === 'count' && compact && !view.top) {
+    return <div className="zone-line">{`${label} pile: ${countText(view.count)}`}</div>;
+  }
   if (view.kind === 'count') {
     return (
       <div className="zone" aria-label={`${label}: ${countText(view.count)}`} role="group">
@@ -135,25 +147,37 @@ export function Trick({
   names: SeatNames;
   label: string;
 }) {
-  const playerCount = view.players.length;
+  const layout = trickLayout(view.you, view.players.length);
+  const area = trickAreaSize(layout);
+  // Sizes are in card widths; --t is the width of the cards drawn here.
+  const t = layout.size === 'small' ? 'var(--small-w)' : 'var(--card-w)';
   return (
-    <div className="trick" role="group" aria-label={label}>
+    <div
+      className="trick"
+      role="group"
+      aria-label={label}
+      style={{ width: `calc(${area.width} * ${t})`, height: `calc(${area.height} * ${t})` }}
+    >
       {trick.plays.map((play) => {
-        const seat = seatPosition(play.player, view.you, playerCount);
-        // Pulled towards the middle, so whole cards fit inside the trick area.
-        const x = 50 + (seat.x - 50) * 0.7;
-        const y = 50 + (seat.y - 50) * 0.7;
+        const { x, y } = layout.spot(play.player);
         const won = trick.winner === play.player;
         const who = names(play.player);
         return (
           <span
             key={play.player}
             className={`trick-card${won ? ' won' : ''}`}
-            style={{ left: `${x}%`, top: `${y}%` }}
+            style={{
+              left: `calc(50% + ${x.toFixed(3)} * ${t})`,
+              top: `calc(50% + ${y.toFixed(3)} * ${t})`,
+            }}
             aria-label={`${who}: ${play.card ? spokenLabel(play.card) : 'face down'}${won ? ', winning' : ''}`}
             role="img"
           >
-            {play.card ? <CardFace card={play.card} /> : <CardBack />}
+            {play.card ? (
+              <CardFace card={play.card} size={layout.size} />
+            ) : (
+              <CardBack size={layout.size} />
+            )}
           </span>
         );
       })}

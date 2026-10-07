@@ -1,6 +1,7 @@
 /** Another player's place at the table: name, turn, bid, tricks and their zones. */
 import type { PlayerView } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
+import { useEffect, useRef } from 'react';
 import { CardBack } from './Card';
 import { bidLabel, type SeatNames } from './describe';
 import { ZoneDisplay } from './ZoneViews';
@@ -42,8 +43,19 @@ export function Seat({
     player && !player.active ? 'Out' : null,
   ].filter(Boolean);
 
+  // On phones the seats are a strip that scrolls sideways: keep whoever is to act in view.
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    const strip = el?.parentElement;
+    if (!acting || !el || !strip || strip.scrollWidth <= strip.clientWidth) return;
+    if (typeof strip.scrollTo !== 'function') return;
+    strip.scrollTo({ left: el.offsetLeft - (strip.clientWidth - el.clientWidth) / 2 });
+  }, [acting]);
+
   return (
     <section
+      ref={ref}
       className={`seat${acting ? ' acting' : ''}`}
       style={{ ['--x' as string]: x, ['--y' as string]: y, ['--order' as string]: order }}
       aria-label={`${names(seat)}${acting ? ', to play' : ''}`}
@@ -56,6 +68,16 @@ export function Seat({
         />
         <strong className="seat-player">{names(seat)}</strong>
         {acting && <span className="turn-badge">Turn</span>}
+        {acting && info?.user && (
+          <button
+            type="button"
+            className="link-button nudge"
+            aria-label={`Nudge ${names(seat)}`}
+            onClick={() => onNudge(seat)}
+          >
+            Nudge
+          </button>
+        )}
       </div>
       <div className="seat-body">
         {handCount !== null && (
@@ -69,13 +91,8 @@ export function Seat({
         {facts.length > 0 && <span className="seat-facts">{facts.join(' · ')}</span>}
       </div>
       {others.map((zone) => (
-        <ZoneDisplay key={zone.key} zone={zone} />
+        <ZoneDisplay key={zone.key} zone={zone} compact />
       ))}
-      {acting && info?.user && (
-        <button type="button" className="small" onClick={() => onNudge(seat)}>
-          Nudge
-        </button>
-      )}
     </section>
   );
 }

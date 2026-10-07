@@ -173,7 +173,12 @@ export function TableView({
       )}
 
       <div className="table-main">
-        <div className="felt" role="region" aria-label="Table">
+        <div
+          // Many players: smaller seat panels so they fit around the table.
+          className={`felt${view.players.length >= 7 ? ' crowded' : ''}`}
+          role="region"
+          aria-label="Table"
+        >
           <div className="seats">
             {others.map((player) => (
               <Seat
@@ -254,7 +259,7 @@ export function TableView({
         {layout.mine.length > 0 && (
           <div className="your-zones">
             {layout.mine.map((zone) => (
-              <ZoneDisplay key={zone.key} zone={zone} size="small" />
+              <ZoneDisplay key={zone.key} zone={zone} size="small" compact />
             ))}
           </div>
         )}

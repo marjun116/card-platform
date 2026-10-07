@@ -1,7 +1,16 @@
 import { viewFor } from '@card-table/engine';
 import { describe, expect, it } from 'vitest';
 import { createGame, miniRummy, playUntil, sevensUp, spades } from '../test/games';
-import { humanize, layoutZones, parseZoneKey, seatPosition, zoneCount } from './zones';
+import {
+  cardsOverlap,
+  humanize,
+  layoutZones,
+  parseZoneKey,
+  seatPosition,
+  trickAreaSize,
+  trickLayout,
+  zoneCount,
+} from './zones';
 
 describe('layoutZones', () => {
   it('puts your hand at the bottom and other hands at their seats (spades)', () => {
@@ -69,5 +78,49 @@ describe('zone helpers', () => {
     expect(seatPosition(3, 2, 4)).toEqual({ order: 1, x: 8, y: 50 });
     expect(seatPosition(0, 2, 4)).toEqual({ order: 2, x: 50, y: 10 });
     expect(seatPosition(1, 2, 4)).toEqual({ order: 3, x: 92, y: 50 });
+  });
+});
+
+describe('trickLayout', () => {
+  const counts = [2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+  it.each(counts)('fits %i cards in a ring without any overlapping', (n) => {
+    const layout = trickLayout(0, n);
+    const spots = Array.from({ length: n }, (_, seat) => layout.spot(seat));
+    expect(cardsOverlap(spots)).toBe(false);
+    // Every card lies inside the trick area.
+    const { width, height } = trickAreaSize(layout);
+    for (const { x, y } of spots) {
+      expect(Math.abs(x) + 0.5).toBeLessThanOrEqual(width / 2 + 1e-9);
+      expect(Math.abs(y) + 0.75).toBeLessThanOrEqual(height / 2 + 1e-9);
+    }
+  });
+
+  it('puts your card at the bottom and the next seat on your left', () => {
+    const layout = trickLayout(2, 4);
+    expect(layout.spot(2).y).toBeGreaterThan(0);
+    expect(layout.spot(3).x).toBeLessThan(0);
+    expect(layout.spot(0).y).toBeLessThan(0);
+  });
+
+  it('uses smaller cards and a bigger ring as players are added', () => {
+    expect(trickLayout(0, 4).size).toBe('normal');
+    expect(trickLayout(0, 5).size).toBe('small');
+    expect(trickLayout(0, 10).ry).toBeGreaterThan(trickLayout(0, 4).ry);
+  });
+
+  it('notices overlapping cards', () => {
+    expect(
+      cardsOverlap([
+        { x: 0, y: 0 },
+        { x: 0.9, y: 1.4 },
+      ]),
+    ).toBe(true);
+    expect(
+      cardsOverlap([
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+      ]),
+    ).toBe(false);
   });
 });

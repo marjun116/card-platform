@@ -107,3 +107,57 @@ export function seatPosition(
   const round = (n: number) => Math.round(n * 10) / 10;
   return { order, x: round(50 + 42 * Math.cos(angle)), y: round(50 + 40 * Math.sin(angle)) };
 }
+
+/** Cards are this many times taller than they are wide. */
+const CARD_RATIO = 1.5;
+
+export interface TrickLayout {
+  /** Smaller cards once there are many players, so the ring stays a sensible size. */
+  size: 'normal' | 'small';
+  /** Half the ring's width and height, measured between card centres, in card widths. */
+  rx: number;
+  ry: number;
+  /** Each seat's card centre, relative to the middle of the ring, in card widths. */
+  spot: (seat: number) => { x: number; y: number };
+}
+
+/**
+ * Where the cards of a trick go: in a ring, each on the side of the player
+ * who played it (same order as seatPosition). The ring grows with the
+ * number of players so that neighbouring cards don't cover each other.
+ */
+export function trickLayout(you: number, playerCount: number): TrickLayout {
+  const n = Math.max(playerCount, 2);
+  // Card centres for a ring of half-width rx and half-height ry, viewer's card first.
+  const ring = (rx: number, ry: number) =>
+    Array.from({ length: n }, (_, order) => {
+      const angle = Math.PI / 2 + (order * 2 * Math.PI) / n;
+      return { x: rx * Math.cos(angle), y: ry * Math.sin(angle) };
+    });
+  // Start small and grow the ring until no two cards overlap.
+  let rx = 1.3;
+  let ry = 1.2;
+  while (cardsOverlap(ring(rx, ry))) {
+    rx *= 1.05;
+    ry *= 1.05;
+  }
+  const spots = ring(rx, ry);
+  return {
+    size: n > 4 ? 'small' : 'normal',
+    rx,
+    ry,
+    spot: (seat) => spots[(seat - you + n) % n] ?? { x: 0, y: 0 },
+  };
+}
+
+/** Whether any two cards (one wide, CARD_RATIO tall) centred at these points overlap. */
+export function cardsOverlap(centres: { x: number; y: number }[]): boolean {
+  return centres.some((a, i) =>
+    centres.slice(i + 1).some((b) => Math.abs(a.x - b.x) < 1 && Math.abs(a.y - b.y) < CARD_RATIO),
+  );
+}
+
+/** The trick area's size in card widths: the ring plus half a card on every side. */
+export function trickAreaSize(layout: TrickLayout): { width: number; height: number } {
+  return { width: 2 * layout.rx + 1, height: 2 * layout.ry + CARD_RATIO };
+}
