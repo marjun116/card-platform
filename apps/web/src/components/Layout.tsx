@@ -1,10 +1,8 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { useSession } from '../useSession';
-import { useSettings } from '../useSettings';
 
 export function Layout() {
   const { user, signOut } = useSession();
-  const { settings, change } = useSettings();
   const navigate = useNavigate();
 
   return (
@@ -22,14 +20,6 @@ export function Layout() {
           <NavLink to="/about">About</NavLink>
         </nav>
         <div className="header-end">
-          <label className="toggle" title="Spades black, hearts red, diamonds blue, clubs green">
-            <input
-              type="checkbox"
-              checked={settings.fourColor}
-              onChange={(e) => change({ fourColor: e.target.checked })}
-            />
-            Four-colour suits
-          </label>
           {user && (
             <span className="who">
               {user.displayName}

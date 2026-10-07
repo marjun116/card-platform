@@ -34,25 +34,15 @@ export function suitName(suit: Suit): string {
   return suit[0]?.toUpperCase() + suit.slice(1);
 }
 
-/**
- * Picture of a card face, or null for jokers (drawn by the Card component).
- * Four-colour versions exist for clubs and diamonds number cards.
- */
-export function cardImage(card: Card, fourColor: boolean): string | null {
+/** Picture of a card face, or null for jokers (drawn by the Card component). */
+export function cardImage(card: Card): string | null {
   if (isJoker(card)) return null;
-  const name = `${card.rank}${SUIT_LETTER[card.suit]}.svg`;
-  const recoloured =
-    fourColor &&
-    (card.suit === 'clubs' || card.suit === 'diamonds') &&
-    !['J', 'Q', 'K'].includes(card.rank);
-  return recoloured ? `/cards/four-color/${name}` : `/cards/${name}`;
+  return `/cards/${card.rank}${SUIT_LETTER[card.suit]}.svg`;
 }
 
-/** CSS class giving a suit its colour (see styles.css): four colours, or red and black. */
-export function suitClass(suit: Suit | null, fourColor: boolean): string {
-  if (suit === null) return 'suit-joker';
-  if (fourColor) return `suit-${suit}`;
-  return suit === 'hearts' || suit === 'diamonds' ? 'suit-hearts' : 'suit-spades';
+/** Hearts and diamonds are red; spades, clubs and jokers black. */
+export function isRed(suit: Suit | null): boolean {
+  return suit === 'hearts' || suit === 'diamonds';
 }
 
 const LETTER_SUIT: Record<string, Suit> = { C: 'clubs', D: 'diamonds', H: 'hearts', S: 'spades' };

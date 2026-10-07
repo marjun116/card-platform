@@ -32,9 +32,8 @@ export function About() {
           Wikimedia Commons
         </a>
         , dedicated to the public domain under{' '}
-        <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0</a>. The four-colour
-        versions of clubs and diamonds, the card back and the jokers are our own changes and
-        additions.
+        <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0</a>. The card back and
+        the jokers are our own.
       </p>
     </div>
   );

@@ -1,6 +1,6 @@
 import type { TableInfo } from '@card-table/server/protocol';
 import { describe, expect, it } from 'vitest';
-import { cardFromId, cardImage, shortLabel, spokenLabel, suitClass } from './cards';
+import { cardFromId, cardImage, isRed, shortLabel, spokenLabel } from './cards';
 import { bidLabel, describeMove, moveLabel, seatNames, seatStats } from './describe';
 
 const table = {
@@ -57,19 +57,17 @@ describe('cards', () => {
     expect(spokenLabel(card)).toBe('Ace of spades');
   });
 
-  it('uses four-colour pictures for clubs and diamonds number cards only', () => {
-    const sevenOfDiamonds = { id: '7D.0', suit: 'diamonds', rank: '7' } as const;
-    expect(cardImage(sevenOfDiamonds, true)).toBe('/cards/four-color/7D.svg');
-    expect(cardImage(sevenOfDiamonds, false)).toBe('/cards/7D.svg');
-    expect(cardImage({ id: 'KC.0', suit: 'clubs', rank: 'K' }, true)).toBe('/cards/KC.svg');
-    expect(cardImage({ id: '7H.0', suit: 'hearts', rank: '7' }, true)).toBe('/cards/7H.svg');
-    expect(cardImage({ id: 'JOKER.0', joker: true }, true)).toBeNull();
+  it('finds card pictures by card id', () => {
+    expect(cardImage({ id: '7D.0', suit: 'diamonds', rank: '7' })).toBe('/cards/7D.svg');
+    expect(cardImage({ id: '10S.1', suit: 'spades', rank: '10' })).toBe('/cards/10S.svg');
+    expect(cardImage({ id: 'JOKER.0', joker: true })).toBeNull();
   });
 
-  it('colours suits', () => {
-    expect(suitClass('diamonds', true)).toBe('suit-diamonds');
-    expect(suitClass('diamonds', false)).toBe('suit-hearts');
-    expect(suitClass('clubs', false)).toBe('suit-spades');
+  it('colours hearts and diamonds red', () => {
+    expect(isRed('hearts')).toBe(true);
+    expect(isRed('diamonds')).toBe(true);
+    expect(isRed('spades')).toBe(false);
+    expect(isRed('clubs')).toBe(false);
   });
 });
 

@@ -4,5 +4,4 @@ Dedicated to the public domain under CC0 1.0 Universal
 (https://creativecommons.org/publicdomain/zero/1.0/).
 
 Changes for Card Table (apps/web/scripts/prepare-cards.ts): files renamed by
-card id, editor metadata removed, a viewBox added, and four-colour versions
-of the clubs and diamonds number cards (four-color/).
+card id, editor metadata removed, and a viewBox added.

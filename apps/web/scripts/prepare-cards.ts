@@ -1,9 +1,6 @@
 /**
  * Copies Dmitry Fomin's English pattern card set (CC0, from Wikimedia
  * Commons) into public/cards, named by card id: "QS.svg", "10H.svg".
- * Also writes four-colour versions of the number cards and aces to
- * public/cards/four-color/ (diamonds blue, clubs green). Face cards keep
- * their artwork; the card's corner index carries the four colours.
  *
  * Download the 52 files named "English_pattern_<rank>_of_<suit>.svg" from
  * https://commons.wikimedia.org/wiki/Category:SVG_English_pattern_playing_cards
@@ -31,16 +28,10 @@ const RANKS: Record<string, string> = {
 };
 const SUITS = { clubs: 'C', diamonds: 'D', hearts: 'H', spades: 'S' } as const;
 
-/** Pip colours in the original files, and their four-colour replacements. */
-const FOUR_COLOR: Partial<Record<keyof typeof SUITS, [from: string, to: string]>> = {
-  diamonds: ['#ff5555', '#2f6fd0'],
-  clubs: ['#000000', '#1f8a3c'],
-};
-
 const source = process.argv[2];
 if (!source) throw new Error('Usage: prepare-cards.ts <folder with the downloaded SVGs>');
 const out = join(import.meta.dirname, '..', 'public', 'cards');
-mkdirSync(join(out, 'four-color'), { recursive: true });
+mkdirSync(out, { recursive: true });
 
 /**
  * Removes editor-only metadata, which is a large part of each file, and adds
@@ -71,14 +62,6 @@ for (const [suitName, suit] of Object.entries(SUITS)) {
     const svg = prepare(readFileSync(file, 'utf8'));
     writeFileSync(join(out, `${rank}${suit}.svg`), svg);
     count++;
-
-    const swap = FOUR_COLOR[suitName as keyof typeof SUITS];
-    if (swap && !['J', 'Q', 'K'].includes(rank)) {
-      const [from, to] = swap;
-      const recoloured = svg.replaceAll(`fill:${from}`, `fill:${to}`);
-      if (recoloured === svg) throw new Error(`${file}: colour ${from} not found`);
-      writeFileSync(join(out, 'four-color', `${rank}${suit}.svg`), recoloured);
-    }
   }
 }
 console.log(`Wrote ${count} cards to ${out}`);
