@@ -213,10 +213,13 @@ legal moves into controls).
 
 ### Playing locally with several people
 
-Each browser profile (or private window) is a separate guest. Run `pnpm dev`, open
-<http://localhost:5173> in one window, pick a name, choose Spades and create a table. Copy the
-invite link into three other windows (private windows or other browsers), take a seat in
-each, then press **Start the game** in the host's window.
+Each window needs its own cookies to be a separate player, and private windows of the same
+browser share theirs. So mix browsers and modes: for example Edge, Edge InPrivate, Chrome and
+Chrome incognito (or use separate browser profiles). Run `pnpm dev`, open
+<http://localhost:5173> in the first window, pick a name, choose Spades and create a table.
+Paste the invite link into the other three windows, take a seat in each, then press **Start
+the game** in the first window. To see the phone layout, open the browser's developer tools
+(F12) and turn on device emulation (Ctrl+Shift+M).
 
 To include phones on your home network: find your computer's local address (for example
 `192.168.1.20`), set `PUBLIC_URL="http://192.168.1.20:5173"` in `.env`, and start the
