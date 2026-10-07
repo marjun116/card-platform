@@ -1,0 +1,1019 @@
+/* Card Table styles. Colours are tokens, redefined for dark mode. */
+
+:root {
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --text: #1d1d1b;
+  --muted: #5d5d58;
+  --border: #d9d5cc;
+  --accent: #1f5fbf;
+  --accent-text: #ffffff;
+  --focus: #f0b400;
+  --danger: #b3261e;
+  --warn-bg: #fff4d6;
+  --felt: #1e6b47;
+  --felt-edge: #154d33;
+  --felt-text: #f3f7f2;
+  --playable: #f0b400;
+
+  /* Suit colours: four-colour deck. Two-colour mode maps diamonds and clubs to these too. */
+  --suit-spades: #111111;
+  --suit-hearts: #c4161c;
+  --suit-diamonds: #1e5fc4;
+  --suit-clubs: #17803a;
+
+  --card-w: 76px;
+  --small-w: 46px;
+  --tiny-w: 26px;
+  --radius: 10px;
+
+  color-scheme: light;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #161714;
+    --surface: #212320;
+    --text: #ecebe6;
+    --muted: #a9a8a1;
+    --border: #3a3c37;
+    --accent: #6ea2f5;
+    --accent-text: #0d1320;
+    --danger: #ff8a80;
+    --warn-bg: #3d3214;
+    --felt: #164f35;
+    --felt-edge: #0e3624;
+    color-scheme: dark;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+a {
+  color: var(--accent);
+}
+
+h1,
+h2 {
+  line-height: 1.2;
+  margin: 0 0 0.6em;
+}
+h1 {
+  font-size: 1.7rem;
+}
+h2 {
+  font-size: 1.1rem;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.skip-link {
+  position: absolute;
+  left: -999px;
+}
+.skip-link:focus {
+  left: 8px;
+  top: 8px;
+  z-index: 10;
+  background: var(--surface);
+  padding: 6px 10px;
+}
+
+.muted {
+  color: var(--muted);
+}
+.error {
+  color: var(--danger);
+}
+.lede {
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+
+/* ---- buttons and forms ---- */
+
+button,
+.button {
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35em;
+  min-height: 40px;
+  padding: 0.4em 0.9em;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+}
+button:hover:not(:disabled),
+.button:hover {
+  border-color: var(--accent);
+}
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+button.primary,
+.button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+button.danger {
+  color: var(--danger);
+}
+button.small {
+  min-height: 32px;
+  padding: 0.2em 0.7em;
+  font-size: 0.9rem;
+}
+.link-button {
+  border: none;
+  background: none;
+  color: var(--accent);
+  padding: 0;
+  min-height: 0;
+  text-decoration: underline;
+}
+
+input,
+select {
+  font: inherit;
+  padding: 0.45em 0.6em;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  min-height: 40px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  font-weight: 500;
+}
+.check,
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.check input,
+.toggle input {
+  min-height: 0;
+  width: 1.1em;
+  height: 1.1em;
+}
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.8em 1em;
+  margin: 0;
+}
+legend {
+  font-weight: 600;
+  padding: 0 0.3em;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9em;
+}
+.inline-form {
+  display: flex;
+  align-items: end;
+  gap: 0.5em;
+  flex-wrap: wrap;
+}
+.inline-form .field {
+  flex: 1 1 14em;
+}
+
+/* ---- page frame ---- */
+
+.site-header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5em 1.2em;
+  padding: 0.5em 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.brand {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--text);
+  text-decoration: none;
+}
+.site-header nav {
+  display: flex;
+  gap: 1em;
+}
+.site-header nav a {
+  text-decoration: none;
+  color: var(--muted);
+}
+.site-header nav a.active {
+  color: var(--text);
+  font-weight: 600;
+}
+.header-end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  flex-wrap: wrap;
+  font-size: 0.9rem;
+}
+
+main:focus {
+  outline: none;
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px 48px;
+}
+.page.narrow {
+  max-width: 640px;
+}
+.prose {
+  max-width: 680px;
+}
+kbd {
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 0.3em;
+  font-size: 0.9em;
+  background: var(--surface);
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1em 1.2em;
+}
+
+.sign-in-options,
+.home-grid,
+.lobby-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  margin-bottom: 16px;
+}
+
+.banner {
+  margin: 0;
+  padding: 0.6em 16px;
+  background: var(--warn-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.card-list,
+.game-grid,
+.seat-list,
+.standings {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.card-list li + li {
+  border-top: 1px solid var(--border);
+}
+.list-link {
+  display: flex;
+  flex-direction: column;
+  padding: 0.6em 0;
+  color: var(--text);
+  text-decoration: none;
+}
+.list-link:hover strong {
+  text-decoration: underline;
+}
+.game-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+
+/* ---- lobby ---- */
+
+.invite {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.5em;
+}
+.invite .field {
+  flex: 1 1 100%;
+}
+.invite input {
+  width: 100%;
+}
+.code {
+  font-family: ui-monospace, monospace;
+  letter-spacing: 0.08em;
+}
+.seat-list li {
+  display: grid;
+  grid-template-columns: 7.5em 1fr auto;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.5em 0;
+  border-top: 1px solid var(--border);
+}
+.seat-list li.mine {
+  font-weight: 600;
+}
+.seat-actions {
+  display: flex;
+  gap: 0.4em;
+  flex-wrap: wrap;
+  justify-content: end;
+}
+.presence {
+  display: inline-block;
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  margin-right: 0.4em;
+  border: 2px solid currentColor;
+  vertical-align: 0.05em;
+}
+.presence.on {
+  background: #2e9d57;
+  border-color: #2e9d57;
+}
+.presence.off {
+  color: var(--muted);
+  background: transparent;
+}
+.options {
+  margin: 0;
+}
+.options div {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.3em 0;
+}
+.options dd {
+  margin: 0;
+  font-weight: 600;
+}
+.lobby-actions,
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 480px) {
+  .seat-list li {
+    grid-template-columns: 1fr auto;
+  }
+  .seat-list .seat-number {
+    grid-column: 1 / -1;
+    font-size: 0.85rem;
+  }
+}
+
+/* ---- cards ---- */
+
+.card {
+  --w: var(--card-w);
+  position: relative;
+  display: inline-block;
+  width: var(--w);
+  height: calc(var(--w) * 1.5);
+  border-radius: calc(var(--w) * 0.08);
+  background: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.35);
+  overflow: hidden;
+  flex: none;
+}
+.card.size-small {
+  --w: var(--small-w);
+}
+.card.size-tiny {
+  --w: var(--tiny-w);
+}
+.card img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+/* Our own corner index, covering the artwork's, so every card uses the chosen suit colours. */
+.card .index {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 26%;
+  padding: 3% 0 2%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #fff;
+  border-bottom-right-radius: 6px;
+  font-weight: 700;
+  line-height: 1;
+  font-size: calc(var(--w) * 0.2);
+  font-family: Georgia, 'Times New Roman', serif;
+}
+.card .index .pip {
+  font-size: 0.95em;
+}
+.card.size-tiny .index {
+  width: 100%;
+  height: 100%;
+  justify-content: center;
+  font-size: calc(var(--w) * 0.36);
+}
+.card .joker-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: calc(var(--w) * 0.6);
+  color: var(--suit-hearts);
+}
+.card.back {
+  background: repeating-linear-gradient(45deg, #2a4c8f 0 4px, #3460ad 4px 8px), #2a4c8f;
+  border: calc(var(--w) * 0.05) solid #fff;
+}
+.card.empty {
+  background: transparent;
+  border: 2px dashed rgb(255 255 255 / 0.45);
+  box-shadow: none;
+}
+
+.suit-spades {
+  color: var(--suit-spades);
+}
+.suit-hearts {
+  color: var(--suit-hearts);
+}
+.suit-diamonds {
+  color: var(--suit-diamonds);
+}
+.suit-clubs {
+  color: var(--suit-clubs);
+}
+.suit-joker {
+  color: var(--suit-hearts);
+}
+
+.stack-count {
+  position: relative;
+  display: inline-flex;
+}
+.stack-count .count {
+  position: absolute;
+  right: -0.6em;
+  bottom: -0.4em;
+  min-width: 1.6em;
+  padding: 0 0.3em;
+  border-radius: 1em;
+  background: #000c;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ---- the table screen ---- */
+
+.table-screen {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100dvh - 58px);
+}
+.table-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em;
+  flex-wrap: wrap;
+  padding: 0.4em 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.table-title {
+  display: flex;
+  gap: 0.8em;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.table-tools {
+  display: flex;
+  gap: 0.4em;
+}
+.panel-toggle {
+  display: none;
+}
+
+.table-main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  align-items: start;
+  gap: 12px;
+  padding: 12px 16px 0;
+  min-height: 0;
+}
+
+.felt {
+  position: relative;
+  /* Leaves room below for your hand and the action buttons. */
+  height: clamp(400px, calc(100dvh - 400px), 640px);
+  border-radius: 140px / 90px;
+  background: radial-gradient(ellipse at center, var(--felt) 55%, var(--felt-edge));
+  color: var(--felt-text);
+  box-shadow: inset 0 0 0 6px rgb(0 0 0 / 0.15);
+}
+
+/* Seats sit around the oval on wide screens (positions from seatPosition()). */
+.seats {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.seat {
+  pointer-events: auto;
+  position: absolute;
+  /* Kept inside the table's edge. */
+  left: clamp(112px, calc(var(--x) * 1%), calc(100% - 112px));
+  top: clamp(48px, calc(var(--y) * 1%), calc(100% - 48px));
+  transform: translate(-50%, -50%);
+  min-width: 160px;
+  max-width: 220px;
+  padding: 0.45em 0.7em;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.32);
+  border: 2px solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+  font-size: 0.9rem;
+}
+.seat.acting {
+  border-color: var(--playable);
+}
+.seat-head,
+.seat-body {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.seat-player {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.turn-badge {
+  margin-left: auto;
+  background: var(--playable);
+  color: #1d1d1b;
+  border-radius: 4px;
+  padding: 0 0.4em;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.seat-facts {
+  margin-left: 0.4em;
+}
+.seat .presence.off {
+  color: var(--felt-text);
+}
+
+.zone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  font-size: 0.85rem;
+}
+.zone-label {
+  opacity: 0.85;
+}
+.fan,
+.melds,
+.meld {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.meld {
+  flex-wrap: nowrap;
+}
+.meld .card + .card {
+  margin-left: calc(var(--w) * -0.45);
+}
+.melds {
+  gap: 10px;
+}
+
+.center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+.trick {
+  position: relative;
+  width: calc(var(--card-w) * 3.6);
+  height: calc(var(--card-w) * 3.6);
+}
+.trick-card {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.trick-card.won .card {
+  outline: 3px solid var(--playable);
+  outline-offset: 2px;
+}
+.trick-winner {
+  position: absolute;
+  left: 50%;
+  bottom: -1.6em;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-weight: 600;
+}
+.piles {
+  display: flex;
+  gap: 16px;
+}
+.pile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3em;
+}
+.pile-button {
+  padding: 0;
+  border: none;
+  background: none;
+  min-height: 0;
+  border-radius: 8px;
+}
+.pile-button.playable .card {
+  outline: 3px solid var(--playable);
+  outline-offset: 2px;
+}
+.pile-label {
+  font-size: 0.85rem;
+}
+.last-trick {
+  position: absolute;
+  right: 16px;
+  bottom: 12px;
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+.scoreboard,
+.log {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7em 0.9em;
+}
+.scoreboard ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.scoreboard > ul > li + li {
+  margin-top: 0.6em;
+  padding-top: 0.6em;
+  border-top: 1px solid var(--border);
+}
+.scoreboard li.mine .team-name {
+  font-weight: 700;
+}
+.team-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5em;
+}
+.team-score {
+  font-weight: 700;
+  font-size: 1.15rem;
+}
+.team-players li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 0.8em;
+  font-size: 0.9rem;
+  color: var(--muted);
+}
+.log {
+  flex: 1;
+  overflow: auto;
+  max-height: 260px;
+  font-size: 0.9rem;
+}
+.log ol {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.you-area {
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.you-area.your-turn .status-line strong {
+  background: var(--playable);
+  color: #1d1d1b;
+  padding: 0 0.4em;
+  border-radius: 4px;
+}
+.your-zones {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Your hand: overlapping cards, each a button. */
+.hand {
+  display: flex;
+  padding: 22px 8px 6px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.hand-card {
+  padding: 0;
+  border: none;
+  background: none;
+  min-height: 0;
+  border-radius: 8px;
+  transition: transform 120ms ease;
+  flex: none;
+}
+.hand-card + .hand-card {
+  /* Overlap just enough for the whole hand to fit (percentages here are of the hand's
+     width), but always show at least the corner index; past that, the hand scrolls. */
+  margin-left: max(
+    calc(var(--card-w) * -0.72),
+    min(
+      calc(var(--card-w) * -0.3),
+      calc((100% - var(--card-w) - 16px) / (var(--n) - 1) - var(--card-w))
+    )
+  );
+}
+.hand-card.playable {
+  transform: translateY(-8px);
+}
+.hand-card.playable .card {
+  box-shadow:
+    0 0 0 2px var(--playable),
+    0 2px 4px rgb(0 0 0 / 0.4);
+}
+.hand-card.unusable .card {
+  filter: grayscale(0.6) brightness(0.8);
+}
+.hand-card.selected {
+  transform: translateY(-20px);
+}
+.hand-card.selected .card {
+  box-shadow:
+    0 0 0 4px var(--accent),
+    0 4px 10px rgb(0 0 0 / 0.4);
+}
+.hand-card:focus-visible {
+  outline-offset: 4px;
+  z-index: 1;
+}
+.hand-card[aria-disabled='true'] {
+  cursor: default;
+}
+
+.action-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.choice-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.choice-grid button {
+  min-width: 48px;
+}
+.suit-button {
+  font-weight: 700;
+}
+.hint {
+  margin: 0;
+}
+
+/* ---- dialogs and score tables ---- */
+
+.dialog {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: 1.2em;
+  max-width: min(560px, calc(100vw - 32px));
+  width: 100%;
+}
+.dialog::backdrop {
+  background: rgb(0 0 0 / 0.5);
+}
+.dialog-actions {
+  margin-top: 1em;
+  display: flex;
+  justify-content: end;
+}
+.round-table,
+.history-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.round-table th,
+.round-table td,
+.history-table th,
+.history-table td {
+  text-align: left;
+  padding: 0.35em 0.5em;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+.round-table tbody + tbody {
+  border-top: 2px solid var(--border);
+}
+.round-table .points {
+  font-weight: 700;
+}
+.standings li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5em 0;
+  border-bottom: 1px solid var(--border);
+}
+.standings li.winner {
+  font-weight: 700;
+}
+.standings li.winner span::after {
+  content: ' ★ winner';
+  color: var(--muted);
+  font-weight: 400;
+}
+.game-over .panel {
+  margin-bottom: 16px;
+}
+
+/* ---- phones and small tablets ---- */
+
+@media (max-width: 700px) {
+  :root {
+    --card-w: 54px;
+    --small-w: 38px;
+    --tiny-w: 22px;
+  }
+  h1 {
+    font-size: 1.4rem;
+  }
+  .header-end .toggle {
+    order: 2;
+  }
+
+  .table-main {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px 8px 0;
+  }
+  .panel-toggle {
+    display: inline-flex;
+  }
+  /* Scores and log fold away behind the "Scores" button. */
+  .side {
+    display: none;
+    margin-top: 8px;
+  }
+  /* Opened scores appear above the table, right under the button that opened them. */
+  .side.open {
+    display: flex;
+    order: -1;
+    margin: 0 0 8px;
+  }
+
+  .felt {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    border-radius: 18px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  /* Other players become a strip across the top, in seat order. */
+  .seats {
+    position: static;
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+  }
+  .seat {
+    position: static;
+    transform: none;
+    order: var(--order);
+    min-width: 0;
+    flex: 1 1 0;
+    padding: 0.35em 0.45em;
+    font-size: 0.8rem;
+  }
+  .seat-head .turn-badge {
+    display: none;
+  }
+  .seat-facts {
+    margin-left: 0.2em;
+  }
+  .center {
+    position: static;
+    transform: none;
+    flex: 1;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding-bottom: 1.6em;
+  }
+  .last-trick {
+    position: static;
+    align-self: end;
+  }
+
+  .you-area {
+    padding: 6px 8px 12px;
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hand-card {
+    transition: none;
+  }
+}
