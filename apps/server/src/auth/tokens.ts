@@ -12,8 +12,8 @@ export function hashToken(token: string): string {
 
 const INVITE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O or 1/I
 
-/** A short code for invite links, easy to read aloud. 32^8: about a trillion codes. */
+/** A short code for invite links, easy to read aloud. 32^10: about 50 bits, too many to guess. */
 export function newInviteCode(): string {
-  const bytes = randomBytes(8);
+  const bytes = randomBytes(10);
   return [...bytes].map((b) => INVITE_ALPHABET[b % INVITE_ALPHABET.length]).join('');
 }

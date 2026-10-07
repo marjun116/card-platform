@@ -1,11 +1,11 @@
 /** Helpers for the server's tests. */
 import type { FastifyInstance, LightMyRequestResponse } from 'fastify';
-import { buildApp } from './app';
-import { SESSION_COOKIE } from './auth/session';
-import { defaultConfig } from './config';
-import type { Deps } from './deps';
-import { MemoryStore } from './store/memory';
-import type { TurnNudge } from './tables/notifier';
+import { buildApp } from '../app';
+import { SESSION_COOKIE } from '../auth/session';
+import { defaultConfig } from '../config';
+import type { Deps } from '../deps';
+import { MemoryStore } from '../store/memory';
+import type { TurnNudge } from '../tables/notifier';
 
 export interface TestServer {
   app: FastifyInstance;
