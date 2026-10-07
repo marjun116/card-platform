@@ -122,6 +122,13 @@ export class PrismaStore implements Store {
     await this.db.session.deleteMany({ where: { userId } });
   }
 
+  async deleteExpired(now: Date): Promise<void> {
+    await this.db.session.deleteMany({ where: { expiresAt: { lte: now } } });
+    await this.db.loginToken.deleteMany({
+      where: { OR: [{ usedAt: { not: null } }, { expiresAt: { lte: now } }] },
+    });
+  }
+
   async createLoginToken(token: LoginToken): Promise<void> {
     await this.db.loginToken.create({ data: token });
   }

@@ -147,6 +147,44 @@ describe('connecting', () => {
     await client.ok({ type: 'stand' });
   });
 
+  it('forgets a connection that closes while the server is still looking up the table', async () => {
+    await server.app.close();
+    server = await testServer({ store: slowStore(50) });
+    baseUrl = await listen(server);
+    const { token } = await guest(server.app, 'Host');
+    const code = await createTable(server, token);
+    const first = await connect(code, token);
+    await first.ok({ type: 'sit', seat: 0 });
+    await first.close();
+    clients.splice(clients.indexOf(first), 1);
+
+    // Gone again before the server has finished setting the connection up.
+    const quick = await TestClient.connect(baseUrl, code, token);
+    await quick.close();
+    await new Promise((resolve) => setTimeout(resolve, 600));
+
+    const res = await server.app.inject({
+      method: 'GET',
+      url: `/api/tables/${code}`,
+      headers: withSession(token),
+    });
+    expect(res.json<{ table: TableInfo }>().table.seats[0]?.connected).toBe(false);
+  });
+
+  it('slows down a client that floods the server, without disconnecting it', async () => {
+    const { token } = await guest(server.app, 'Host');
+    const client = await connect(await createTable(server, token), token);
+    await client.waitFor((m) => m.type === 'table', 'table');
+    for (let i = 0; i < 100; i++) client.sendRaw(JSON.stringify({ id: `flood-${i}`, type: 'stand' }));
+    await client.waitFor((m) => m.type === 'error' && m.id === 'flood-39', 'reply 39');
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    const limited = client.messages.filter((m) => m.type === 'error' && m.code === 'RATE_LIMITED');
+    expect(limited.length).toBeGreaterThan(40);
+    // A moment later, it can carry on.
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    await client.ok({ type: 'sit', seat: 0 });
+  });
+
   it('needs a session, a real table and our own origin', async () => {
     const { token } = await guest(server.app, 'Host');
     const code = await createTable(server, token);

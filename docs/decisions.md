@@ -240,3 +240,21 @@ Agreed before building `apps/server`.
 - **Presence.** The server pings each connection every 30 seconds and drops ones that stop
   answering, so "connected" in the lobby stays accurate.
 - **Messages** from clients are limited to 16 KB.
+
+## 2026-10-07: Server hardening before the first push
+
+- **Shutdown:** Ctrl+C or the host stopping the server closes every WebSocket, then the
+  database connection, then exits.
+- **Connections that close while being set up** are removed from the table straight away
+  (before this, they stayed listed as "connected" forever).
+- **Rate limit per WebSocket:** a burst of 40 messages, refilled at 20 a second. Extra
+  messages get a `RATE_LIMITED` error; the connection stays open. At most 50 messages are
+  held while a connection is being set up; more than that closes it.
+- **Logs** never contain sign-in tokens (they're replaced with `[redacted]` in logged URLs).
+- **Unexpected server errors** are logged in full, but clients only see "Something went
+  wrong on the server".
+- **Expired sessions and sign-in links** (and used links) are deleted from the database
+  every 10 minutes.
+- **Left for Phase 8** (security review and rate limits): limits on how often one person can
+  create guests, tables and sign-in emails to many different addresses; and closing a
+  user's open WebSockets when they sign out.

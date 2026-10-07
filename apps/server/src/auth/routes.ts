@@ -54,7 +54,11 @@ export function authRoutes(app: FastifyInstance, deps: Deps): void {
     }
     const { email } = body.data;
     const time = now().getTime();
-    if (time - (lastEmailAt.get(email) ?? -Infinity) >= config.emailCooldownMs) {
+    // Forget addresses whose cooldown is over, so the map can't grow forever.
+    for (const [address, at] of lastEmailAt) {
+      if (time - at >= config.emailCooldownMs) lastEmailAt.delete(address);
+    }
+    if (!lastEmailAt.has(email)) {
       lastEmailAt.set(email, time);
       const token = newToken();
       await store.createLoginToken({

@@ -28,6 +28,8 @@ const createBody = z.strictObject({
 const codeParams = z.object({ code: z.string().min(1).max(32) });
 
 const PING_EVERY_MS = 30_000;
+/** Messages held while a connection is being set up; more than this closes it. */
+const MAX_EARLY_MESSAGES = 50;
 
 export function tableRoutes(
   app: FastifyInstance,
@@ -95,11 +97,17 @@ export function tableRoutes(
       },
     },
     async (socket, request) => {
-      // Hold messages until the room is ready, so none are lost or handled out of order.
-      // This must happen before the first `await`: the socket is already open,
-      // and messages that arrive with no listener are dropped.
+      // Listen before the first `await`: the socket is already open, so messages
+      // or a close that arrive with no listener would be lost. Messages are held
+      // until the room is ready, so none are dropped or handled out of order.
       const early: unknown[] = [];
-      socket.on('message', (data) => early.push(data));
+      let closed = false;
+      socket.on('message', (data) => {
+        if (early.length < MAX_EARLY_MESSAGES) early.push(data);
+        else socket.close(1008, 'Too many messages');
+      });
+      socket.on('close', () => (closed = true));
+
       const user = request.user as User;
       let room: TableRoom;
       try {
@@ -112,8 +120,27 @@ export function tableRoutes(
         return;
       }
       socket.removeAllListeners('message');
+      socket.removeAllListeners('close');
+      // Closed while we were setting up: undo the join, or the room would keep it forever.
+      if (closed) {
+        await rooms.leave(room, socket);
+        return;
+      }
+      socket.on('close', () => {
+        void rooms.leave(room, socket);
+      });
 
+      const allow = rateLimiter();
       const onMessage = (data: unknown) => {
+        if (!allow()) {
+          send(socket, {
+            type: 'error',
+            id: null,
+            code: 'RATE_LIMITED',
+            message: 'Too many messages; slow down',
+          });
+          return;
+        }
         let parsed: unknown;
         try {
           parsed = JSON.parse(String(data));
@@ -137,9 +164,6 @@ export function tableRoutes(
       for (const data of early) onMessage(data);
 
       keepAlive(socket);
-      socket.on('close', () => {
-        void rooms.leave(room, socket);
-      });
     },
   );
 
@@ -181,6 +205,23 @@ export function tableRoutes(
     const origin = request.headers.origin;
     return origin === undefined || origin === new URL(config.publicUrl).origin;
   }
+}
+
+/**
+ * Allows a burst of messages, refilled steadily: far more than any real
+ * player needs, but a flood can't pile up work in the table's queue.
+ */
+function rateLimiter(burst = 40, perSecond = 20): () => boolean {
+  let tokens = burst;
+  let last = performance.now();
+  return () => {
+    const now = performance.now();
+    tokens = Math.min(burst, tokens + ((now - last) / 1000) * perSecond);
+    last = now;
+    if (tokens < 1) return false;
+    tokens -= 1;
+    return true;
+  };
 }
 
 /** Pings every 30 seconds and drops connections that stop answering, so presence stays accurate. */

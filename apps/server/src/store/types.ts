@@ -123,6 +123,9 @@ export interface Store {
   deleteSession(id: string): Promise<void>;
   deleteUserSessions(userId: string): Promise<void>;
 
+  /** Deletes sessions and sign-in links that have expired, and links already used. */
+  deleteExpired(now: Date): Promise<void>;
+
   createLoginToken(token: LoginToken): Promise<void>;
   /** Marks the token used and returns it, or null if it's unknown, used or expired. */
   consumeLoginToken(tokenHash: string, now: Date): Promise<LoginToken | null>;

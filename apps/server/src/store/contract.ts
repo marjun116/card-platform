@@ -117,6 +117,46 @@ export function storeContract(makeStore: () => Promise<Store>): void {
     });
   });
 
+  it('deletes expired sessions and used or expired sign-in links', async () => {
+    const user = await store.createUser({ displayName: 'U' });
+    const now = new Date();
+    const later = new Date(now.getTime() + minute);
+    const earlier = new Date(now.getTime() - minute);
+    await store.createSession({
+      id: 'old',
+      userId: user.id,
+      expiresAt: earlier,
+      lastSeenAt: earlier,
+    });
+    await store.createSession({ id: 'live', userId: user.id, expiresAt: later, lastSeenAt: now });
+    await store.createLoginToken({
+      tokenHash: 'old',
+      email: 'a@example.com',
+      expiresAt: earlier,
+      usedAt: null,
+    });
+    await store.createLoginToken({
+      tokenHash: 'used',
+      email: 'a@example.com',
+      expiresAt: later,
+      usedAt: now,
+    });
+    await store.createLoginToken({
+      tokenHash: 'live',
+      email: 'a@example.com',
+      expiresAt: later,
+      usedAt: null,
+    });
+
+    await store.deleteExpired(now);
+
+    expect(await store.getSession('old')).toBeNull();
+    expect(await store.getSession('live')).not.toBeNull();
+    expect(await store.consumeLoginToken('old', earlier)).toBeNull();
+    expect(await store.consumeLoginToken('used', earlier)).toBeNull();
+    expect(await store.consumeLoginToken('live', now)).not.toBeNull();
+  });
+
   describe('games', () => {
     it('adds a new version only when a built-in file changes', async () => {
       const v1 = await store.saveBuiltInGame({

@@ -107,6 +107,16 @@ export class MemoryStore implements Store {
     return Promise.resolve();
   }
 
+  deleteExpired(now: Date): Promise<void> {
+    for (const [id, session] of this.sessions) {
+      if (session.expiresAt <= now) this.sessions.delete(id);
+    }
+    for (const [hash, token] of this.loginTokens) {
+      if (token.usedAt || token.expiresAt <= now) this.loginTokens.delete(hash);
+    }
+    return Promise.resolve();
+  }
+
   createLoginToken(token: LoginToken): Promise<void> {
     this.loginTokens.set(token.tokenHash, copy(token));
     return Promise.resolve();
