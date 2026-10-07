@@ -363,3 +363,22 @@ Agreed before building `apps/web`.
   for selected cards stay under the hand. The line above the hand says what to do, for
   example "Your turn: choose your bid." Before this, the bid buttons were below the hand and
   needed scrolling on a laptop.
+
+## 2026-10-07: Rulebook (planned for Phase 5)
+
+Agreed now, built later (see the Phase 5 checklist):
+
+- Each game gets a rulebook that can be opened at any time: a **Rules** button on the table
+  (opening over the game, without interrupting it) and in the lobby, and a Rules link on the
+  Games page.
+- It has two parts: written rules (for built-in games, drafted and then reviewed before they
+  go in) and an "At this table" section generated from the table's settings, so the house
+  rules shown always match the game being played.
+- Built-in rules live in a rules file next to each game file in `packages/games` and aren't
+  stored per game version (no database change). An old table could show newer rules if a
+  game changes; accepted for now.
+- Rules use a small formatting subset (headings, paragraphs, bullet lists, bold) shown by our
+  own small renderer: no new dependency and no raw HTML, because custom-game rules will be
+  AI-written.
+- Custom games (Phase 6): the AI's plain-English summary becomes the rulebook, saved with
+  each game version and shown in the same viewer.

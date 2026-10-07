@@ -233,7 +233,16 @@ Add games one at a time, picking each to stretch a different part of the engine.
 - [ ] Suggested order: hearts (passing), crazy eights (shedding), rummy and gin (melds), euchre (stripped deck, bowers), Oh Hell (changing hand sizes), cribbage (unusual scoring), pinochle and canasta (double decks), bridge (bidding auction, dummy hand)
 - [ ] For each game: game file, common house rule options, scenario tests, simulation test, a real playtest
 - [ ] Saved variants: a table's chosen options saved as a named, shareable preset
-- [ ] Rules page for each game, generated from its file plus a short written summary
+- [ ] Rulebook for each game, readable at any time (plan agreed 2026-10-07, see
+      `docs/decisions.md`):
+  - [ ] Written rules for each built-in game (starting with spades): object, setup,
+        bidding, play, scoring, and what each house rule does. Draft for review first.
+  - [ ] An "At this table" section generated from the table's actual settings (players,
+        teams, house rules chosen)
+  - [ ] A **Rules** button on the table (opens over the game) and in the lobby, plus a
+        Rules link for each game on the Games page
+  - [ ] Rules text in a small formatting subset (headings, paragraphs, lists, bold) shown by
+        our own renderer: no new dependency, no raw HTML
 - [ ] Bots for built-in games: start with random legal moves, then simple rule-of-thumb play per game family
 - [ ] Bots fill empty seats and replace players who leave
 
@@ -271,6 +280,7 @@ This is the feature that sets the platform apart. The AI turns typed rules into 
 - [ ] Translation pipeline using Claude through the Anthropic API: rules text in, game file out, checked by the validator, with validator errors fed back for a retry
 - [ ] Clarifying questions: the AI lists ambiguities as plain questions; the creator answers in a chat-style screen; the file is revised
 - [ ] Plain-English summary of the generated rules for the creator to confirm ("Here's how I understood your game")
+- [ ] That summary becomes the custom game's rulebook (same viewer as built-in games), saved with each game version
 - [ ] Unsupported rules: say which rule can't be enforced and offer a manual button or table mode
 - [ ] Solo playtest mode: the creator plays every seat themselves to check the rules (since custom games have no bots)
 - [ ] Versioning: every revision saved; tables record which version they used
