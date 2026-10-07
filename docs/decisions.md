@@ -224,3 +224,19 @@ Agreed before building `apps/server`.
   version. The WebSocket and hidden-card tests use the in-memory store, so they run in CI
   without a database. The same store tests run against real Postgres when
   `TEST_DATABASE_URL` is set.
+
+### Settled while building
+
+- **Tables are identified by their invite code** (10 characters from 32 letters and digits,
+  about 50 bits) in every URL and message. The database id is never shown. Having the code is
+  what lets you see a table and take a seat.
+- **Blind nil and legal moves.** A player who hasn't looked at a face-down hand isn't sent
+  legal moves that name cards (that would show them their hand), and the server rejects card
+  moves from them with "Look at your hand first". Otherwise they could find out what they
+  hold by guessing card ids and watching which moves fail. They must send `lookAtHand` first.
+  The hidden-card tests found this.
+- **WebSocket origin check.** A WebSocket request whose `Origin` header isn't `PUBLIC_URL` is
+  refused, so another website can't open a table connection with a visitor's cookie.
+- **Presence.** The server pings each connection every 30 seconds and drops ones that stop
+  answering, so "connected" in the lobby stays accurate.
+- **Messages** from clients are limited to 16 KB.

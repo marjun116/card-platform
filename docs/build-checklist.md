@@ -161,14 +161,14 @@ explain the gap before changing the engine.
 
 Wrap the engine in a server that holds the real game state and lets several people play the same table from different devices.
 
-- [ ] Accounts and sign-in (email magic link or a hosted auth provider; no hand-rolled passwords)
-- [ ] Database tables: users, game definitions (with versions), tables (rooms), seats, move logs, results
-- [ ] Create a table, choose game and options, invite by link, take a seat, start
-- [ ] WebSocket protocol: client sends a move, server validates with the engine, saves it, and sends each player their own `viewFor` state
-- [ ] Reconnection: a player who drops and returns gets the current state
-- [ ] Turn nudges: notify a stalled player; host can pause or end the table
-- [ ] Asynchronous play: tables persist, so a game can continue over days
-- [ ] Security tests proving a client can never see another player's hand
+- [x] Accounts and sign-in (email magic link or a hosted auth provider; no hand-rolled passwords)
+- [x] Database tables: users, game definitions (with versions), tables (rooms), seats, move logs, results
+- [x] Create a table, choose game and options, invite by link, take a seat, start
+- [x] WebSocket protocol: client sends a move, server validates with the engine, saves it, and sends each player their own `viewFor` state
+- [x] Reconnection: a player who drops and returns gets the current state
+- [x] Turn nudges: notify a stalled player; host can pause or end the table
+- [x] Asynchronous play: tables persist, so a game can continue over days
+- [x] Security tests proving a client can never see another player's hand
 
 ```text
 Read CLAUDE.md and docs/game-format.md. Build apps/server: Fastify with

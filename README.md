@@ -133,6 +133,71 @@ You play one seat; the bots play the others. Each turn shows the scores, bids, t
 trick, your hand and your legal moves, numbered. Type a number to play it, or `q` to quit.
 The same `--seed` deals the same cards again.
 
+## The multiplayer server
+
+`apps/server` holds the real game state; clients only ever get their own seat's view. The
+design is in [docs/decisions.md](docs/decisions.md) ("Multiplayer server (Phase 3)").
+
+### First-time database setup
+
+Create the tables in your development database (run again whenever a new migration is
+added under `apps/server/prisma/migrations`):
+
+```sh
+pnpm --filter @card-table/server db:migrate
+```
+
+After changing `prisma/schema.prisma`, create a new migration with
+`pnpm --filter @card-table/server db:migrate:dev`.
+
+### Signing in
+
+- **Guests:** `POST /api/auth/guest` with a display name. Guests can create and play
+  tables of built-in games.
+- **Accounts:** `POST /api/auth/email` sends a magic link. Without `RESEND_API_KEY` in
+  `.env`, the link is printed in the server's console, so you can sign in locally by
+  copying it into the browser.
+
+### Tables
+
+| Route                      | What it does                                       |
+| -------------------------- | -------------------------------------------------- |
+| `GET /api/games`           | Built-in games, player counts and options          |
+| `POST /api/tables`         | Create a table: `{ game, options?, playerCount? }` |
+| `GET /api/tables/mine`     | Your unfinished tables                             |
+| `GET /api/tables/:code`    | A table's lobby (seats, options, status)           |
+| `GET /api/tables/:code/ws` | The table's WebSocket                              |
+
+A table is identified by its invite code (10 letters and digits); the invite link is just a
+page with that code. Every WebSocket message is described in
+`apps/server/src/tables/protocol.ts`.
+
+### Server tests
+
+`pnpm test` runs them with an in-memory database, so they need no setup:
+
+- `src/tables/game.test.ts`: full 4-player spades games over real WebSockets, reconnecting,
+  and resuming after a server restart.
+- `src/tables/leaks.test.ts`: checks every message each player's socket received for cards
+  that player may not see.
+- `src/tables/tables.test.ts`: lobby, host controls, protocol errors and turn nudges.
+- `src/auth/auth.test.ts`: guests, magic links and sessions.
+
+`src/store/prisma.test.ts` runs the database tests against real Postgres, but only when
+`TEST_DATABASE_URL` is set in `.env`. Use a separate, empty database (a Neon branch works):
+**every table in it is wiped before each test.** Set it up once with
+`pnpm --filter @card-table/server db:migrate:test`.
+
+### Server settings (`.env`)
+
+| Variable           | Default                 | Meaning                                        |
+| ------------------ | ----------------------- | ---------------------------------------------- |
+| `DATABASE_URL`     | (required)              | Postgres connection string                     |
+| `PUBLIC_URL`       | `http://localhost:5173` | The website's address, used in sign-in links   |
+| `RESEND_API_KEY`   | (none)                  | Send sign-in emails; otherwise they're printed |
+| `EMAIL_FROM`       | Resend's test sender    | The "from" address of sign-in emails           |
+| `IDLE_NUDGE_HOURS` | `12`                    | Nudge a player who's been away this long       |
+
 ## Guard rails
 
 - **Engine purity is enforced by lint.** In `packages/engine`, ESLint rejects
