@@ -66,6 +66,8 @@ export interface PlayerView {
 }
 
 export interface TrickView {
+  /** The zone the trick's cards are in, which also appears in `zones`. */
+  zone: ZoneKey;
   leader: PlayerId;
   plays: { player: PlayerId; card: Card | null }[];
   winner: PlayerId | null;
@@ -112,6 +114,7 @@ function trickView(state: GameState, trick: TrickState | null, viewer: PlayerId)
   if (!trick) return null;
   const visible = access(state, trick.zone, viewer) === 'cards';
   return {
+    zone: trick.zone,
     leader: trick.leader,
     winner: trick.winner,
     plays: trick.plays.map((p) => ({
