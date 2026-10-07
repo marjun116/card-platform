@@ -117,3 +117,27 @@ export function quickMove(controls: Controls, cardId: string): Move | null {
   if (moves.length !== 1 || controls.groupCards.has(cardId)) return null;
   return moves[0] ?? null;
 }
+
+/** Whether there are decisions that don't use a card from your hand (shown mid-table). */
+export function hasDecisions(controls: Controls): boolean {
+  return (
+    controls.bids.length > 0 ||
+    controls.suits.length > 0 ||
+    controls.byPile.size > 0 ||
+    controls.other.length > 0
+  );
+}
+
+/** What to tell a player whose turn it is, e.g. "Your turn: choose your bid." */
+export function turnPrompt(controls: Controls): string {
+  const tasks: string[] = [];
+  if (controls.bids.length > 0) tasks.push('choose your bid');
+  if (controls.suits.length > 0) {
+    tasks.push(controls.suits[0]?.move.type === 'declareTrump' ? 'choose trump' : 'choose a suit');
+  }
+  if (controls.byPile.size > 0) tasks.push('draw a card');
+  if (controls.byCard.size > 0) tasks.push('choose a card');
+  else if (controls.groups.length > 0) tasks.push('choose cards');
+  if (tasks.length === 0) return 'Your turn.';
+  return `Your turn: ${tasks.length > 1 ? `${tasks.slice(0, -1).join(', ')} or ${tasks[tasks.length - 1]}` : tasks[0]}.`;
+}

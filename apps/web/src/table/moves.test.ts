@@ -1,7 +1,15 @@
 import type { Move } from '@card-table/engine';
 import { describe, expect, it } from 'vitest';
 import { createGame, gameMessage, passing, playUntil, spades } from '../test/games';
-import { buildControls, groupHint, isCardUsable, movesForSelection, quickMove } from './moves';
+import {
+  buildControls,
+  groupHint,
+  hasDecisions,
+  isCardUsable,
+  movesForSelection,
+  quickMove,
+  turnPrompt,
+} from './moves';
 
 const p = 0;
 
@@ -77,5 +85,28 @@ describe('buildControls', () => {
   it('plays a card on the second tap when that is all it can do', () => {
     const move: Move = { player: p, type: 'playToTrick', card: '9H.0' };
     expect(quickMove(buildControls([move]), '9H.0')).toEqual(move);
+  });
+
+  it('says what the player has to do', () => {
+    const bid: Move = { player: p, type: 'bid', value: 3 };
+    expect(turnPrompt(buildControls([bid]))).toBe('Your turn: choose your bid.');
+    expect(turnPrompt(buildControls([{ player: p, type: 'playToTrick', card: '9H.0' }]))).toBe(
+      'Your turn: choose a card.',
+    );
+    const drawOrDiscard: Move[] = [
+      { player: p, type: 'draw', from: 'stock' },
+      { player: p, type: 'discard', card: 'QH.0', to: 'discard' },
+    ];
+    expect(turnPrompt(buildControls(drawOrDiscard))).toBe(
+      'Your turn: draw a card or choose a card.',
+    );
+    expect(turnPrompt(buildControls([{ player: p, type: 'endTurn' }]))).toBe('Your turn.');
+  });
+
+  it('knows which moves belong in the middle of the table', () => {
+    expect(hasDecisions(buildControls([{ player: p, type: 'bid', value: 1 }]))).toBe(true);
+    expect(hasDecisions(buildControls([{ player: p, type: 'draw', from: 'stock' }]))).toBe(true);
+    const card: Move = { player: p, type: 'playToTrick', card: '9H.0' };
+    expect(hasDecisions(buildControls([card]))).toBe(false);
   });
 });

@@ -229,21 +229,21 @@ localhost: the server only accepts table connections from the `PUBLIC_URL` site.
 
 How to play:
 
+- The line above your hand says what to do ("Your turn: choose your bid.").
+- Decisions that don't use a card from your hand (bids, choosing a suit or trump, drawing,
+  passing, ending your turn) appear as buttons in the middle of the table.
 - Your legal cards are raised and outlined; the others are greyed and can't be used.
 - Tap a card to select it, then tap it again (or press the button below your hand) to play
   it. Moves that use several cards (passing, melding): select them, then press the button.
 - Piles you can draw from are outlined; tap them to draw.
 - Keyboard: Tab between areas, ← → Home End in your hand, Enter or Space to select and play,
   Esc to clear. The About page lists these too.
-- **Four-colour suits** (header checkbox, on by default): spades black, hearts red,
-  diamonds blue, clubs green.
 
 ### Card artwork
 
 Card faces are Dmitry Fomin's English pattern set (CC0, public domain) from Wikimedia
 Commons, in `apps/web/public/cards/` with a `CREDITS.txt`. They were prepared with
-`apps/web/scripts/prepare-cards.ts`, which also makes the four-colour versions; rerun it only
-if you replace the artwork. The card back and jokers are drawn in CSS.
+`apps/web/scripts/prepare-cards.ts`; rerun it only if you replace the artwork. The card back and jokers are drawn in CSS.
 
 ### Website tests
 

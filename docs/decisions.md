@@ -303,10 +303,9 @@ Agreed before building `apps/web`.
 - Card faces are Dmitry Fomin's English pattern set from Wikimedia Commons, CC0 (public
   domain). Credit is on the About page and in `apps/web/public/cards/CREDITS.txt`. The card
   back and jokers are drawn by us (the set has neither).
-- Colorblind-safe suits: a four-colour deck (spades black, hearts red, diamonds blue, clubs
-  green) is on by default and can be switched off. Number cards and aces have recoloured
-  pips; face cards keep their artwork, and every card shows its own corner index in the four
-  colours.
+- Suits are red and black, as on real cards (a four-colour option was tried and removed;
+  see "First playtest feedback" below). Suits also differ by shape, and every card has a
+  spoken label, so colour is never the only way to tell them apart.
 
 ### Settled while building
 
@@ -349,3 +348,18 @@ Agreed before building `apps/web`.
   dealer, piles, Nudge). The trick ring is taller and narrower there, so the chips at the
   sides have room.
 - **Scoreboard**: one-player teams take one line each (name, score, bid and tricks).
+
+## 2026-10-07: First playtest feedback
+
+- **Red and black only.** The four-colour suits option (diamonds blue, clubs green) is gone,
+  along with its recoloured card files and the header checkbox. Suits still differ by shape,
+  as on a real deck.
+- **Card corners use the artwork's own index.** Our drawn rank-and-suit box on top of each
+  card looked odd and was only there for the four colours. Only tiny cards (other players'
+  piles), where the artwork can't be read, show a drawn rank and suit, filling the card.
+- **Decisions go in the middle of the table.** Moves that don't use a card from your hand
+  (bids, suit or trump choices, drawing from a pile, pass, look at your cards, end turn) are
+  buttons in a panel in the centre of the table, where players are already looking. Buttons
+  for selected cards stay under the hand. The line above the hand says what to do, for
+  example "Your turn: choose your bid." Before this, the bid buttons were below the hand and
+  needed scrolling on a laptop.

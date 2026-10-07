@@ -6,11 +6,11 @@
 import type { Card as CardData, Move } from '@card-table/engine';
 import type { ErrorCode, TableInfo } from '@card-table/server/protocol';
 import { useMemo, useState } from 'react';
-import { ActionBar } from './ActionBar';
+import { DecisionPanel, HandActions } from './ActionBar';
 import type { GameMessage, TableConnection } from './connection';
 import { bidLabel, describeMove, seatNames } from './describe';
 import { Hand } from './Hand';
-import { buildControls, quickMove } from './moves';
+import { buildControls, quickMove, turnPrompt } from './moves';
 import { Dialog, HistoryTable, RoundTable, Scoreboard } from './Scores';
 import { Seat } from './Seat';
 import { layoutZones, humanize } from './zones';
@@ -48,7 +48,9 @@ export function TableView({
   const { view, legalMoves, toAct, seq } = game;
   const names = useMemo(() => seatNames(table, view.you), [table, view.you]);
   const layout = useMemo(() => layoutZones(view), [view]);
-  const controls = useMemo(() => buildControls(legalMoves), [legalMoves]);
+  const paused = table.status === 'paused';
+  // While paused nobody can move, so no controls are shown.
+  const controls = useMemo(() => buildControls(paused ? [] : legalMoves), [legalMoves, paused]);
 
   // A selection belongs to the game as it was when it was made; any new move clears it.
   const [selection, setSelection] = useState<{ seq: number; cards: string[] }>({ seq, cards: [] });
@@ -62,7 +64,6 @@ export function TableView({
   const [roundsSeen, setRoundsSeen] = useState(view.history.length);
   const newRound = view.history.length > roundsSeen ? view.history[view.history.length - 1] : null;
 
-  const paused = table.status === 'paused';
   const yourTurn = toAct.includes(view.you);
   const showTricks = view.trickZones.length > 0;
   const myBid = view.players[view.you]?.bid;
@@ -98,7 +99,7 @@ export function TableView({
   const lastLog = view.log[view.log.length - 1];
   const announcement = [
     lastLog ? describeMove(lastLog, names) : null,
-    yourTurn && !paused ? 'Your turn.' : null,
+    yourTurn && !paused ? turnPrompt(controls) : null,
   ]
     .filter(Boolean)
     .join('. ');
@@ -106,9 +107,7 @@ export function TableView({
   const status = paused
     ? 'The host paused the game.'
     : yourTurn
-      ? view.pending?.kind === 'chooseSuit'
-        ? 'Your turn: choose a suit.'
-        : 'Your turn.'
+      ? turnPrompt(controls)
       : `Waiting for ${toAct.map(names).join(', ') || 'the next round'}…`;
 
   const others = view.players.filter((p) => p.id !== view.you);
@@ -196,28 +195,32 @@ export function TableView({
             ))}
           </div>
           <div className="center">
-            {trickToShow && trickToShow.plays.length > 0 && (
-              <Trick
-                trick={trickToShow}
-                view={view}
-                names={names}
-                label={trickToShow === view.trick ? 'Current trick' : 'Last trick'}
-              />
-            )}
-            {layout.piles.length > 0 && (
-              <div className="piles">
-                {layout.piles.map((zone) => (
-                  <Pile
-                    key={zone.key}
-                    zone={zone}
-                    moves={controls.byPile.get(zone.name) ?? []}
-                    names={names}
-                    onMove={act}
-                    busy={busy}
-                  />
-                ))}
-              </div>
-            )}
+            <div className="center-row">
+              {trickToShow && trickToShow.plays.length > 0 && (
+                <Trick
+                  trick={trickToShow}
+                  view={view}
+                  names={names}
+                  label={trickToShow === view.trick ? 'Current trick' : 'Last trick'}
+                />
+              )}
+              {layout.piles.length > 0 && (
+                <div className="piles">
+                  {layout.piles.map((zone) => (
+                    <Pile
+                      key={zone.key}
+                      zone={zone}
+                      moves={controls.byPile.get(zone.name) ?? []}
+                      names={names}
+                      onMove={act}
+                      busy={busy}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Decisions that don't use a card from your hand go where you're already looking. */}
+            <DecisionPanel controls={controls} names={names} busy={busy} onMove={act} />
           </div>
           {view.lastTrick && view.lastTrick !== view.trick && (
             <button
@@ -274,7 +277,7 @@ export function TableView({
         </div>
         <Hand
           zone={layout.hand?.view ?? null}
-          controls={paused ? buildControls([]) : controls}
+          controls={controls}
           selected={selected}
           onPress={press}
           onClear={() => setSelection({ seq, cards: [] })}
@@ -284,8 +287,8 @@ export function TableView({
             {moveError}
           </p>
         )}
-        <ActionBar
-          controls={paused ? buildControls([]) : controls}
+        <HandActions
+          controls={controls}
           selected={selected}
           names={names}
           busy={busy}
