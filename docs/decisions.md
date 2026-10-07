@@ -169,3 +169,58 @@ The spec's action library mixes moves a player chooses with things the engine do
   card that could be laid off is already melded). Real players would agree to stop; the
   engine currently stops any round after 10,000 moves with an error. Tables will need a
   "call it a draw" button (Phase 7's manual buttons). Simulations always set a limit.
+
+## 2026-10-07: Multiplayer server (Phase 3)
+
+Agreed before building `apps/server`.
+
+### Accounts and guests
+
+- Anyone can play built-in games, signed in or not. A first visit creates a **guest**: a user
+  with a display name and no email, plus a session cookie. Guests can host and join tables of
+  built-in games.
+- Creating custom games (Phase 6) needs a **signed-in account** (a user with a verified
+  email). Custom games can be shared with anyone, guests included.
+- Sign-in is by **email magic link**, built in-house: single-use links that expire after
+  15 minutes; only a hash of each token is stored. Emails are sent with Resend through plain
+  `fetch`; in development and tests the link is printed to the console instead.
+- Every sign-in method ends in the same httpOnly session cookie, so "Sign in with Google" can
+  be added later without other changes.
+- When a guest opens a magic link **in the same browser**, the guest becomes the account (or,
+  if the email already has an account, the guest's seats and tables move to it). A link
+  opened anywhere else just signs in, without touching any guest. Otherwise someone could
+  request a link for another person's email while holding a guest session and end up signed
+  in as them once that person clicks it.
+- Known weak spot: a guest who clears cookies or changes device loses their identity and seat.
+  The host can free a seat so the person can retake it; signing in avoids this.
+
+### Tables
+
+- A table's state is never stored. It is rebuilt with `replay()` from the pinned game version,
+  options, player count, seed and move log, and kept in memory while the table is in use.
+- Each table handles one message at a time. A move is saved before anyone is told about it;
+  the move log's `(table, seq)` key rejects a second move with the same number.
+- One server process for now (enough until Phase 8).
+- Only seated players get game state. Others connected to a table see only the lobby (seats,
+  options, status). No spectating until the engine has a spectator view.
+- The client's `move.player` is ignored and replaced with the sender's seat.
+- Clients send `seq` (moves seen so far) with a move; a stale `seq` is rejected, which stops
+  double clicks and moves made against an out-of-date view.
+- Host controls: start (all seats filled), pause/resume, end (table becomes `abandoned`, no
+  result recorded), free a seat.
+- The seed is never sent to clients.
+
+### Turn nudges
+
+- `TurnNotifier` is a hook; for now it only logs. Email or push delivery comes later.
+- Manual: a seated player can nudge the player whose turn it is, at most once every 5 minutes
+  per seat.
+- Idle: a timer notifies a player whose turn has lasted longer than a limit (default 12 hours)
+  while they have no connection open, once per turn.
+
+### Tests
+
+- Database access goes through a `Store` interface with a Prisma version and an in-memory
+  version. The WebSocket and hidden-card tests use the in-memory store, so they run in CI
+  without a database. The same store tests run against real Postgres when
+  `TEST_DATABASE_URL` is set.

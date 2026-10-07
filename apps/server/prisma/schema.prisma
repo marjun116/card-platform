@@ -1,5 +1,5 @@
-// Database schema. Tables arrive in Phase 3; for now this only describes
-// how to connect. The connection string lives in prisma.config.ts.
+// Database schema. The connection string lives in prisma.config.ts.
+// Design notes: docs/decisions.md, "Multiplayer server (Phase 3)".
 
 generator client {
   provider = "prisma-client"
@@ -8,4 +8,127 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+/// A person. Guests have no email; signed-in accounts do.
+model User {
+  id           String           @id @default(cuid())
+  displayName  String
+  email        String?          @unique
+  createdAt    DateTime         @default(now())
+  sessions     Session[]
+  seats        Seat[]
+  hostedTables Table[]          @relation("host")
+  games        GameDefinition[]
+}
+
+/// A signed-in browser. `id` is the SHA-256 of the cookie token; the token itself is never stored.
+model Session {
+  id         String   @id
+  userId     String
+  expiresAt  DateTime
+  lastSeenAt DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// A magic sign-in link. Single use; `tokenHash` is the SHA-256 of the token in the link.
+model LoginToken {
+  tokenHash String    @id
+  email     String
+  expiresAt DateTime
+  usedAt    DateTime?
+}
+
+/// A game: built-in (spades) or, from Phase 6, a custom game owned by a user.
+model GameDefinition {
+  id       String        @id @default(cuid())
+  slug     String        @unique
+  name     String
+  builtIn  Boolean
+  ownerId  String?
+  owner    User?         @relation(fields: [ownerId], references: [id])
+  versions GameVersion[]
+}
+
+/// One revision of a game file. Tables pin the version they were created with.
+model GameVersion {
+  id           String         @id @default(cuid())
+  definitionId String
+  version      Int
+  file         Json
+  fileHash     String
+  createdAt    DateTime       @default(now())
+  definition   GameDefinition @relation(fields: [definitionId], references: [id])
+  tables       Table[]
+
+  @@unique([definitionId, version])
+}
+
+enum TableStatus {
+  lobby
+  playing
+  paused
+  finished
+  abandoned
+}
+
+/// A room where one game is played.
+model Table {
+  id            String      @id @default(cuid())
+  inviteCode    String      @unique
+  hostId        String
+  gameVersionId String
+  options       Json
+  playerCount   Int
+  /// Seeds the shuffle. Never sent to clients.
+  seed          String
+  status        TableStatus @default(lobby)
+  createdAt     DateTime    @default(now())
+  startedAt     DateTime?
+  endedAt       DateTime?
+  /// Seats with a move to make, and since when. Kept up to date for turn nudges.
+  toAct         Int[]       @default([])
+  turnSince     DateTime?
+  host          User        @relation("host", fields: [hostId], references: [id])
+  gameVersion   GameVersion @relation(fields: [gameVersionId], references: [id])
+  seats         Seat[]
+  moves         MoveLog[]
+  result        Result?
+
+  @@index([status, turnSince])
+}
+
+model Seat {
+  tableId     String
+  seat        Int
+  userId      String
+  lastNudgeAt DateTime?
+  table       Table     @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@id([tableId, seat])
+  @@unique([tableId, userId])
+  @@index([userId])
+}
+
+/// Every move of every table. A game is its seed plus these moves.
+model MoveLog {
+  tableId   String
+  seq       Int
+  move      Json
+  createdAt DateTime @default(now())
+  table     Table    @relation(fields: [tableId], references: [id], onDelete: Cascade)
+
+  @@id([tableId, seq])
+}
+
+model Result {
+  tableId String @id
+  /// Winning seat numbers.
+  winners Int[]
+  /// Final scores, as returned by the engine's getScores().
+  scores  Json
+  table   Table  @relation(fields: [tableId], references: [id], onDelete: Cascade)
 }
