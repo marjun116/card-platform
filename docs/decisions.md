@@ -262,3 +262,48 @@ Agreed before building `apps/server`.
   user's open WebSockets when they sign out.
 - **Test tables use fixed seeds** (`test-table-1`, `test-table-2`, ...) instead of random ones,
   so every test run deals the same cards and a failure can be replayed exactly.
+
+## 2026-10-07: Web client (Phase 4)
+
+Agreed before building `apps/web`.
+
+### The table view is generic
+
+- Nothing in the web app knows which game is being played. Zones are placed by their settings
+  in the game file and what the player's view contains:
+  - your own per-player zones (your hand) along the bottom, face up;
+  - other players' per-player zones at their seats, as counts (or melds, if visible);
+  - shared zones in the middle: the current trick arranged by who played each card, piles as
+    stacks showing their count and, for `topCardOnly`, the top card;
+  - per-team zones (won tricks) as counts in the scoreboard.
+- Seats are drawn relative to the viewer: you are always at the bottom, the others clockwise
+  from your left.
+- Controls come only from the legal moves the server sends. Moves with one card are made by
+  clicking that card; moves with several cards (pass, meld) by selecting cards and confirming,
+  allowed only when the selection matches a legal move; moves from a pile by clicking the
+  pile; everything else (bid, pass bid, trump, suit choice, look at hand, end turn) as
+  buttons.
+
+### Round history in the engine
+
+- The engine keeps `history`: for each finished round, every team's points that round, total
+  score, tricks and counters (bags), and every player's bid, tricks and whether they were
+  knocked out. It's public information, so `viewFor` sends it to every player. The round
+  summary and game-over screens are built from it.
+
+### Dependencies
+
+- `react-router` for page URLs (invite links open `/t/<code>` directly).
+- `@testing-library/react` and `jsdom` (development only) for component tests.
+- The web app imports the server's protocol types from `@card-table/server/protocol`
+  (types only; nothing from the server ends up in the browser bundle).
+
+### Cards
+
+- Card faces are Dmitry Fomin's English pattern set from Wikimedia Commons, CC0 (public
+  domain). Credit is on the About page and in `apps/web/public/cards/CREDITS.txt`. The card
+  back and jokers are drawn by us (the set has neither).
+- Colorblind-safe suits: a four-colour deck (spades black, hearts red, diamonds blue, clubs
+  green) is on by default and can be switched off. Number cards and aces have recoloured
+  pips; face cards keep their artwork, and every card shows its own corner index in the four
+  colours.
