@@ -4,18 +4,10 @@
  * always replays with the exact file it started with.
  */
 import { createHash } from 'node:crypto';
-import type { GameFile, OptionDef } from '@card-table/engine';
+import type { GameFile } from '@card-table/engine';
 import { builtInGames } from '@card-table/games';
 import type { GameVersion, Store } from '../store/types';
-
-export interface GameSummary {
-  slug: string;
-  name: string;
-  /** Allowed player counts, smallest first. */
-  players: number[];
-  teams: number[][] | null;
-  options: Record<string, OptionDef>;
-}
+import type { GameSummary } from '../tables/protocol';
 
 export function playerCounts(file: GameFile): number[] {
   const [min, max] = Array.isArray(file.meta.players)

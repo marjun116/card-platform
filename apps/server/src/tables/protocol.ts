@@ -2,8 +2,11 @@
  * The WebSocket protocol between a table and its players. Every message is
  * JSON. Clients send ClientMessage; the server checks it with the schema
  * below before doing anything with it. The server sends ServerMessage.
+ *
+ * The web app imports these types as "@card-table/server/protocol", so this
+ * file must not import anything that only works in Node.
  */
-import type { Move, OptionValue, PlayerView, Scores } from '@card-table/engine';
+import type { Move, OptionDef, OptionValue, PlayerView, Scores } from '@card-table/engine';
 import { z } from 'zod';
 import type { TableStatus } from '../store/types';
 
@@ -74,6 +77,16 @@ export interface SeatInfo {
   user: { id: string; displayName: string } | null;
   /** The seated player has the table open right now. */
   connected: boolean;
+}
+
+/** A game tables can be created from, as listed by GET /api/games. */
+export interface GameSummary {
+  slug: string;
+  name: string;
+  /** Allowed player counts, smallest first. */
+  players: number[];
+  teams: number[][] | null;
+  options: Record<string, OptionDef>;
 }
 
 /** What anyone with the invite code may see: the lobby, never any cards. */

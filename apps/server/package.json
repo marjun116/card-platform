@@ -3,6 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./protocol": "./src/tables/protocol.ts"
+  },
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
     "db:check": "tsx --env-file-if-exists=../../.env src/db-check.ts",
