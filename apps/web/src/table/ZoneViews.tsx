@@ -1,5 +1,6 @@
 /** Generic drawings of zones: small zones at seats, piles and the trick in the middle. */
 import type { Card as CardData, Move, PlayerView, TrickView, ZoneView } from '@card-table/engine';
+import { useNarrow } from '../useNarrow';
 import { CardBack, CardFace, type CardSize } from './Card';
 import { spokenLabel } from './cards';
 import { moveLabel, type SeatNames } from './describe';
@@ -147,7 +148,10 @@ export function Trick({
   names: SeatNames;
   label: string;
 }) {
-  const layout = trickLayout(view.you, view.players.length);
+  // On phones with chips around the table (five or more players), a tall ring leaves them room.
+  const narrow = useNarrow();
+  const shape = narrow && view.players.length >= 5 ? 'tall' : 'wide';
+  const layout = trickLayout(view.you, view.players.length, shape);
   const area = trickAreaSize(layout);
   // Sizes are in card widths; --t is the width of the cards drawn here.
   const t = layout.size === 'small' ? 'var(--small-w)' : 'var(--card-w)';

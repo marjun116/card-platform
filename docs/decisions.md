@@ -341,6 +341,11 @@ Agreed before building `apps/web`.
 - **Seats**: from 7 players the seat panels are smaller and the table taller. Piles at a seat
   that can only be counted (like another player's won tricks) are a line of text, not a
   picture. "Nudge" sits next to the player's name, so a panel doesn't grow on their turn.
-- **Phones**: the strip of other players scrolls sideways when they don't fit, and scrolls to
-  whoever is to play.
+- **Phones, up to 4 players**: the other players share a strip across the top.
+- **Phones, 5 or more players**: every player is a small two-line "chip" placed around the
+  table, as on wide screens, so everyone is on screen at once. Line one is the name (cut short
+  if needed) and cards in hand; line two is the bid and tricks won (for example "B3 · W1"),
+  showing only what the game has. Tapping a chip opens that player's full panel (full name,
+  dealer, piles, Nudge). The trick ring is taller and narrower there, so the chips at the
+  sides have room.
 - **Scoreboard**: one-player teams take one line each (name, score, bid and tricks).

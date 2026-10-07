@@ -174,8 +174,9 @@ export function TableView({
 
       <div className="table-main">
         <div
-          // Many players: smaller seat panels so they fit around the table.
-          className={`felt${view.players.length >= 7 ? ' crowded' : ''}`}
+          // Seven or more: smaller seat panels on wide screens.
+          // Five or more players: seats become chips on phones (see Seat.tsx).
+          className={`felt${view.players.length >= 5 ? ' many' : ''}${view.players.length >= 7 ? ' crowded' : ''}`}
           role="region"
           aria-label="Table"
         >

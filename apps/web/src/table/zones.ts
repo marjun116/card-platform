@@ -126,7 +126,12 @@ export interface TrickLayout {
  * who played it (same order as seatPosition). The ring grows with the
  * number of players so that neighbouring cards don't cover each other.
  */
-export function trickLayout(you: number, playerCount: number): TrickLayout {
+export function trickLayout(
+  you: number,
+  playerCount: number,
+  /** "tall" leaves room at the sides of a narrow phone screen for the seat chips. */
+  shape: 'wide' | 'tall' = 'wide',
+): TrickLayout {
   const n = Math.max(playerCount, 2);
   // Card centres for a ring of half-width rx and half-height ry, viewer's card first.
   const ring = (rx: number, ry: number) =>
@@ -135,8 +140,8 @@ export function trickLayout(you: number, playerCount: number): TrickLayout {
       return { x: rx * Math.cos(angle), y: ry * Math.sin(angle) };
     });
   // Start small and grow the ring until no two cards overlap.
-  let rx = 1.3;
-  let ry = 1.2;
+  let rx = shape === 'tall' ? 1.0 : 1.3;
+  let ry = shape === 'tall' ? 1.5 : 1.2;
   while (cardsOverlap(ring(rx, ry))) {
     rx *= 1.05;
     ry *= 1.05;

@@ -84,15 +84,26 @@ describe('zone helpers', () => {
 describe('trickLayout', () => {
   const counts = [2, 3, 4, 5, 6, 7, 8, 9, 10];
 
-  it.each(counts)('fits %i cards in a ring without any overlapping', (n) => {
-    const layout = trickLayout(0, n);
-    const spots = Array.from({ length: n }, (_, seat) => layout.spot(seat));
-    expect(cardsOverlap(spots)).toBe(false);
-    // Every card lies inside the trick area.
-    const { width, height } = trickAreaSize(layout);
-    for (const { x, y } of spots) {
-      expect(Math.abs(x) + 0.5).toBeLessThanOrEqual(width / 2 + 1e-9);
-      expect(Math.abs(y) + 0.75).toBeLessThanOrEqual(height / 2 + 1e-9);
+  it.each(counts.flatMap((n) => [[n, 'wide'] as const, [n, 'tall'] as const]))(
+    'fits %i cards in a %s ring without any overlapping',
+    (n, shape) => {
+      const layout = trickLayout(0, n, shape);
+      const spots = Array.from({ length: n }, (_, seat) => layout.spot(seat));
+      expect(cardsOverlap(spots)).toBe(false);
+      // Every card lies inside the trick area.
+      const { width, height } = trickAreaSize(layout);
+      for (const { x, y } of spots) {
+        expect(Math.abs(x) + 0.5).toBeLessThanOrEqual(width / 2 + 1e-9);
+        expect(Math.abs(y) + 0.75).toBeLessThanOrEqual(height / 2 + 1e-9);
+      }
+    },
+  );
+
+  it('makes a narrower ring for phones', () => {
+    for (const n of [7, 10]) {
+      expect(trickAreaSize(trickLayout(0, n, 'tall')).width).toBeLessThan(
+        trickAreaSize(trickLayout(0, n, 'wide')).width,
+      );
     }
   });
 

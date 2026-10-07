@@ -1,9 +1,16 @@
-/** Another player's place at the table: name, turn, bid, tricks and their zones. */
+/**
+ * Another player's place at the table: name, turn, bid, tricks and their zones.
+ *
+ * On phones with five or more players, the seat shrinks to a two-line "chip"
+ * (name and cards in hand; bid and tricks won) placed around the table, and
+ * the full panel opens as a popup when the chip is tapped. CSS decides which
+ * is shown (see `.felt.many` in styles.css); both are always rendered.
+ */
 import type { PlayerView } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
-import { useEffect, useRef } from 'react';
+import { useId, useState } from 'react';
 import { CardBack } from './Card';
-import { bidLabel, type SeatNames } from './describe';
+import { bidLabel, type SeatNames, seatStats } from './describe';
 import { ZoneDisplay } from './ZoneViews';
 import { type PlacedZone, seatPosition } from './zones';
 
@@ -26,6 +33,8 @@ export function Seat({
   showTricks: boolean;
   onNudge: (seat: number) => void;
 }) {
+  const [open, setOpen] = useState(false);
+  const panelId = useId();
   const player = view.players[seat];
   const info = table.seats.find((s) => s.seat === seat);
   const { order, x, y } = seatPosition(seat, view.you, view.players.length);
@@ -34,6 +43,8 @@ export function Seat({
   const others = zones.filter((z) => z !== hand);
   const handCount = hand?.view.kind === 'count' ? hand.view.count : null;
   const partner = player && view.players[view.you]?.team === player.team;
+  const name = names(seat);
+  const stats = seatStats(player, handCount, showTricks);
 
   const facts = [
     seat === view.dealer ? 'Dealer' : null,
@@ -43,56 +54,68 @@ export function Seat({
     player && !player.active ? 'Out' : null,
   ].filter(Boolean);
 
-  // On phones the seats are a strip that scrolls sideways: keep whoever is to act in view.
-  const ref = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    const strip = el?.parentElement;
-    if (!acting || !el || !strip || strip.scrollWidth <= strip.clientWidth) return;
-    if (typeof strip.scrollTo !== 'function') return;
-    strip.scrollTo({ left: el.offsetLeft - (strip.clientWidth - el.clientWidth) / 2 });
-  }, [acting]);
+  // Which way the popup opens, so it stays on the table.
+  const popup = `${x > 50 ? 'from-right' : 'from-left'} ${y > 50 ? 'upwards' : 'downwards'}`;
 
   return (
     <section
-      ref={ref}
-      className={`seat${acting ? ' acting' : ''}`}
+      className={`seat${acting ? ' acting' : ''}${open ? ' open' : ''}`}
       style={{ ['--x' as string]: x, ['--y' as string]: y, ['--order' as string]: order }}
-      aria-label={`${names(seat)}${acting ? ', to play' : ''}`}
+      aria-label={`${name}${acting ? ', to play' : ''}`}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape' && open) setOpen(false);
+      }}
     >
-      <div className="seat-head">
-        <span
-          className={`presence ${info?.connected ? 'on' : 'off'}`}
-          role="img"
-          aria-label={info?.connected ? 'here' : 'away'}
-        />
-        <strong className="seat-player">{names(seat)}</strong>
-        {acting && <span className="turn-badge">Turn</span>}
-        {acting && info?.user && (
-          <button
-            type="button"
-            className="link-button nudge"
-            aria-label={`Nudge ${names(seat)}`}
-            onClick={() => onNudge(seat)}
-          >
-            Nudge
-          </button>
-        )}
-      </div>
-      <div className="seat-body">
-        {handCount !== null && (
-          <span className="stack-count" role="img" aria-label={`${handCount} cards in hand`}>
-            <CardBack size="tiny" />
-            <span className="count" aria-hidden="true">
-              {handCount}
+      <button
+        type="button"
+        className="seat-chip"
+        aria-expanded={open}
+        aria-controls={panelId}
+        aria-label={`${name}${stats.spoken ? `, ${stats.spoken}` : ''}${acting ? ', to play' : ''}. Details`}
+        onClick={() => setOpen(!open)}
+      >
+        <span className="chip-line">
+          <span className="chip-name">{name}</span>
+          {handCount !== null && <span className="chip-count">{handCount}</span>}
+        </span>
+        {stats.short && <span className="chip-line chip-stats">{stats.short}</span>}
+      </button>
+
+      <div className={`seat-panel ${popup}`} id={panelId}>
+        <div className="seat-head">
+          <span
+            className={`presence ${info?.connected ? 'on' : 'off'}`}
+            role="img"
+            aria-label={info?.connected ? 'here' : 'away'}
+          />
+          <strong className="seat-player">{name}</strong>
+          {acting && <span className="turn-badge">Turn</span>}
+          {acting && info?.user && (
+            <button
+              type="button"
+              className="link-button nudge"
+              aria-label={`Nudge ${name}`}
+              onClick={() => onNudge(seat)}
+            >
+              Nudge
+            </button>
+          )}
+        </div>
+        <div className="seat-body">
+          {handCount !== null && (
+            <span className="stack-count" role="img" aria-label={`${handCount} cards in hand`}>
+              <CardBack size="tiny" />
+              <span className="count" aria-hidden="true">
+                {handCount}
+              </span>
             </span>
-          </span>
-        )}
-        {facts.length > 0 && <span className="seat-facts">{facts.join(' · ')}</span>}
+          )}
+          {facts.length > 0 && <span className="seat-facts">{facts.join(' · ')}</span>}
+        </div>
+        {others.map((zone) => (
+          <ZoneDisplay key={zone.key} zone={zone} compact />
+        ))}
       </div>
-      {others.map((zone) => (
-        <ZoneDisplay key={zone.key} zone={zone} compact />
-      ))}
     </section>
   );
 }

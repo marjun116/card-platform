@@ -115,3 +115,30 @@ export function teamName(team: { id: number; players: number[] }, names: SeatNam
   if (players.length === 1) return players[0] ?? `Team ${team.id + 1}`;
   return `Team ${team.id + 1} (${players.join(' & ')})`;
 }
+
+/**
+ * A seat's stats for a phone "chip": a short line like "B3 · W1" (bid, tricks
+ * won), showing only what the game has, and the same in full for screen readers.
+ */
+export function seatStats(
+  player: { bid: BidValue | null; tricks: number; active: boolean } | undefined,
+  handCount: number | null,
+  showTricks: boolean,
+): { short: string | null; spoken: string } {
+  const short: string[] = [];
+  const spoken: string[] = [];
+  if (player?.bid != null) {
+    short.push(typeof player.bid === 'number' ? `B${player.bid}` : bidLabel(player.bid));
+    spoken.push(`bid ${bidLabel(player.bid).toLowerCase()}`);
+  }
+  if (showTricks && player) {
+    short.push(`W${player.tricks}`);
+    spoken.push(`won ${player.tricks}`);
+  }
+  if (handCount !== null) spoken.push(`${handCount} card${handCount === 1 ? '' : 's'}`);
+  if (player && !player.active) {
+    short.push('Out');
+    spoken.push('out');
+  }
+  return { short: short.length > 0 ? short.join(' · ') : null, spoken: spoken.join(', ') };
+}

@@ -1,7 +1,7 @@
 import type { TableInfo } from '@card-table/server/protocol';
 import { describe, expect, it } from 'vitest';
 import { cardFromId, cardImage, shortLabel, spokenLabel, suitClass } from './cards';
-import { bidLabel, describeMove, moveLabel, seatNames } from './describe';
+import { bidLabel, describeMove, moveLabel, seatNames, seatStats } from './describe';
 
 const table = {
   seats: [
@@ -70,5 +70,25 @@ describe('cards', () => {
     expect(suitClass('diamonds', true)).toBe('suit-diamonds');
     expect(suitClass('diamonds', false)).toBe('suit-hearts');
     expect(suitClass('clubs', false)).toBe('suit-spades');
+  });
+});
+
+describe('seatStats', () => {
+  const player = { bid: 3, tricks: 1, active: true };
+
+  it('writes the bid and tricks won in short and in full', () => {
+    expect(seatStats(player, 5, true)).toEqual({
+      short: 'B3 · W1',
+      spoken: 'bid 3, won 1, 5 cards',
+    });
+  });
+
+  it('only shows what the game has', () => {
+    expect(seatStats({ ...player, bid: null }, 7, false)).toEqual({
+      short: null,
+      spoken: '7 cards',
+    });
+    expect(seatStats({ ...player, bid: 'blindNil' }, 1, true).short).toBe('Blind nil · W1');
+    expect(seatStats({ ...player, active: false }, 0, false).short).toBe('B3 · Out');
   });
 });

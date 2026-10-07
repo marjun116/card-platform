@@ -599,6 +599,15 @@ kbd {
 .seat.acting {
   border-color: var(--playable);
 }
+.seat-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+/* The phone "chip" version of a seat; only shown in the phone layout below. */
+.seat-chip {
+  display: none;
+}
 /* Seven or more players: smaller panels, and a taller table to fit them. */
 .felt.crowded {
   height: clamp(460px, calc(100dvh - 360px), 720px);
@@ -993,13 +1002,12 @@ kbd {
     display: flex;
     gap: 6px;
     overflow-x: auto;
-    scroll-behavior: smooth;
   }
   .seat {
     position: static;
     transform: none;
     order: var(--order);
-    /* Share the width, but never narrower than this: with many players the strip scrolls. */
+    /* Up to four players: the others share a strip across the top. */
     min-width: 0;
     max-width: none;
     flex: 1 0 88px;
@@ -1035,11 +1043,108 @@ kbd {
   }
 }
 
+/* Phones with five or more players: seats are small two-line chips placed around the
+   table (like on wide screens), and tapping one opens its full panel. */
+@media (max-width: 700px) {
+  .felt.many {
+    min-height: 460px;
+  }
+  .felt.many .seats {
+    position: absolute;
+    inset: 8px;
+    display: block;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .felt.many .seat {
+    pointer-events: auto;
+    position: absolute;
+    left: clamp(34px, calc(var(--x) * 1%), calc(100% - 34px));
+    top: clamp(21px, calc(var(--y) * 1%), calc(100% - 21px));
+    transform: translate(-50%, -50%);
+    min-width: 0;
+    max-width: none;
+    padding: 0;
+    background: none;
+    border: none;
+    z-index: 1;
+  }
+  .felt.many .seat.open {
+    z-index: 3;
+  }
+  .felt.many .seat-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1px;
+    width: 68px;
+    min-height: 0;
+    padding: 3px 5px;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background: rgb(0 0 0 / 0.45);
+    color: var(--felt-text);
+    font-size: 0.72rem;
+    line-height: 1.2;
+    text-align: left;
+  }
+  .felt.many .seat.acting .seat-chip {
+    border-color: var(--playable);
+  }
+  .chip-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 3px;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  .chip-name,
+  .chip-stats {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .chip-name {
+    font-weight: 700;
+  }
+  /* Cards in hand, drawn like a tiny card back. */
+  .chip-count {
+    flex: none;
+    padding: 0 3px;
+    border-radius: 3px;
+    border: 1px solid #fff;
+    background: #2a4c8f;
+    font-weight: 700;
+  }
+  .felt.many .seat-panel {
+    display: none;
+    position: absolute;
+    width: 200px;
+    padding: 0.5em 0.7em;
+    border-radius: 10px;
+    background: var(--felt-edge);
+    border: 1px solid rgb(255 255 255 / 0.25);
+    box-shadow: 0 4px 12px rgb(0 0 0 / 0.4);
+    font-size: 0.85rem;
+  }
+  .felt.many .seat.open .seat-panel {
+    display: flex;
+  }
+  .felt.many .seat-panel.from-left {
+    left: 0;
+  }
+  .felt.many .seat-panel.from-right {
+    right: 0;
+  }
+  .felt.many .seat-panel.downwards {
+    top: calc(100% + 4px);
+  }
+  .felt.many .seat-panel.upwards {
+    bottom: calc(100% + 4px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hand-card {
     transition: none;
-  }
-  .seats {
-    scroll-behavior: auto;
   }
 }

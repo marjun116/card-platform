@@ -2,7 +2,15 @@ import { applyMove, type GameState, type Move } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createGame, gameMessage, miniRummy, passing, playUntil, spades } from '../test/games';
+import {
+  createGame,
+  gameMessage,
+  miniRummy,
+  passing,
+  playUntil,
+  sevensUp,
+  spades,
+} from '../test/games';
 import type { TableConnection } from './connection';
 import { TableView } from './TableView';
 
@@ -164,5 +172,17 @@ describe('TableView', () => {
     expect(document.querySelector('[aria-live="polite"]')?.textContent).toContain(
       `${NAMES[first.player] ?? ''} bid`,
     );
+  });
+
+  it('gives each other player a chip with their stats, which opens their details', () => {
+    const state = createGame(sevensUp, {}, 6, 'view-chips');
+    show(state, 0);
+    const chip = screen.getByRole('button', { name: /^Ana, 7 cards.*\. Details$/ });
+    expect(screen.getAllByRole('button', { name: /\. Details$/ })).toHaveLength(5);
+    expect(chip.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(chip);
+    expect(chip.getAttribute('aria-expanded')).toBe('true');
+    fireEvent.keyDown(chip, { key: 'Escape' });
+    expect(chip.getAttribute('aria-expanded')).toBe('false');
   });
 });
