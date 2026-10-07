@@ -53,8 +53,8 @@ pnpm dev
 ```
 
 This starts the server on <http://127.0.0.1:3000> and the website on
-<http://localhost:5173>. The website forwards `/api/*` requests to the server, and its
-home page shows whether the server is reachable. Stop both with Ctrl+C.
+<http://localhost:5173>. The website forwards `/api/*` requests and table WebSockets to the
+server. Stop both with Ctrl+C.
 
 ## Test and check
 
@@ -197,6 +197,60 @@ page with that code. Every WebSocket message is described in
 | `RESEND_API_KEY`   | (none)                  | Send sign-in emails; otherwise they're printed |
 | `EMAIL_FROM`       | Resend's test sender    | The "from" address of sign-in emails           |
 | `IDLE_NUDGE_HOURS` | `12`                    | Nudge a player who's been away this long       |
+
+## The website
+
+`apps/web` is a React + Vite app. Screens: sign-in (play as a guest, or get an email link),
+home (your tables, join by code), games, create a table (players and house rules, built from
+the game file's `options`), the lobby (invite link, seats, host start), the table, round
+summaries and the game-over screen.
+
+**The table is generic.** It never checks which game is being played: it places each zone by
+its key and what the player's view contains, and it only offers the moves in the server's
+list of legal moves. The rules are in [docs/decisions.md](docs/decisions.md) ("Web client
+(Phase 4)"); the code is in `apps/web/src/table/` (`zones.ts` places zones, `moves.ts` turns
+legal moves into controls).
+
+### Playing locally with several people
+
+Each browser profile (or private window) is a separate guest. Run `pnpm dev`, open
+<http://localhost:5173> in one window, pick a name, choose Spades and create a table. Copy the
+invite link into three other windows (private windows or other browsers), take a seat in
+each, then press **Start the game** in the host's window.
+
+To include phones on your home network: find your computer's local address (for example
+`192.168.1.20`), set `PUBLIC_URL="http://192.168.1.20:5173"` in `.env`, and start the
+website with `pnpm --filter @card-table/web dev --host` (and the server with
+`pnpm --filter @card-table/server dev`). Everyone then uses that address instead of
+localhost: the server only accepts table connections from the `PUBLIC_URL` site.
+
+How to play:
+
+- Your legal cards are raised and outlined; the others are greyed and can't be used.
+- Tap a card to select it, then tap it again (or press the button below your hand) to play
+  it. Moves that use several cards (passing, melding): select them, then press the button.
+- Piles you can draw from are outlined; tap them to draw.
+- Keyboard: Tab between areas, ← → Home End in your hand, Enter or Space to select and play,
+  Esc to clear. The About page lists these too.
+- **Four-colour suits** (header checkbox, on by default): spades black, hearts red,
+  diamonds blue, clubs green.
+
+### Card artwork
+
+Card faces are Dmitry Fomin's English pattern set (CC0, public domain) from Wikimedia
+Commons, in `apps/web/public/cards/` with a `CREDITS.txt`. They were prepared with
+`apps/web/scripts/prepare-cards.ts`, which also makes the four-colour versions; rerun it only
+if you replace the artwork. The card back and jokers are drawn in CSS.
+
+### Website tests
+
+`pnpm test` runs them with the others (Vitest with jsdom, no browser needed):
+
+- `src/table/connection.test.ts`: the table connection (replies, reconnecting, closing).
+- `src/table/zones.test.ts`, `moves.test.ts`, `describe.test.ts`: zone placement, controls
+  and labels, using real views of spades, a rummy game, a passing game and Sevens Up.
+- `src/table/TableView.test.tsx`: the table screen itself: bidding, playing a card, passing
+  three cards, drawing from a pile, keyboard use and the round summary.
 
 ## Guard rails
 

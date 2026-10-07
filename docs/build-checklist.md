@@ -195,14 +195,14 @@ message protocol first.
 
 Build the screens people actually see. The table view should be generic: it draws whatever zones and actions the game file declares, so new games need no new UI code.
 
-- [ ] Sign-in, home page, game library, create-table and lobby screens
-- [ ] Generic table view: your hand, other players' card counts, shared piles, current trick, melds, scores
-- [ ] Legal moves highlighted; illegal cards can't be played
-- [ ] Action controls generated from the game file (bid picker, draw/discard buttons, suit chooser)
-- [ ] Scoreboard and round summary, plus end-of-game screen
-- [ ] Works on phones and tablets as well as desktop
-- [ ] Accessible: keyboard play, readable card labels for screen readers, colorblind-safe suits
-- [ ] Card artwork: an original or openly licensed card set
+- [x] Sign-in, home page, game library, create-table and lobby screens
+- [x] Generic table view: your hand, other players' card counts, shared piles, current trick, melds, scores
+- [x] Legal moves highlighted; illegal cards can't be played
+- [x] Action controls generated from the game file (bid picker, draw/discard buttons, suit chooser)
+- [x] Scoreboard and round summary, plus end-of-game screen
+- [x] Works on phones and tablets as well as desktop
+- [x] Accessible: keyboard play, readable card labels for screen readers, colorblind-safe suits
+- [x] Card artwork: an original or openly licensed card set
 - [ ] A test deployment online (e.g. Render, Railway or Fly.io) so family can play from home
 
 ```text

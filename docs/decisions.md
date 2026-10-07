@@ -307,3 +307,26 @@ Agreed before building `apps/web`.
   green) is on by default and can be switched off. Number cards and aces have recoloured
   pips; face cards keep their artwork, and every card shows its own corner index in the four
   colours.
+
+### Settled while building
+
+- **Selecting before playing.** The first tap on a card selects it; tapping it again plays it,
+  but only when that's the only thing the card can do. Otherwise the possible moves appear as
+  buttons. This stops a stray tap on a phone from playing a card.
+- **Unusable cards are greyed only when some card can be used**, so the hand isn't greyed out
+  while bidding.
+- **Hands are sorted** by suit (spades, hearts, clubs, diamonds, so the colours alternate),
+  then from 2 up to ace. It's only a display order; the game's own rank order isn't sent to
+  the client.
+- **The engine says which zones hold tricks.** Each view lists `trickZones` (the zones any
+  `playToTrick` action plays into) and each trick says which zone it's in, so the table never
+  draws a trick zone as an ordinary pile, even before the first trick.
+- **Face-down hands** (blind nil): your own cards show as backs with "Your cards are face
+  down", and the "Look at your cards" move appears as a button like any other.
+- **Round summary**: a dialog opens whenever a new entry appears in the round history; the
+  "Every round" button shows them all. When the game ends, the game-over screen replaces the
+  table.
+- **Phone layout** (narrower than 700px): the other players become a strip across the top,
+  scores and log fold away behind a "Scores" button, and your hand and buttons stay pinned to
+  the bottom of the screen. The hand overlaps more as it grows so 13 cards fit at phone width;
+  past that it scrolls sideways.
