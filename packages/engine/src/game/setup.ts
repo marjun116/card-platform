@@ -50,6 +50,7 @@ export function startGame(
     teams,
     zones: {},
     melds: {},
+    reshuffles: {},
     passing: [],
     vars: {},
     round: 1,
@@ -182,6 +183,7 @@ export function startRound(state: GameState): void {
   state.lastTrick = null;
   state.pending = null;
   state.passing = state.players.map(() => []);
+  state.reshuffles = {};
   state.roundMoves = 0;
 
   // Empty every zone.

@@ -13,6 +13,7 @@ import { findCard } from './cards';
 import { type Candidate, candidates, currentPhase, isTrickPhase, turnSteps } from './legal';
 import type { Move, PlayerId } from './move';
 import { buildScope } from './scope';
+import { endsRoundWhenEmpty } from './zones';
 import { startRound } from './setup';
 import {
   type AfterAction,
@@ -179,12 +180,16 @@ export function settle(state: GameState): void {
   }
 }
 
+/**
+ * A pile that has run out for good ("endRound", or no reshuffles left) ends
+ * the round, but only at the start of a turn: a player who just drew the last
+ * card still gets to finish their turn.
+ */
 function shouldEndRound(state: GameState): boolean {
+  if (state.cursor.step !== 0) return false;
   const whenEmpty = currentPhase(state).whenEmpty ?? {};
-  return Object.entries(whenEmpty).some(
-    ([zone, policy]) =>
-      policy === 'endRound' &&
-      zoneInstances(state, zone).every((key) => zoneCards(state, key).length === 0),
+  return Object.keys(whenEmpty).some((zone) =>
+    zoneInstances(state, zone).every((key) => endsRoundWhenEmpty(state, key)),
   );
 }
 

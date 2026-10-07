@@ -1,18 +1,54 @@
 import type { Card } from '../cards/card';
+import { ExprError } from '../errors';
+import { evaluate } from '../expr/evaluate';
 import { shuffle } from '../rng';
 import type { ZoneKey } from './move';
+import { buildScope } from './scope';
 import { type GameState, parseZoneKey, zoneCards } from './state';
-import type { PhaseDef } from './types';
+import type { PhaseDef, WhenEmptyPolicy } from './types';
 
-function currentPhase(state: GameState): PhaseDef | undefined {
-  return state.file.phases[state.cursor.phase];
+function policyFor(state: GameState, key: ZoneKey): WhenEmptyPolicy | undefined {
+  const phase: PhaseDef | undefined = state.file.phases[state.cursor.phase];
+  return phase?.whenEmpty?.[parseZoneKey(key).name];
+}
+
+/**
+ * How many more times this zone may be refilled from the discard pile this
+ * round: Infinity if there's no limit, 0 if it can't be refilled at all.
+ */
+export function reshufflesLeft(state: GameState, key: ZoneKey): number {
+  const policy = policyFor(state, key);
+  if (policy === 'reshuffleDiscardExceptTop') return Infinity;
+  if (typeof policy !== 'object') return 0;
+  const limit =
+    typeof policy.limit === 'number' ? policy.limit : evaluate(policy.limit, buildScope(state));
+  if (limit === null || limit === 'unlimited') return Infinity;
+  if (typeof limit !== 'number' || !Number.isInteger(limit) || limit < 0) {
+    throw new ExprError(
+      `A reshuffle limit must be a whole number or "unlimited"`,
+      String(policy.limit),
+    );
+  }
+  return Math.max(0, limit - (state.reshuffles[key] ?? 0));
+}
+
+function canRefill(state: GameState, key: ZoneKey): boolean {
+  return reshufflesLeft(state, key) > 0 && (state.zones.discard?.length ?? 0) > 1;
 }
 
 /** Can at least one card be drawn from this zone (counting a reshuffle)? */
 export function canDraw(state: GameState, key: ZoneKey): boolean {
-  if (zoneCards(state, key).length > 0) return true;
-  const policy = currentPhase(state)?.whenEmpty?.[parseZoneKey(key).name];
-  return policy === 'reshuffleDiscardExceptTop' && (state.zones.discard?.length ?? 0) > 1;
+  return zoneCards(state, key).length > 0 || canRefill(state, key);
+}
+
+/**
+ * Is this zone empty for good this round, with a rule saying that ends the
+ * round? ("endRound", or a reshuffle limit that has been used up.)
+ */
+export function endsRoundWhenEmpty(state: GameState, key: ZoneKey): boolean {
+  const policy = policyFor(state, key);
+  const ending = policy === 'endRound' || typeof policy === 'object';
+  return ending && zoneCards(state, key).length === 0 && !canRefill(state, key);
 }
 
 /**
@@ -25,7 +61,7 @@ export function drawCards(state: GameState, from: ZoneKey, to: ZoneKey, count: n
   const target = zoneCards(state, to);
   const drawn: Card[] = [];
   for (let i = 0; i < count; i++) {
-    if (source.length === 0) refill(state, from);
+    if (source.length === 0 && canRefill(state, from)) refill(state, from);
     const card = source.pop();
     if (!card) break;
     target.push(card);
@@ -34,14 +70,13 @@ export function drawCards(state: GameState, from: ZoneKey, to: ZoneKey, count: n
   return drawn;
 }
 
+/** Turns the discard pile (all but its top card) into the new, shuffled stock. */
 function refill(state: GameState, key: ZoneKey): void {
-  const policy = currentPhase(state)?.whenEmpty?.[parseZoneKey(key).name];
-  if (policy !== 'reshuffleDiscardExceptTop') return;
-  const discard = state.zones.discard;
-  if (!discard || discard.length < 2) return;
+  const discard = state.zones.discard as Card[];
   const top = discard.pop() as Card;
   const rest = discard.splice(0, discard.length);
   shuffle(rest, state.rng);
   zoneCards(state, key).push(...rest);
   discard.push(top);
+  state.reshuffles[key] = (state.reshuffles[key] ?? 0) + 1;
 }

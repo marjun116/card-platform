@@ -193,7 +193,20 @@ export const phaseSchema = z.strictObject({
   actions: z.array(actionSchema).min(1).optional(),
   turn: z.array(turnStepSchema).min(1).optional(),
   afterTrick: z.array(effectSchema).optional(),
-  whenEmpty: z.record(name, z.enum(['reshuffleDiscardExceptTop', 'endRound'])).optional(),
+  whenEmpty: z
+    .record(
+      name,
+      z.union([
+        z.enum(['reshuffleDiscardExceptTop', 'endRound']),
+        // Reshuffle at most `limit` times per round; when it runs out after that, the
+        // round ends. `limit` may be an expression; "unlimited" or null means no limit.
+        z.strictObject({
+          policy: z.literal('reshuffleDiscardExceptTop'),
+          limit: z.union([count(0), expr]),
+        }),
+      ]),
+    )
+    .optional(),
 });
 
 export const scoreRuleSchema = z.strictObject({

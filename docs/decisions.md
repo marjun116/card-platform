@@ -152,3 +152,20 @@ The spec's action library mixes moves a player chooses with things the engine do
 - Hands start face down (for blind bids) only if a blind bid is possible: an expression that
   mentions `player.hasLookedAtHand` doesn't count when it also requires an option that is
   switched off. So spades with blind nil off (the default) deals hands face up.
+
+## 2026-10-06: Running out of stock (rummy)
+
+- Rummy-style games reshuffle the discard pile (all but its top card) into a new stock
+  **as many times as needed by default**. The table host can set a limit when starting a
+  game (option values: unlimited, 1, 2, 3). Once the limit is used up, the next time the
+  stock runs out the round ends and hands are scored as usual. The count resets each round.
+- Game file form: `"whenEmpty": { "stock": { "policy": "reshuffleDiscardExceptTop",
+  "limit": "options.reshuffles" } }`. The limit may be a number or an expression;
+  `"unlimited"` (or null) means no limit. The plain string `"reshuffleDiscardExceptTop"`
+  still means "no limit".
+- A pile running out never cuts a turn short: the round only ends at the start of the next
+  player's turn (this applies to `"endRound"` too).
+- Known gap: with unlimited reshuffles a hand can reach a stalemate nobody can win (every
+  card that could be laid off is already melded). Real players would agree to stop; the
+  engine currently stops any round after 10,000 moves with an error. Tables will need a
+  "call it a draw" button (Phase 7's manual buttons). Simulations always set a limit.

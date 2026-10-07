@@ -417,7 +417,10 @@ class Checker {
     for (const { action, path: actionPath } of actions) this.checkAction(action, actionPath, phase);
 
     const isTrick = actions.some(({ action }) => action.type === 'playToTrick');
-    const endsRound = Object.values(phase.whenEmpty ?? {}).includes('endRound');
+    // A reshuffle limit also ends the round once the reshuffles are used up.
+    const endsRound = Object.values(phase.whenEmpty ?? {}).some(
+      (policy) => policy === 'endRound' || typeof policy === 'object',
+    );
     if (isTrick) {
       const after = phase.afterTrick ?? [];
       const resolve = after.findIndex((e) => e.resolveTrick);
@@ -452,8 +455,12 @@ class Checker {
 
     for (const [zone, policy] of Object.entries(phase.whenEmpty ?? {})) {
       this.zone(zone, [...path, 'whenEmpty', zone], { per: 'any' });
-      if (policy === 'reshuffleDiscardExceptTop' && !this.file.zones.discard) {
+      const reshuffles = policy !== 'endRound';
+      if (reshuffles && !this.file.zones.discard) {
         this.error([...path, 'whenEmpty', zone], 'Reshuffling needs a zone called "discard"');
+      }
+      if (typeof policy === 'object' && typeof policy.limit === 'string') {
+        this.checkExpr(policy.limit, [...path, 'whenEmpty', zone, 'limit'], NO_CONTEXT);
       }
     }
   }

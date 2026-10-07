@@ -175,6 +175,14 @@ export const miniRummy: GameFile = {
   meta: { name: 'Mini Rummy', players: [2, 4] },
   deck: {},
   cardOrder: { ranks: ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'] },
+  options: {
+    reshuffles: {
+      label: 'Reshuffle the discard pile',
+      type: 'choice',
+      values: ['unlimited', 1, 2, 3],
+      default: 'unlimited',
+    },
+  },
   zones: {
     hand: { per: 'player', visibility: 'owner' },
     stock: { shared: true, visibility: 'none', countVisible: true },
@@ -207,8 +215,8 @@ export const miniRummy: GameFile = {
         },
         { actions: [{ type: 'discard', to: 'discard' }] },
       ],
-      // The round ends when the stock runs out (otherwise random play can go on forever).
-      whenEmpty: { stock: 'endRound' },
+      // Reshuffle the discard pile as often as needed, unless the table sets a limit.
+      whenEmpty: { stock: { policy: 'reshuffleDiscardExceptTop', limit: 'options.reshuffles' } },
     },
   ],
   scoring: {

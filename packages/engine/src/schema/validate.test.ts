@@ -249,6 +249,18 @@ describe('validate', () => {
       ]);
     });
 
+    it('accepts a reshuffle limit and checks its expression', () => {
+      const [phase] = miniRummy.phases as [PhaseDef];
+      const limit = (value: string | number) =>
+        withPhases(miniRummy, [
+          { ...phase, whenEmpty: { stock: { policy: 'reshuffleDiscardExceptTop', limit: value } } },
+        ]);
+      expect(errors(limit(2))).toEqual([]);
+      expect(errors(limit('options.reshufles'))).toEqual([
+        `phases[0] ("play").whenEmpty.stock.limit: Option "reshufles" isn't declared (options: reshuffles). Did you mean "reshuffles"? in "options.reshufles"`,
+      ]);
+    });
+
     it('checks whenEmpty', () => {
       const [phase] = sevensUp.phases as [PhaseDef];
       const noDiscard = {

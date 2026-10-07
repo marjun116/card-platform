@@ -82,6 +82,8 @@ export interface GameState {
   zones: Record<ZoneKey, Card[]>;
   /** Zones that hold melds (groups of cards). */
   melds: Record<ZoneKey, Card[][]>;
+  /** Times each zone has been refilled from the discard pile this round. */
+  reshuffles: Record<ZoneKey, number>;
   /** Cards passed to each seat, delivered when the phase ends. */
   passing: Card[][];
   /** Custom values (`state.*`). Reset every round. */
@@ -210,6 +212,7 @@ export function draft(state: GameState): GameState {
     teams: state.teams.map((t) => ({ ...t, players: [...t.players], tracks: { ...t.tracks } })),
     zones: copyRecord(state.zones, (cards) => [...cards]),
     melds: copyRecord(state.melds, (melds) => melds.map((m) => [...m])),
+    reshuffles: { ...state.reshuffles },
     passing: state.passing.map((cards) => [...cards]),
     vars: copyRecord(state.vars, (v) => (Array.isArray(v) ? structuredCopy(v) : v)),
     cursor: { ...state.cursor, turns: [...state.cursor.turns] },

@@ -25,6 +25,15 @@ const sensible = preferring(
     (m.type === 'bid' && typeof m.value === 'number' && m.value <= 3),
 );
 
+/**
+ * Mini rummy reshuffles forever by default, and a hand can reach a stalemate
+ * nobody can win (every card that could be laid off is already melded). Real
+ * tables can set a reshuffle limit for that; the simulation always does.
+ */
+const OPTIONS: Partial<Record<keyof typeof allFixtures, Record<string, number>>> = {
+  miniRummy: { reshuffles: 1 },
+};
+
 const GAMES: Record<keyof typeof allFixtures, number> = {
   spades: 5,
   sevensUp: 30,
@@ -39,6 +48,7 @@ describe('random play', () => {
       const report = simulateMany(file, {
         games: GAMES[name as keyof typeof allFixtures],
         seedPrefix: name,
+        options: OPTIONS[name as keyof typeof allFixtures] ?? {},
         strategy: sensible,
         replayEvery: 5,
       });
