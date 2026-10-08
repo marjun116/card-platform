@@ -1,0 +1,177 @@
+{
+  "$schema": "../engine/game-file.schema.json",
+  "meta": {
+    "name": "Oh Hell",
+    "players": [3, 7],
+    "description": "Bid exactly how many tricks you'll take, then take exactly that many. Hands grow and shrink each round."
+  },
+  "deck": {
+    "copies": 1,
+    "jokers": 0
+  },
+  "cardOrder": {
+    "ranks": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"],
+    "trump": "declared"
+  },
+  "options": {
+    "sequence": {
+      "label": "Hand sizes",
+      "type": "choice",
+      "values": ["upDown", "downUp", "up", "down"],
+      "labels": {
+        "upDown": "Up then down (1 → most → 1)",
+        "downUp": "Down then up (most → 1 → most)",
+        "up": "Up only (1 → most)",
+        "down": "Down only (most → 1)"
+      },
+      "default": "upDown"
+    },
+    "maxCards": {
+      "label": "Most cards in a hand",
+      "type": "choice",
+      "values": [10, 7, 13, "max"],
+      "labels": {
+        "max": "As many as the deck allows"
+      },
+      "default": 10
+    },
+    "hook": {
+      "label": "The hook: the dealer can't make the bids add up to the tricks",
+      "type": "boolean",
+      "default": true
+    },
+    "scoring": {
+      "label": "Scoring",
+      "type": "choice",
+      "values": ["exact", "perTrick", "penalty"],
+      "labels": {
+        "exact": "10 + bid when exact, otherwise nothing",
+        "perTrick": "1 per trick, plus 10 when exact",
+        "penalty": "10 + bid when exact, otherwise −1 per trick off"
+      },
+      "default": "exact"
+    },
+    "blindBids": {
+      "label": "Blind bids (bid before looking; double if made)",
+      "type": "boolean",
+      "default": false
+    },
+    "topNoTrump": {
+      "label": "The biggest hand is played with no trump",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "zones": {
+    "hand": {
+      "per": "player",
+      "visibility": "owner"
+    },
+    "stock": {
+      "shared": true,
+      "visibility": "none",
+      "countVisible": true
+    },
+    "trumpCard": {
+      "shared": true,
+      "visibility": "all"
+    },
+    "trick": {
+      "shared": true,
+      "visibility": "all"
+    },
+    "won": {
+      "per": "player",
+      "visibility": "none",
+      "countVisible": true
+    }
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": {
+      "to": "hand",
+      "count": "(options.sequence == 'upDown' || options.sequence == 'up') ? (options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count])) - abs((options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count])) - round) : abs((options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count])) - round) + 1"
+    },
+    "rest": "stock",
+    "flip": {
+      "if": "stock.count > 0",
+      "from": "stock",
+      "to": "trumpCard",
+      "set": {
+        "state.top": "((options.sequence == 'upDown' || options.sequence == 'up') ? (options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count])) - abs((options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count])) - round) : abs((options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count])) - round) + 1) == (options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count]))",
+        "state.trump": "options.topNoTrump && state.top ? null : card.suit"
+      }
+    },
+    "dealerRotation": "left"
+  },
+  "phases": [
+    {
+      "name": "bidding",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "actions": [
+        {
+          "type": "bid",
+          "values": {
+            "range": [0, 13]
+          },
+          "if": "bid <= hand.count && !(options.hook && player.isDealer && bid + sum(activePlayers, bidSoFar) == hand.count)",
+          "effects": [
+            {
+              "if": "options.blindBids && !player.hasLookedAtHand",
+              "set": {
+                "player.blind": true
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "play",
+      "leader": {
+        "first": "leftOfDealer",
+        "then": "lastTrickWinner"
+      },
+      "actions": [
+        {
+          "type": "playToTrick",
+          "followSuit": true
+        }
+      ],
+      "afterTrick": [
+        {
+          "resolveTrick": "highestTrumpElseHighestLed"
+        },
+        {
+          "moveTrick": "won",
+          "of": "winner"
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "playerValues": {
+      "bidSoFar": "player.bid == null ? 0 : player.bid"
+    },
+    "perPlayer": [
+      {
+        "if": "player.tricks == player.bid",
+        "add": "(10 + player.bid) * (player.blind == true ? 2 : 1)"
+      },
+      {
+        "if": "options.scoring == 'perTrick' && player.tricks != player.bid",
+        "add": "player.tricks"
+      },
+      {
+        "if": "options.scoring == 'penalty' && player.tricks != player.bid",
+        "add": "-abs(player.tricks - player.bid)"
+      }
+    ]
+  },
+  "endCondition": {
+    "when": "round >= (options.sequence == 'up' || options.sequence == 'down' ? (options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count])) : 2 * (options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count])) - 1)",
+    "winner": "highestScore",
+    "ties": "share"
+  }
+}

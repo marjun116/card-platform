@@ -657,6 +657,20 @@ General parts of the game format, added because rummy and gin needed them.
   for the dealer; when the dealer sits out (their partner went alone, or defends alone), nobody
   takes the upcard.
 
+## 2026-10-08: Oh Hell
+
+- **Standard rules:** 3 to 7 players, each alone. Hands go up then down: 1 card each, then 2,
+  … up to 10 (lower with more players, so one card is left to turn up), then back down to 1.
+  The card after the deal is turned up for trump; with none left, the hand has no trump. Bids
+  from the left of the dealer, 0 up to the cards held; the hook: the dealer may not make the
+  bids add up to the number of tricks. Exact bid: 10 + bid; otherwise 0. Highest total after
+  the last hand wins; ties share.
+- **House rules (options):** hand sequence (up then down, down then up, up only, down only);
+  most cards in a hand (10, 7, 13, or as many as the deck allows); the hook (on by default);
+  scoring (1 per trick + 10 when exact, or −1 per trick off); blind bids (bid before looking,
+  double if made); the top hand played with no trump.
+- **Left out:** secret bids revealed together (not turn-based) and team versions.
+
 ## 2026-10-08: Building block added for Oh Hell
 
 - **A `bid` action's `if` can read `bid`**, the value being considered (like `suit` for

@@ -93,6 +93,8 @@ const SENSIBLE: Record<BuiltInGameName, Strategy> = {
   'gin-rummy': arranging(keepMelds),
   // Mostly play with a partner, so more hands are ordinary partnership hands.
   euchre: preferring((m) => m.type === 'choose' && m.value === 'withPartner'),
+  // Bid low, so some bids are made and scores spread out.
+  'oh-hell': preferring((m) => m.type === 'bid' && typeof m.value === 'number' && m.value <= 1),
 };
 
 /**
@@ -166,6 +168,11 @@ const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> 
     { stickTheDealer: true, euchreLoner4: true, targetScore: 5 },
     { defendAlone: true, canadianLoner: true, loneMarch: 5, targetScore: 11 },
   ],
+  'oh-hell': [
+    { sequence: 'downUp', maxCards: 7, hook: false, scoring: 'perTrick', topNoTrump: true },
+    { sequence: 'down', maxCards: 'max', scoring: 'penalty', blindBids: true },
+    { sequence: 'up', maxCards: 13 },
+  ],
 };
 const VARIANT_GAMES = 200;
 
@@ -181,6 +188,8 @@ const MIN_ROUNDS: Record<BuiltInGameName, number> = {
   rummy: 2,
   'gin-rummy': 2,
   euchre: 5,
+  // A full game is 19 hands with 3–5 players.
+  'oh-hell': 10,
 };
 
 /**
