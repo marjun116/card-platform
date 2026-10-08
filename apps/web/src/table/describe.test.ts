@@ -1,7 +1,7 @@
 import type { TableInfo } from '@card-table/server/protocol';
 import { describe, expect, it } from 'vitest';
 import { cardFromId, cardImage, isRed, shortLabel, spokenLabel } from './cards';
-import { bidLabel, describeMove, moveLabel, seatNames, seatStats } from './describe';
+import { bidLabel, describeMove, describeScore, moveLabel, seatNames, seatStats } from './describe';
 
 const table = {
   seats: [
@@ -104,5 +104,19 @@ describe('seatStats', () => {
       short: 'W1 · Sits out',
       spoken: 'won 1, 5 cards, sitting out this hand',
     });
+  });
+});
+
+describe('describeScore', () => {
+  const event = { round: 1, at: 3, player: 0, team: 0, points: 2, label: 'Fifteen', into: null };
+  it('writes points scored as cards are played', () => {
+    expect(describeScore(event, names)).toBe('Ana: Fifteen for 2');
+    expect(describeScore({ ...event, label: null }, names)).toBe('Ana scored 2');
+  });
+
+  it('says when points are held rather than scored (pinochle meld)', () => {
+    expect(describeScore({ ...event, label: 'Aces around', points: 10, into: 'meld' }, names)).toBe(
+      'Ana: Aces around for 10 (meld)',
+    );
   });
 });

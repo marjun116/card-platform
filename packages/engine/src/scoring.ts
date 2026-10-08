@@ -47,10 +47,10 @@ export function scoreNow(
   player: PlayerId,
   points: number,
   label: string | null,
+  into: string | null = null,
 ): boolean {
   const team = state.teams[state.players[player]?.team ?? -1];
   if (!team) throw new ExprError(`There is no player ${player} to score for`);
-  team.score += points;
   state.scoreEvents.push({
     round: state.round,
     at: state.log.length,
@@ -58,7 +58,14 @@ export function scoreNow(
     team: team.id,
     points,
     label,
+    into,
   });
+  // Held points (such as meld) wait for the round's scoring to decide whether they count.
+  if (into !== null) {
+    team.held[into] = (team.held[into] ?? 0) + points;
+    return false;
+  }
+  team.score += points;
   if (!state.file.endCondition.immediate) return false;
   const winners = decideEnd(state);
   if (winners === null) return false;
@@ -108,6 +115,7 @@ function recordRound(state: GameState, activeBefore: boolean[]): void {
       score: t.score,
       tricks: t.tricks,
       tracks: { ...t.tracks },
+      held: { ...t.held },
     })),
     players: state.players.map((p, i) => ({
       id: p.id,
@@ -160,9 +168,17 @@ function findWinners(state: GameState): PlayerId[] | null {
     return shareOrNull(active);
   }
 
-  const scores = state.teams.map((t) => t.score);
+  // Teams meeting `priority` (say, the bidding team when both teams pass the target) win
+  // ahead of the rest.
+  const priority = state.file.endCondition.priority;
+  const live = state.teams.filter((t) => t.players.some((p) => state.players[p]?.active));
+  const first = priority
+    ? live.filter((t) => evaluateCondition(priority, buildScope(state, { team: t.id })))
+    : [];
+  const candidates = first.length > 0 ? first : state.teams;
+  const scores = candidates.map((t) => t.score);
   const best = winner === 'highestScore' ? Math.max(...scores) : Math.min(...scores);
-  const top = state.teams.filter((t) => t.score === best);
+  const top = candidates.filter((t) => t.score === best);
   if (top.length > 1 && ties === 'playOn') return null;
   return top.flatMap((t) => t.players).sort((a, b) => a - b);
 }

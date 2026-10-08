@@ -336,7 +336,10 @@ async function main(): Promise<void> {
 /** Announces points scored during play, finished tricks and rounds. */
 function reportChanges(before: GameState, after: GameState): void {
   for (const event of after.scoreEvents.slice(before.scoreEvents.length)) {
-    console.log(`  + ${seatName(event.player)}: ${event.label ?? 'points'} for ${event.points}`);
+    const held = event.into ? ` (${event.into})` : '';
+    console.log(
+      `  + ${seatName(event.player)}: ${event.label ?? 'points'} for ${event.points}${held}`,
+    );
   }
   const trick = after.lastTrick;
   const newTrick = JSON.stringify(trick) !== JSON.stringify(before.lastTrick);

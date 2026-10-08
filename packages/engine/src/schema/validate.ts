@@ -21,7 +21,7 @@ import type {
   ZoneDef,
 } from '../game/types';
 import { ACES, gameFileSchema, LEADER_FIRST, PASS_DIRECTIONS, TIES, WINNERS } from './gameFile';
-import { PLAYER_PROPERTIES, playerVarNames } from '../game/scope';
+import { heldNames, PLAYER_PROPERTIES, playerVarNames } from '../game/scope';
 
 export interface ValidationIssue {
   /** Where in the file, e.g. 'phases[1] ("play").actions[0].to'. */
@@ -171,8 +171,8 @@ const ZONE_PROPS = ['count', 'top', 'cards', 'sameRankAtEnd', 'runAtEnd'];
 const SUIT_FUNCTIONS = ['containsSuit', 'onlySuit', 'countSuit'];
 const RANK_FUNCTIONS = ['hasRank', 'countRank'];
 /** Functions taking a card code such as "QS". */
-const CODE_FUNCTIONS = ['hasCard', 'holderOf'];
-const TRICK_PROPS = ['leader', 'winner', 'ledSuit', 'number'];
+const CODE_FUNCTIONS = ['hasCard', 'countCard', 'holderOf'];
+const TRICK_PROPS = ['leader', 'winner', 'ledSuit', 'number', 'isBeatenBy'];
 const FUNCTIONS = [
   'cardValue',
   'sum',
@@ -707,6 +707,14 @@ class Checker {
       this.error([...path, 'to'], '"to" only goes with returnCards');
     if (effect.label && effect.score === undefined)
       this.error([...path, 'label'], '"label" only goes with score');
+    if (effect.into && effect.score === undefined)
+      this.error([...path, 'into'], '"into" only goes with score');
+    if (effect.into && (TEAM_PROPS.includes(effect.into) || this.tracks.has(effect.into))) {
+      this.error(
+        [...path, 'into'],
+        `"${effect.into}" is already something else; pick another name`,
+      );
+    }
     if (effect.score !== undefined) {
       if (typeof effect.score === 'string') this.checkExpr(effect.score, [...path, 'score'], ctx);
       if (!ctx.player) {
@@ -838,7 +846,8 @@ class Checker {
   }
 
   private checkEnd(): void {
-    const { when, winner, ties, notes = [] } = this.file.endCondition;
+    const { when, winner, ties, notes = [], priority } = this.file.endCondition;
+    if (priority) this.checkExpr(priority, ['endCondition', 'priority'], TEAM);
     notes.forEach((note, i) =>
       this.checkExpr(note.if, ['endCondition', 'notes', i, 'if'], NO_CONTEXT),
     );
@@ -1059,6 +1068,7 @@ class Checker {
       ...SUIT_FUNCTIONS,
       ...RANK_FUNCTIONS,
       'hasCard',
+      'countCard',
       ...extra,
     ];
     const zoneResult = (p: string): Kind =>
@@ -1074,7 +1084,8 @@ class Checker {
       }
       case 'team': {
         const zones = this.zoneNames('team');
-        return check('A team', [...TEAM_PROPS, ...zones, ...this.tracks], (p) =>
+        const held = [...heldNames({ file: this.file })];
+        return check('A team', [...TEAM_PROPS, ...zones, ...this.tracks, ...held], (p) =>
           zones.includes(p) ? this.zoneKind(p) : 'value',
         );
       }
@@ -1111,7 +1122,7 @@ class Checker {
 
   private checkCallArgs(fn: string, args: Node[], problems: string[]): void {
     // hasCard('J', suit) takes a rank and a suit instead of a card code.
-    if (fn === 'hasCard' && args.length === 2) {
+    if ((fn === 'hasCard' || fn === 'countCard') && args.length === 2) {
       fn = 'hasRank';
       args = args.slice(0, 1);
     }

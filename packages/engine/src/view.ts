@@ -58,6 +58,8 @@ export interface PlayerView {
     score: number;
     tricks: number;
     tracks: Record<string, number>;
+    /** Points held this round, such as meld (public). */
+    held: Record<string, number>;
   }[];
   vars: GameState['vars'];
   phase: string;
@@ -240,7 +242,12 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
       hasLookedAtHand: p.hasLookedAtHand,
       sittingOut: p.sittingOut,
     })),
-    teams: state.teams.map((t) => ({ ...t, players: [...t.players], tracks: { ...t.tracks } })),
+    teams: state.teams.map((t) => ({
+      ...t,
+      players: [...t.players],
+      tracks: { ...t.tracks },
+      held: { ...t.held },
+    })),
     vars: { ...state.vars },
     phase: state.file.phases[state.cursor.phase]?.name ?? '',
     currentPlayer: state.cursor.current,

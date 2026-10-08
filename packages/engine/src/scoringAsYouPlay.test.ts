@@ -50,7 +50,7 @@ describe('scoring as cards are played', () => {
     const paired = play(state, put(L, '5H'), put(D, '5C'));
     expect(paired.teams[D]?.score).toBe(2);
     expect(paired.scoreEvents).toEqual([
-      { round: 1, at: 2, player: D, team: D, points: 2, label: 'Pair' },
+      { round: 1, at: 2, player: D, team: D, points: 2, label: 'Pair', into: null },
     ]);
 
     const tripled = play(paired, put(L, '5S'));

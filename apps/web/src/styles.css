@@ -986,6 +986,11 @@ kbd {
 .choice-grid button {
   min-width: 48px;
 }
+/* The higher bids of a wide auction: a list and a Bid button, kept together. */
+.bid-picker {
+  display: inline-flex;
+  gap: 6px;
+}
 .suit-button {
   font-weight: 700;
 }

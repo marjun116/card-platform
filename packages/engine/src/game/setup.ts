@@ -155,6 +155,7 @@ function buildTeams(file: GameFile, playerCount: number): TeamState[] {
     score: 0,
     tricks: 0,
     tracks: {},
+    held: {},
   });
   const teams = teamsFor(file, playerCount);
   if (!teams) {
@@ -212,7 +213,10 @@ export function startRound(state: GameState): void {
     player.groups = [];
     player.sittingOut = false;
   }
-  for (const team of state.teams) team.tricks = 0;
+  for (const team of state.teams) {
+    team.tricks = 0;
+    team.held = {};
+  }
   state.vars = {};
   state.playedBy = {};
   state.roundStartScores = state.teams.map((t) => t.score);

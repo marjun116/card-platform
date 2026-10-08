@@ -71,7 +71,10 @@ export function runEffects(
       }
       const points = evaluateNumber(effect.score, buildScope(state, ctx));
       // Nothing to note when there are no points (a hand with no pairs, say).
-      if (points !== 0 && scoreNow(state, ctx.player, points, effect.label ?? null)) return true;
+      const into = effect.into ?? null;
+      if (points !== 0 && scoreNow(state, ctx.player, points, effect.label ?? null, into)) {
+        return true;
+      }
     }
     if (effect.layOutMelds) {
       if (ctx.player === undefined) {

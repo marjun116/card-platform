@@ -33,7 +33,8 @@ import {
 import { hasLegalPlay } from './legal';
 import { deadwood, hasPureRunOnTable } from './arrangement';
 import type { BidValue, PlayerId, ZoneKey } from './move';
-import { type GameState, suitOf, type TrickState, teamZoneKey } from './state';
+import { type GameState, suitOf, type TrickState, teamZoneKey, trumpSuit } from './state';
+import { trickWinnerIndex } from '../cards/order';
 
 export interface ScopeContext {
   /** The player the expression is about (acting player, or the one being scored). */
@@ -88,6 +89,14 @@ function cardsObject(
         return fn((rank) => cards.some((c) => cardRank(c) === rank));
       case 'countRank':
         return fn((rank) => cards.filter((c) => cardRank(c) === rank).length);
+      case 'countCard':
+        // countCard('QS'), or a rank and suit: countCard('A', state.trump).
+        return fn((...args) => {
+          const [code, suit] = args;
+          return args.length < 2
+            ? cards.filter((c) => cardCode(c) === code).length
+            : cards.filter((c) => cardRank(c) === code && cardSuit(c) === suit).length;
+        });
       case 'hasCard':
         // hasCard('QS'), or a rank and suit: hasCard('J', starter.top.suit).
         return fn((...args) => {
@@ -130,6 +139,22 @@ function trickObject(state: GameState, trick: TrickState | null): ExprObject {
         return trick?.number ?? null;
       case 'winner':
         return trick?.winner ?? null;
+      case 'isBeatenBy':
+        // Would this card take the trick so far? (Trump beats other suits; of two
+        // identical cards, the first played wins.)
+        return fn((card) => {
+          const [candidate] = cardsFrom('trick.isBeatenBy', [[card]]);
+          if (!candidate) throw new ExprError('trick.isBeatenBy() needs a card');
+          return (
+            trickWinnerIndex(
+              [...cards, candidate],
+              'highestTrumpElseHighestLed',
+              trumpSuit(state),
+              rankOrder(state),
+              state.file.cardOrder?.bowers === true,
+            ) === cards.length
+          );
+        });
       case 'ledSuit': {
         // The suit the first card counts as (a left bower leads trump).
         const first = cards.find((c) => !isJoker(c));
@@ -164,6 +189,21 @@ export function playerVarNames(state: { file: GameState['file'] }): Set<string> 
       ),
     );
     playerVarCache.set(state.file, names);
+  }
+  return names;
+}
+
+/** Names of held points: every `"into"` in the game file's score effects. */
+const heldNameCache = new WeakMap<object, Set<string>>();
+export function heldNames(state: { file: GameState['file'] }): Set<string> {
+  let names = heldNameCache.get(state.file);
+  if (!names) {
+    names = new Set(
+      [...JSON.stringify(state.file).matchAll(/"into":"([A-Za-z_][A-Za-z0-9_]*)"/g)].map(
+        (m) => m[1] as string,
+      ),
+    );
+    heldNameCache.set(state.file, names);
   }
   return names;
 }
@@ -255,6 +295,7 @@ function teamObject(state: GameState, id: number): ExprObject {
         return team.players.length;
     }
     if (trackNames(state).has(name)) return team.tracks[name] ?? 0;
+    if (heldNames(state).has(name)) return team.held[name] ?? 0;
     return ownedZone(state, 'team', id, name);
   });
 }
@@ -345,6 +386,14 @@ const abs = fn((n) => {
   if (typeof n !== 'number') throw new ExprError('abs() needs a number');
   return Math.abs(n);
 });
+
+/**
+ * The same scope with one name (`bid`, `suit`) set to a value, for checking
+ * many values against one rule without rebuilding everything else each time.
+ */
+export function withValue(scope: Scope, name: 'bid' | 'suit', value: Value): Scope {
+  return { ...scope, lookup: (n) => (n === name ? value : scope.lookup(n)) };
+}
 
 /**
  * The same scope with `card` set, for checking many cards against one rule

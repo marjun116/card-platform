@@ -735,3 +735,50 @@ General parts of the game format, added because cribbage needed them; none menti
   expression, so `!anyPlayer.hasLegalPlay` means "some player can't play", not "nobody can".
   The validator now warns and suggests `everyPlayer.hasLegalPlay == false`. (Cribbage's
   first draft made exactly this mistake.)
+
+## 2026-10-08: Pinochle
+
+- **Standard rules:** four-handed partnership auction pinochle. 48 cards (two copies of 9 to
+  A), 12 each; rank A, 10, K, Q, J, 9. Bids go up from 20; passing takes you out of the
+  auction; if the first three pass, the dealer must bid. The high bidder names trump. Meld:
+  run 15 (double 150), royal marriage 4, marriage 2, dix 1, aces/kings/queens/jacks around
+  10/8/6/4 (doubled 100/80/60/40), pinochle 4 (double 30); a run's K-Q isn't also a royal
+  marriage. Play: follow suit; if you can't, trump; beat the trick when you can (including
+  overtrumping); the first of two identical cards wins. Aces, tens and kings are 1 point,
+  the last trick 1. Meld counts only for a team that takes a trick. The bidding team scores
+  meld + points if that reaches the bid, otherwise loses the bid; the other team scores its
+  meld + points. First to 150; when both pass 150 in the same hand, the bidding team wins.
+- **Passing is on by default:** the bidder's partner passes 4 cards to the bidder, who
+  passes 4 back (two separate phases, so the bidder sees the cards first).
+- **Scoring:** simple 1-point counters by default; classic scoring (A 11, 10 10, K 4, Q 3,
+  J 2, last trick 10; meld, bids and the target ×10, bids in tens) is a house rule.
+- **House rules (options):** passing (on); classic scoring; play to 150/100/200; lowest bid
+  20/25/50; the dealer must bid (on; off means a redeal when everyone passes); the bidder
+  may throw in the hand before play, losing only the bid; must beat the trick (on).
+- **Meld is counted by the engine** when each player presses "Show my meld"; the log lists
+  each meld. The cards themselves aren't shown on the table (that needs a "show these cards
+  for a while" block; left for after the playtest).
+- **Left out:** three-handed and double-deck pinochle (different enough to be games of
+  their own).
+- **Simulation:** random bids are mostly far too high, so every hand is set and games never
+  end. Random players pass or make the lowest bid on offer, and rarely throw in a hand.
+
+## 2026-10-08: Building blocks added for pinochle
+
+- **`trick.isBeatenBy(card)`**: would this card take the trick so far (trump beats other
+  suits; of two identical cards the first played wins)? With play restrictions it gives
+  "must beat the trick" and "must overtrump": `{ "mustPlay": "trick.isBeatenBy(card)" }`.
+- **`countCard`**: `hand.countCard('QS')` or `hand.countCard('A', state.trump)` counts copies
+  (multi-deck games); with `min([...])` it counts doubled melds.
+- **Held points**: `{ "score": 10, "label": "Aces around", "into": "meld" }` notes the points in
+  the log ("Ana: Aces around for 10 (meld)") and adds them to a team counter `team.meld`
+  instead of the score. Held points show on the scoreboard and in the round summary, and
+  are cleared every round; the round's scoring decides whether they count.
+- **`endCondition.priority`**: a team condition; teams meeting it win ahead of the others
+  (pinochle's bidding team when both teams pass the target).
+- **Web: wide bid ranges.** With more than 14 numeric bids, the lowest 6 are buttons and the
+  rest are in a list with a Bid button; named bids (nil) stay buttons. Spades and Oh Hell
+  are unchanged.
+- **Faster bid lists**: bids and suits are checked against one scope per player instead of
+  building one per value; pinochle's simulation went from 374 to 132 ms a game.
+- Test helper: card specs can name a deck copy, e.g. `"AS.1"`.

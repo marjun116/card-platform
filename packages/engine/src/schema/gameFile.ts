@@ -157,6 +157,11 @@ export const effectSchema = z.strictObject({
   score: z.union([expr, z.number()]).optional(),
   /** Words for the points in the game log, e.g. "Fifteen". */
   label: z.string().min(1).optional(),
+  /**
+   * Hold the points in a team counter (`team.<name>`, cleared every round)
+   * instead of adding them to the score, e.g. "meld".
+   */
+  into: name.optional(),
   /** Gives each card in this shared zone back to the player who played it, into `to`. */
   returnCards: name.optional(),
   to: name.optional(),
@@ -335,6 +340,11 @@ export const endConditionSchema = z.strictObject({
   when: expr,
   winner: settingOr(WINNERS),
   ties: settingOr(TIES).optional(),
+  /**
+   * A team condition: teams meeting it win ahead of the others, e.g. the
+   * bidding team when both teams pass the target in the same hand.
+   */
+  priority: expr.optional(),
   /** Also check `when` each time points are scored during a round, ending the game at once. */
   immediate: z.boolean().optional(),
   /** Words shown with the result when their condition holds at the end, e.g. "Skunk!". */

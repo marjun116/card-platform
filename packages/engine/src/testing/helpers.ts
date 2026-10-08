@@ -12,14 +12,18 @@ const SUIT_BY_LETTER: Record<string, Suit> = {
   S: 'spades',
 };
 
-/** "QH" → queen of hearts, "10S" → ten of spades (first deck copy), "JOKER.1" → a joker. */
+/**
+ * "QH" → queen of hearts, "10S" → ten of spades (first deck copy), "10S.1" →
+ * the second deck's ten of spades, "JOKER.1" → a joker.
+ */
 export function card(spec: string): Card {
   const joker = /^JOKER\.(\d+)$/.exec(spec);
   if (joker) return jokerCard(Number(joker[1]));
-  const rank = spec.slice(0, -1);
-  const suit = SUIT_BY_LETTER[spec.slice(-1)];
-  if (!isRank(rank) || !isSuit(suit)) throw new Error(`Bad card "${spec}"`);
-  return suitedCard(rank, suit);
+  const [code = '', copy = '0'] = spec.split('.');
+  const rank = code.slice(0, -1);
+  const suit = SUIT_BY_LETTER[code.slice(-1)];
+  if (!isRank(rank) || !isSuit(suit) || !/^\d+$/.test(copy)) throw new Error(`Bad card "${spec}"`);
+  return suitedCard(rank, suit, Number(copy));
 }
 
 export const id = (spec: string) => card(spec).id;

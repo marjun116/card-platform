@@ -298,3 +298,44 @@ describe('TableView: scoring as cards are played (counting game)', () => {
     expect(within(pile).getAllByRole('img')).toHaveLength(2);
   });
 });
+
+describe('TableView: a wide range of bids', () => {
+  /** Spades, but bidding from 20 to 60 (as in a pinochle auction), with nil still allowed. */
+  const auction = {
+    ...spades,
+    phases: spades.phases.map((phase, i) =>
+      i === 0
+        ? {
+            ...phase,
+            actions: [
+              { type: 'bid' as const, values: { range: [20, 60] as [number, number] } },
+              { type: 'bid' as const, values: ['nil'], if: 'options.nil' },
+            ],
+          }
+        : phase,
+    ),
+  };
+
+  it('shows the lowest bids as buttons and the rest in a list', () => {
+    const state = createGame(auction, {}, 4, 'view-auction');
+    const seat = state.cursor.current;
+    const { connection } = show(state, seat);
+    const bids = within(screen.getByRole('group', { name: 'Your bid' }));
+    for (const value of ['20', '25', 'Nil'])
+      expect(bids.getByRole('button', { name: value })).toBeTruthy();
+    expect(bids.queryByRole('button', { name: '26' })).toBeNull();
+    const list = bids.getByRole('combobox', { name: 'Higher bid' });
+    expect(within(list).getAllByRole('option')).toHaveLength(35);
+    fireEvent.change(list, { target: { value: '10' } });
+    fireEvent.click(bids.getByRole('button', { name: 'Bid 36' }));
+    expect(connection.move).toHaveBeenCalledWith({ player: seat, type: 'bid', value: 36 });
+  });
+
+  it('keeps a button per bid for spades', () => {
+    const state = createGame(spades, {}, 4, 'view-spades-bids');
+    show(state, state.cursor.current);
+    const bids = within(screen.getByRole('group', { name: 'Your bid' }));
+    expect(bids.queryByRole('combobox')).toBeNull();
+    expect(bids.getByRole('button', { name: '13' })).toBeTruthy();
+  });
+});

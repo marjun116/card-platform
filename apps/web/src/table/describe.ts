@@ -140,9 +140,11 @@ export function describeMove(
 /** Points scored during a round, e.g. "Raj: Fifteen for 2". */
 export function describeScore(event: ScoreEvent, names: SeatNames): string {
   const who = names(event.player);
+  // Held points (such as meld) say so: they aren't in the score yet.
+  const held = event.into ? ` (${humanize(event.into).toLowerCase()})` : '';
   return event.label
-    ? `${who}: ${event.label} for ${event.points}`
-    : `${who} scored ${event.points}`;
+    ? `${who}: ${event.label} for ${event.points}${held}`
+    : `${who} scored ${event.points}${held}`;
 }
 
 /**

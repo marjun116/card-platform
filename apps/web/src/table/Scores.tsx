@@ -40,7 +40,7 @@ export function Scoreboard({
       <ul>
         {view.teams.map((team) => {
           const mine = team.players.includes(view.you);
-          const tracks = tracksText(team.tracks);
+          const tracks = tracksText({ ...team.tracks, ...team.held });
           return (
             <li key={team.id} className={mine ? 'mine' : undefined}>
               <div className="team-row">
@@ -123,7 +123,7 @@ export function RoundTable({
       {result.teams.map((team) => {
         const members = teams.find((t) => t.id === team.id)?.players ?? [];
         const players = result.players.filter((p) => members.includes(p.id));
-        const tracks = tracksText(team.tracks);
+        const tracks = tracksText({ ...team.tracks, ...team.held });
         return (
           <tbody key={team.id}>
             {players.map((player, i) => (

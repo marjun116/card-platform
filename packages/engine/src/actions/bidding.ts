@@ -4,7 +4,7 @@ import type { BidValue, Move, PlayerId } from '../game/move';
 import type { GameState, PlayerState } from '../game/state';
 import { setVar } from '../effects';
 import { evaluateCondition } from '../expr/evaluate';
-import { buildScope } from '../game/scope';
+import { buildScope, withValue } from '../game/scope';
 import type { BidAction, ChooseAction, DeclareTrumpAction, PassBidAction } from '../game/types';
 import { type ActionResult, allowsCard } from './common';
 
@@ -21,8 +21,12 @@ function bidValues(action: BidAction): BidValue[] {
 /** One move per bid value the action's `if` allows; the `if` can read the `bid` in question. */
 export function bidMoves(state: GameState, player: PlayerId, action: BidAction): Move[] {
   const condition = action.if;
+  // One scope for the player, with each bid swapped in (a range can offer hundreds of bids).
+  const scope = condition ? buildScope(state, { player }) : null;
   return bidValues(action)
-    .filter((bid) => !condition || evaluateCondition(condition, buildScope(state, { player, bid })))
+    .filter(
+      (bid) => !condition || !scope || evaluateCondition(condition, withValue(scope, 'bid', bid)),
+    )
     .map((value) => ({ player, type: 'bid', value }));
 }
 
@@ -37,9 +41,11 @@ export function declareTrumpMoves(
   action: DeclareTrumpAction,
 ): Move[] {
   const condition = action.if;
+  const scope = condition ? buildScope(state, { player }) : null;
   return (action.suits ?? SUITS)
     .filter(
-      (suit) => !condition || evaluateCondition(condition, buildScope(state, { player, suit })),
+      (suit) =>
+        !condition || !scope || evaluateCondition(condition, withValue(scope, 'suit', suit)),
     )
     .map((suit) => ({ player, type: 'declareTrump', suit }));
 }

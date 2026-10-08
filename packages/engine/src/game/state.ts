@@ -31,6 +31,11 @@ export interface TeamState {
   score: number;
   tricks: number;
   tracks: Record<string, number>;
+  /**
+   * Points held this round (`score` with `into`, e.g. pinochle meld): not in
+   * the score until the round's scoring adds them. Cleared every round.
+   */
+  held: Record<string, number>;
 }
 
 export interface TrickState {
@@ -80,6 +85,8 @@ export interface RoundResult {
     tricks: number;
     /** Counters such as bags, after this round. */
     tracks: Record<string, number>;
+    /** Points held during the round (such as meld). */
+    held: Record<string, number>;
   }[];
   players: {
     id: PlayerId;
@@ -100,6 +107,8 @@ export interface ScoreEvent {
   team: number;
   points: number;
   label: string | null;
+  /** Held points (`into`, e.g. "meld") rather than points added to the score. */
+  into: string | null;
 }
 
 /** A decision the engine is waiting on before the turn can continue. */
@@ -292,7 +301,12 @@ export function draft(state: GameState): GameState {
       vars: copyRecord(p.vars, (v) => (Array.isArray(v) ? structuredCopy(v) : v)),
       groups: p.groups.map((g) => [...g]),
     })),
-    teams: state.teams.map((t) => ({ ...t, players: [...t.players], tracks: { ...t.tracks } })),
+    teams: state.teams.map((t) => ({
+      ...t,
+      players: [...t.players],
+      tracks: { ...t.tracks },
+      held: { ...t.held },
+    })),
     zones: copyRecord(state.zones, (cards) => [...cards]),
     melds: copyRecord(state.melds, (melds) => melds.map((m) => [...m])),
     reshuffles: { ...state.reshuffles },

@@ -456,6 +456,9 @@
             }
           ]
         },
+        "priority": {
+          "$ref": "#/$defs/__schema3"
+        },
         "immediate": {
           "type": "boolean"
         },
@@ -1320,6 +1323,9 @@
         "label": {
           "type": "string",
           "minLength": 1
+        },
+        "into": {
+          "$ref": "#/$defs/__schema8"
         },
         "returnCards": {
           "$ref": "#/$defs/__schema8"

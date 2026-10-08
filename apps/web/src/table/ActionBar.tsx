@@ -7,6 +7,7 @@
  * - HandActions, under your hand: what the cards you've selected can do.
  */
 import type { Move } from '@card-table/engine';
+import { useState } from 'react';
 import { isRed } from './cards';
 import { bidLabel, type ChoiceLabels, moveLabel, type SeatNames } from './describe';
 import type { Arrangement } from './Hand';
@@ -38,6 +39,53 @@ function moveButton(
   );
 }
 
+/**
+ * More numeric bids than this (an auction from 20 to 60, say), and the higher
+ * ones go in a list instead of a button each. Spades (1–13) and Oh Hell (0–13)
+ * keep a button per bid.
+ */
+const MANY_BIDS = 14;
+const BID_BUTTONS = 6;
+
+/**
+ * A wide range of bids (an auction from 20 to 60, say): the lowest few as
+ * buttons, the rest in a list with a Bid button. Other bids (pass, nil)
+ * stay as buttons.
+ */
+function BidPicker({ bids, ...props }: ButtonProps & { bids: Controls['bids'] }) {
+  const numbers = bids.filter(({ value }) => typeof value === 'number');
+  const named = bids.filter(({ value }) => typeof value !== 'number');
+  const buttons = [...numbers.slice(0, BID_BUTTONS), ...named];
+  const rest = numbers.slice(BID_BUTTONS);
+  const [picked, setPicked] = useState(0);
+  const chosen = rest[picked] ?? rest[0];
+  return (
+    <>
+      {buttons.map(({ value, move }) => moveButton(move, props, bidLabel(value)))}
+      <span className="bid-picker">
+        <select
+          aria-label="Higher bid"
+          value={picked}
+          onChange={(e) => setPicked(Number(e.target.value))}
+        >
+          {rest.map(({ value }, i) => (
+            <option key={String(value)} value={i}>
+              {bidLabel(value)}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          disabled={props.busy || !chosen}
+          onClick={() => chosen && props.onMove(chosen.move)}
+        >
+          Bid {chosen ? bidLabel(chosen.value) : ''}
+        </button>
+      </span>
+    </>
+  );
+}
+
 export function DecisionPanel({ controls, ...props }: ButtonProps & { controls: Controls }) {
   if (!hasDecisions(controls)) return null;
   const pileMoves = [...controls.byPile.values()].flat();
@@ -46,7 +94,11 @@ export function DecisionPanel({ controls, ...props }: ButtonProps & { controls: 
       {controls.bids.length > 0 && (
         <fieldset className="choice-grid">
           <legend>Your bid</legend>
-          {controls.bids.map(({ value, move }) => moveButton(move, props, bidLabel(value)))}
+          {controls.bids.filter(({ value }) => typeof value === 'number').length > MANY_BIDS ? (
+            <BidPicker bids={controls.bids} {...props} />
+          ) : (
+            controls.bids.map(({ value, move }) => moveButton(move, props, bidLabel(value)))
+          )}
         </fieldset>
       )}
 
