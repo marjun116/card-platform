@@ -10,7 +10,9 @@ import {
   playUntil,
   sevensUp,
   spades,
+  wildRummy,
 } from '../test/games';
+import { withZones } from '@card-table/engine/testing';
 import type { TableConnection } from './connection';
 import { TableView } from './TableView';
 
@@ -205,5 +207,50 @@ describe('TableView', () => {
     expect(bar.childElementCount).toBe(0);
     expect(document.activeElement).toBe(card);
     expect(card.getAttribute('aria-pressed')).toBe('false');
+  });
+});
+
+describe('TableView: hands you arrange (wild rummy)', () => {
+  function arranged() {
+    const base = createGame(wildRummy, {}, 2, 'view-arrange');
+    const seat = base.cursor.current;
+    const dealt = withZones(base, { [`hand@${seat}`]: ['3H', '4H', '5H', '9C', 'KD'] }, 'stock');
+    const state = applyMove(dealt, {
+      player: seat,
+      type: 'arrange',
+      groups: [['3H.0', '4H.0', '5H.0']],
+    });
+    return { state, seat };
+  }
+
+  it('shows each group and what it is, with your deadwood', () => {
+    const { state, seat } = arranged();
+    show(state, seat);
+    const summary = screen.getByLabelText('Your groups');
+    expect(summary.textContent).toContain('✓ Pure run (3)');
+    expect(summary.textContent).toContain('Deadwood: 19');
+  });
+
+  it('groups the cards you select, and sorts your hand on request', () => {
+    const { state, seat } = arranged();
+    const { connection } = show(state, seat);
+    fireEvent.click(hand().getByRole('button', { name: /9 of clubs/i }));
+    fireEvent.click(hand().getByRole('button', { name: /king of diamonds/i }));
+    fireEvent.click(screen.getByRole('button', { name: 'Group' }));
+    expect(connection.move).toHaveBeenLastCalledWith({
+      player: -1,
+      type: 'arrange',
+      groups: [
+        ['3H.0', '4H.0', '5H.0'],
+        ['9C.0', 'KD.0'],
+      ],
+    });
+  });
+
+  it('offers "Sort into melds" when nothing is selected', () => {
+    const { state, seat } = arranged();
+    const { connection } = show(state, seat);
+    fireEvent.click(screen.getByRole('button', { name: 'Sort into melds' }));
+    expect(connection.move).toHaveBeenLastCalledWith({ player: seat, type: 'sortHand' });
   });
 });

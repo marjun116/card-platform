@@ -3,6 +3,7 @@ import { ExprError } from '../errors';
 import { actionMoves, allowsCard } from '../actions';
 import { type Move, moveKey, type PlayerId } from './move';
 import { findCard } from './cards';
+import { autoArrangeAllowed } from './arrangement';
 import type { GameState } from './state';
 import type { ActionDef, PhaseDef, TurnStepDef } from './types';
 
@@ -73,6 +74,15 @@ export function candidates(
   ) {
     found.push({ move: { player, type: 'lookAtHand' }, step: -1, action: null });
   }
+  // "Sort into melds" is free and always open, like looking at your hand.
+  if (
+    !opts.skipLook &&
+    !opts.only &&
+    autoArrangeAllowed(state) &&
+    (state.zones[`hand@${player}`]?.length ?? 0) > 0
+  ) {
+    found.push({ move: { player, type: 'sortHand' }, step: -1, action: null });
+  }
 
   // The same move can be allowed by more than one rule; the first rule wins. One rule
   // never offers the same move twice, so there's nothing to check then (passing offers
@@ -121,14 +131,40 @@ function pendingCandidates(
   return result;
 }
 
+/**
+ * Candidates for a finished state, as the public API sees it. A state handed
+ * back by createGame or applyMove is never changed again, so the answer is
+ * remembered: a client (or simulation) asks for the same player's moves
+ * several times per move. Never use this while a move is being applied.
+ */
+const settled = new WeakMap<GameState, Map<string, Candidate[]>>();
+export function stableCandidates(
+  state: GameState,
+  player: PlayerId,
+  opts: CandidateOptions = {},
+): Candidate[] {
+  let byKey = settled.get(state);
+  if (!byKey) {
+    byKey = new Map();
+    settled.set(state, byKey);
+  }
+  const key = `${player}|${opts.skipLook ? 'skipLook' : ''}`;
+  let found = byKey.get(key);
+  if (!found) {
+    found = candidates(state, player, opts);
+    byKey.set(key, found);
+  }
+  return found;
+}
+
 export function getLegalMoves(state: GameState, player: PlayerId): Move[] {
-  return candidates(state, player).map((c) => c.move);
+  return stableCandidates(state, player).map((c) => c.move);
 }
 
 /** The legal candidate matching a requested move, or null if the move isn't legal. */
 export function findCandidate(state: GameState, move: Move): Candidate | null {
   const key = moveKey(move);
-  return candidates(state, move.player).find((c) => moveKey(c.move) === key) ?? null;
+  return stableCandidates(state, move.player).find((c) => moveKey(c.move) === key) ?? null;
 }
 
 let checkingLegalPlay = false;

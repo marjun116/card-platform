@@ -19,7 +19,8 @@ import type {
   ScoreRuleDef,
   ZoneDef,
 } from '../game/types';
-import { gameFileSchema, LEADER_FIRST, PASS_DIRECTIONS, TIES, WINNERS } from './gameFile';
+import { ACES, gameFileSchema, LEADER_FIRST, PASS_DIRECTIONS, TIES, WINNERS } from './gameFile';
+import { PLAYER_PROPERTIES, playerVarNames } from '../game/scope';
 
 export interface ValidationIssue {
   /** Where in the file, e.g. 'phases[1] ("play").actions[0].to'. */
@@ -132,6 +133,8 @@ interface ExprContext {
   player: boolean;
   team: boolean;
   card: boolean;
+  /** A meld action's `if`, in a game with meld rules: `meld` is the group being melded. */
+  meld?: boolean;
 }
 
 const NO_CONTEXT: ExprContext = { player: false, team: false, card: false };
@@ -153,19 +156,10 @@ type Kind =
   | 'state'
   | 'activePlayers'
   | 'turn'
+  | 'meld'
   | 'value';
 
-const PLAYER_PROPS = [
-  'id',
-  'team',
-  'score',
-  'bid',
-  'tricks',
-  'active',
-  'isDealer',
-  'hasLookedAtHand',
-  'hasLegalPlay',
-];
+const PLAYER_PROPS = PLAYER_PROPERTIES;
 const TEAM_PROPS = ['id', 'score', 'tricks', 'bid', 'players'];
 const CARD_PROPS = ['id', 'code', 'suit', 'rank', 'isJoker'];
 const ZONE_PROPS = ['count', 'top', 'cards'];
@@ -191,6 +185,7 @@ const RESERVED = new Set([
   'round',
   'activePlayers',
   'turn',
+  'meld',
   ...FUNCTIONS,
   ...Object.keys(QUANTIFIER_KIND),
   'true',
@@ -199,7 +194,13 @@ const RESERVED = new Set([
   'in',
 ]);
 
-const CARD_ACTIONS = new Set<ActionDef['type']>(['play', 'playToTrick', 'discard', 'layOff']);
+const CARD_ACTIONS = new Set<ActionDef['type']>([
+  'play',
+  'playToTrick',
+  'discard',
+  'layOff',
+  'showHand',
+]);
 
 class Checker {
   readonly errors: ValidationIssue[] = [];
@@ -222,6 +223,7 @@ class Checker {
   run(): void {
     this.checkMeta();
     this.checkOptions();
+    this.checkMeldRules();
     this.checkZones();
     this.checkDeck();
     this.checkSetup();
@@ -230,6 +232,27 @@ class Checker {
     if (this.file.elimination)
       this.checkExpr(this.file.elimination.when, ['elimination', 'when'], PLAYER);
     this.checkEnd();
+  }
+
+  // ---- meld rules ----
+
+  private checkMeldRules(): void {
+    const wild = this.file.cardOrder?.wild;
+    if (wild) this.checkExpr(wild, ['cardOrder', 'wild'], CARD);
+    const rules = this.file.meldRules;
+    if (!rules) {
+      if (wild) this.warn(['cardOrder', 'wild'], 'Wild cards only work in melds with "meldRules"');
+      return;
+    }
+    const path = ['meldRules'];
+    if (rules.aces !== undefined) this.checkSetting(rules.aces, ACES, [...path, 'aces']);
+    for (const key of ['pureRunRequired', 'autoArrange'] as const) {
+      const value = rules[key];
+      if (typeof value === 'string') this.checkExpr(value, [...path, key], NO_CONTEXT);
+    }
+    if (rules.zone !== undefined) {
+      this.zone(rules.zone, [...path, 'zone'], { per: 'player', melds: true });
+    }
   }
 
   // ---- meta, options, zones, deck ----
@@ -313,7 +336,7 @@ class Checker {
   /** Cards in the deck, after removals that always apply; null if it depends on the table. */
   private deckSize(): number | null {
     const { copies = 1, ranks = RANKS, suits = SUITS, jokers = 0, remove = [] } = this.file.deck;
-    if (typeof copies !== 'number') return null;
+    if (typeof copies !== 'number' || typeof jokers !== 'number') return null;
     const always = new Set(remove.filter((r) => !r.if).flatMap((r) => r.cards));
     const removed = [...always].filter((code) => this.inDeck(code)).length;
     return copies * (ranks.length * suits.length + jokers - removed);
@@ -327,8 +350,9 @@ class Checker {
   }
 
   private checkDeck(): void {
-    const { copies } = this.file.deck;
+    const { copies, jokers } = this.file.deck;
     if (typeof copies === 'string') this.checkExpr(copies, ['deck', 'copies'], NO_CONTEXT);
+    if (typeof jokers === 'string') this.checkExpr(jokers, ['deck', 'jokers'], NO_CONTEXT);
     (this.file.deck.remove ?? []).forEach((removal, i) => {
       const path = ['deck', 'remove', i];
       if (removal.if) this.checkExpr(removal.if, [...path, 'if'], NO_CONTEXT);
@@ -407,22 +431,26 @@ class Checker {
     if (typeof deal.count === 'string')
       this.checkExpr(deal.count, ['setup', 'deal', 'count'], NO_CONTEXT);
     if (rest) this.zone(rest, ['setup', 'rest'], { per: 'shared' });
-    if (!flip) return;
-    this.zone(flip.from, ['setup', 'flip', 'from'], { per: 'shared' });
-    this.zone(flip.to, ['setup', 'flip', 'to'], { per: 'shared' });
-    if (flip.from !== rest) {
-      this.error(
-        ['setup', 'flip', 'from'],
-        `The starting card must come from the undealt cards ("rest": ${rest ? `"${rest}"` : 'not set'})`,
-      );
-    }
-    if (flip.triggerEffects) {
-      this.error(['setup', 'flip', 'triggerEffects'], 'Only false is supported for now');
-    }
-    for (const [key, value] of Object.entries(flip.set ?? {})) {
-      this.checkSetEntry(key, value, ['setup', 'flip', 'set', key], CARD);
-    }
-    if (flip.reflipIf) this.checkExpr(flip.reflipIf, ['setup', 'flip', 'reflipIf'], CARD);
+    const flips = Array.isArray(flip) ? flip : flip ? [flip] : [];
+    flips.forEach((f, i) => {
+      const path = Array.isArray(flip) ? ['setup', 'flip', i] : ['setup', 'flip'];
+      if (f.if) this.checkExpr(f.if, [...path, 'if'], NO_CONTEXT);
+      this.zone(f.from, [...path, 'from'], { per: 'shared' });
+      this.zone(f.to, [...path, 'to'], { per: 'shared' });
+      if (f.from !== rest) {
+        this.error(
+          [...path, 'from'],
+          `The starting card must come from the undealt cards ("rest": ${rest ? `"${rest}"` : 'not set'})`,
+        );
+      }
+      if (f.triggerEffects) {
+        this.error([...path, 'triggerEffects'], 'Only false is supported for now');
+      }
+      for (const [key, value] of Object.entries(f.set ?? {})) {
+        this.checkSetEntry(key, value, [...path, 'set', key], CARD);
+      }
+      if (f.reflipIf) this.checkExpr(f.reflipIf, [...path, 'reflipIf'], CARD);
+    });
   }
 
   // ---- phases and actions ----
@@ -516,8 +544,13 @@ class Checker {
 
   private checkAction(action: ActionDef, path: Path, phase: PhaseDef): void {
     const ctx = CARD_ACTIONS.has(action.type) ? PLAYER_CARD : PLAYER;
-    if (action.if) this.checkExpr(action.if, [...path, 'if'], ctx);
-    action.effects?.forEach((e, i) => this.checkEffect(e, [...path, 'effects', i], ctx, false));
+    const ifCtx = action.type === 'meld' && this.file.meldRules ? { ...PLAYER, meld: true } : ctx;
+    // A one-card draw's effects can see the card drawn.
+    const effectCtx = action.type === 'draw' ? PLAYER_CARD : ctx;
+    if (action.if) this.checkExpr(action.if, [...path, 'if'], ifCtx);
+    action.effects?.forEach((e, i) =>
+      this.checkEffect(e, [...path, 'effects', i], effectCtx, false),
+    );
     const hand = (from: string | undefined) =>
       this.zone(from ?? 'hand', [...path, 'from'], { per: 'player' });
 
@@ -568,8 +601,14 @@ class Checker {
         hand(action.from);
         this.checkSetting(action.direction, PASS_DIRECTIONS, [...path, 'direction']);
         break;
+      case 'showHand':
+        this.zone(action.to, [...path, 'to'], { per: 'any' });
+        if (!this.file.meldRules) {
+          this.error(path, '"showHand" needs "meldRules" (players arrange their hands)');
+        }
+        break;
       case 'choose':
-        this.checkStatePath(action.set, [...path, 'set']);
+        this.checkStatePath(action.set, [...path, 'set'], PLAYER);
         this.checkLabels(action.labels, action.values, [...path, 'labels']);
         if (new Set(action.values).size !== action.values.length) {
           this.error([...path, 'values'], 'Each choice must be different');
@@ -608,6 +647,7 @@ class Checker {
       effect.reverse && 'reverse',
       effect.winnerLeads && 'winnerLeads',
       effect.breakSuit && 'breakSuit',
+      effect.layOutMelds && 'layOutMelds',
     ].filter((v): v is string => typeof v === 'string');
     if (verbs.length === 0) this.error(path, "This effect doesn't do anything");
     if (verbs.length > 1) {
@@ -620,17 +660,26 @@ class Checker {
       this.error(path, `${verbs[0] ?? 'This'} only works in a trick phase's "afterTrick"`);
     }
     if (effect.moveTrick) this.zone(effect.moveTrick, [...path, 'moveTrick'], { per: 'any' });
+    if (effect.layOutMelds) {
+      this.zone(effect.layOutMelds, [...path, 'layOutMelds'], { per: 'player', melds: true });
+      if (!ctx.player) {
+        this.error(path, "layOutMelds needs a player: use it in an action's effects");
+      }
+      if (!this.file.meldRules) {
+        this.error(path, '"layOutMelds" needs "meldRules" (players arrange their hands)');
+      }
+    }
 
     if (effect.choose) {
       if (typeof effect.set !== 'string') {
         this.error([...path, 'set'], '"choose" needs "set": "state.<name>" to store the choice');
       } else {
-        this.checkStatePath(effect.set, [...path, 'set']);
+        this.checkStatePath(effect.set, [...path, 'set'], NO_CONTEXT);
       }
       if (!ctx.player)
         this.error([...path, 'choose'], "Only a player can choose: use it in an action's effects");
     } else if (typeof effect.set === 'string') {
-      this.checkStatePath(effect.set, [...path, 'set']);
+      this.checkStatePath(effect.set, [...path, 'set'], ctx);
     } else if (effect.set) {
       for (const [key, value] of Object.entries(effect.set)) {
         this.checkSetEntry(key, value, [...path, 'set', key], ctx);
@@ -650,19 +699,30 @@ class Checker {
     if (!allowed.includes(value)) this.checkExpr(value, path, NO_CONTEXT);
   }
 
-  private checkStatePath(path: string, where: Path): void {
-    if (!/^state\.[A-Za-z_][A-Za-z0-9_]*$/.test(path)) {
-      this.error(where, `Can only set custom values written as "state.<name>", not "${path}"`);
+  /** "state.<name>", or "player.<name>" where there is a player. */
+  private checkStatePath(path: string, where: Path, ctx: ExprContext): void {
+    if (/^state\.[A-Za-z_][A-Za-z0-9_]*$/.test(path)) return;
+    if (/^player\.[A-Za-z_][A-Za-z0-9_]*$/.test(path)) {
+      const name = path.slice('player.'.length);
+      if (!ctx.player) this.error(where, `"${path}" needs a player, and there is none here`);
+      else if (PLAYER_PROPS.includes(name) || Object.hasOwn(this.file.zones, name)) {
+        this.error(where, `"${path}" is already something else; pick another name`);
+      }
+      return;
     }
+    this.error(
+      where,
+      `Can only set custom values written as "state.<name>" or "player.<name>", not "${path}"`,
+    );
   }
 
   private checkSetEntry(
     key: string,
-    value: string | number | boolean,
+    value: string | number | boolean | null,
     path: Path,
     ctx: ExprContext,
   ): void {
-    this.checkStatePath(key, path);
+    this.checkStatePath(key, path, ctx);
     if (typeof value === 'string') this.checkExpr(value, path, ctx);
   }
 
@@ -690,6 +750,9 @@ class Checker {
       if (usesValue) this.error(path, "A player value can't use another player value");
     }
     perTeam.forEach((rule, i) => this.checkRule(rule, ['scoring', 'perTeam', i], TEAM, true));
+    (this.file.scoring.atGameEnd ?? []).forEach((rule, i) =>
+      this.checkRule(rule, ['scoring', 'atGameEnd', i], PLAYER, false),
+    );
     perPlayer.forEach((rule, i) =>
       this.checkRule(rule, ['scoring', 'perPlayer', i], PLAYER, false),
     );
@@ -832,6 +895,8 @@ class Checker {
         return 'activePlayers';
       case 'turn':
         return 'turn';
+      case 'meld':
+        return ctx.meld ? 'meld' : unavailable('only a meld action\'s "if" has a meld');
       case 'round':
         return 'value';
     }
@@ -882,7 +947,8 @@ class Checker {
     switch (object) {
       case 'player': {
         const zones = this.zoneNames('player');
-        return check('A player', [...PLAYER_PROPS, ...zones, ...this.tracks], (p) =>
+        const vars = [...playerVarNames({ file: this.file })];
+        return check('A player', [...PLAYER_PROPS, ...zones, ...this.tracks, ...vars], (p) =>
           zones.includes(p) ? this.zoneKind(p) : 'value',
         );
       }
@@ -906,6 +972,8 @@ class Checker {
         return check('activePlayers', ['count'], () => 'value');
       case 'turn':
         return check('turn', ['draws'], () => 'value');
+      case 'meld':
+        return check('A meld', ['kind', 'size', 'isPure', 'usesWild'], () => 'value');
       case 'options': {
         const options = Object.keys(this.file.options ?? {});
         if (!options.includes(prop)) {

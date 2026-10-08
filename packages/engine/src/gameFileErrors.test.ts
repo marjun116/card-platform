@@ -62,11 +62,15 @@ describe('game file errors', () => {
     );
   });
 
-  it('only sets state.* values, and only to plain data', () => {
+  it('only sets custom values, and only to plain data', () => {
     const bad = createGame(withPlayEffects([{ set: 'player.score' }]), {}, 2, 'e');
     const L = bad.cursor.current;
     expect(() => applyMove(bad, { player: L, type: 'playToTrick', card: id('3H') })).toThrow(
-      'Can only set "state.<name>" values',
+      '"player.score" is already something else',
+    );
+    const other = createGame(withPlayEffects([{ set: 'team.x' }]), {}, 2, 'e');
+    expect(() => applyMove(other, { player: L, type: 'playToTrick', card: id('3H') })).toThrow(
+      'Can only set "state.<name>" or "player.<name>" values',
     );
     const object = createGame(withPlayEffects([{ set: { 'state.x': 'card' } }]), {}, 2, 'e');
     expect(() => applyMove(object, { player: L, type: 'playToTrick', card: id('3H') })).toThrow(

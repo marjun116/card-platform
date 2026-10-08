@@ -328,8 +328,8 @@ describe('validate', () => {
       ]);
       expect(errors(playWith([{ set: 'player.score' }, { set: { 'state.ok': 1, x: 2 } }]))).toEqual(
         [
-          'phases[0] ("play").actions[0].effects[0].set: Can only set custom values written as "state.<name>", not "player.score"',
-          'phases[0] ("play").actions[0].effects[1].set.x: Can only set custom values written as "state.<name>", not "x"',
+          'phases[0] ("play").actions[0].effects[0].set: "player.score" is already something else; pick another name',
+          'phases[0] ("play").actions[0].effects[1].set.x: Can only set custom values written as "state.<name>" or "player.<name>", not "x"',
         ],
       );
       expect(errors(playWith([{ skip: true, of: 'winner' }]))).toEqual([

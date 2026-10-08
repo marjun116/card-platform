@@ -16,6 +16,7 @@ import type { Move, PlayerId } from './move';
 import type { PhaseDef } from './types';
 import { buildScope } from './scope';
 import { endsRoundWhenEmpty } from './zones';
+import { arrange, sortHand } from './arrangement';
 import { startRound } from './setup';
 import {
   type AfterAction,
@@ -36,6 +37,15 @@ const MAX_ROUNDS = 10_000;
 export function performMove(state: GameState, candidate: Candidate, move: Move): void {
   const player = state.players[move.player] as PlayerState;
   state.log.push(move);
+  // Arranging your hand is free: it doesn't take a turn or count towards the round's moves.
+  if (move.type === 'arrange') {
+    arrange(state, move.player, move.groups);
+    return;
+  }
+  if (move.type === 'sortHand') {
+    sortHand(state, move.player);
+    return;
+  }
   if (++state.roundMoves > MAX_MOVES_PER_ROUND) {
     throw new GameFileError(`A round went on for more than ${MAX_MOVES_PER_ROUND} moves`);
   }
@@ -153,8 +163,10 @@ export function settle(state: GameState): void {
     const phase = currentPhase(state);
     const cursor = state.cursor;
 
+    // A pile that has run out for good ends this phase; later phases (such as
+    // players showing their hands) still happen before the round is scored.
     if (shouldEndRound(state)) {
-      endRound(state);
+      endPhase(state);
       continue;
     }
     if (
@@ -164,7 +176,20 @@ export function settle(state: GameState): void {
       endPhase(state);
       continue;
     }
-    if (candidates(state, cursor.current, { skipLook: true }).length > 0) return;
+    const options = candidates(state, cursor.current, { skipLook: true });
+    // Nothing left to do but end the turn (say an optional knock that isn't possible):
+    // the turn ends by itself. It counts as a pass, so a table where nobody can do
+    // anything still ends the phase.
+    if (options.length === 1 && options[0]?.move.type === 'endTurn') {
+      cursor.passesInARow++;
+      if (cursor.passesInARow >= state.players.filter((p) => p.active).length) {
+        endPhase(state);
+        continue;
+      }
+      endTurn(state);
+      continue;
+    }
+    if (options.length > 0) return;
 
     // The current player has no legal move.
     if (isTrickPhase(phase)) {

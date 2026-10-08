@@ -9,7 +9,8 @@
 import type { Move } from '@card-table/engine';
 import { isRed } from './cards';
 import { bidLabel, type ChoiceLabels, moveLabel, type SeatNames } from './describe';
-import { type Controls, groupHint, hasDecisions, movesForSelection } from './moves';
+import type { Arrangement } from './Hand';
+import { type Controls, groupHint, hasDecisions, movesForSelection, regroup } from './moves';
 
 interface ButtonProps {
   names: SeatNames;
@@ -82,12 +83,19 @@ export function HandActions({
   controls,
   selected,
   onClear,
+  arrangement = null,
   ...props
 }: ButtonProps & {
   controls: Controls;
   selected: readonly string[];
   onClear: () => void;
+  arrangement?: Arrangement;
 }) {
+  const grouped = new Set(arrangement?.groups.flatMap((g) => g.cards) ?? []);
+  const arrange = (action: 'group' | 'ungroup') =>
+    arrangement &&
+    // The server fills in your seat.
+    props.onMove({ player: -1, type: 'arrange', groups: regroup(arrangement, selected, action) });
   const forSelection = movesForSelection(controls, selected);
   const hints = groupHint(controls);
   const hint =
@@ -99,7 +107,7 @@ export function HandActions({
           )
           .join('; ')}${selected.length > 0 ? ` (${selected.length} chosen)` : ''}.`
       : null;
-  const empty = !hint && forSelection.length === 0 && selected.length === 0;
+  const empty = !hint && forSelection.length === 0 && selected.length === 0 && !controls.sort;
 
   // Always rendered at the same height, even when empty, so selecting or clearing
   // cards never moves anything else on the screen (which made the page jump).
@@ -109,6 +117,17 @@ export function HandActions({
         <div className="action-row fade-in" key={selected.join(',')}>
           {hint && <span className="hint">{hint}</span>}
           {forSelection.map((move) => moveButton(move, props, undefined, 'primary'))}
+          {arrangement && selected.length >= 2 && (
+            <button type="button" disabled={props.busy} onClick={() => arrange('group')}>
+              Group
+            </button>
+          )}
+          {arrangement && selected.some((id) => grouped.has(id)) && (
+            <button type="button" disabled={props.busy} onClick={() => arrange('ungroup')}>
+              Ungroup
+            </button>
+          )}
+          {controls.sort && selected.length === 0 && moveButton(controls.sort, props)}
           {selected.length > 0 && (
             <button type="button" className="link-button" onClick={onClear}>
               Clear selection

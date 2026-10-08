@@ -70,6 +70,12 @@ export function moveLabel(move: Move, names: SeatNames, choices: ChoiceLabels = 
       return `${SUIT_SYMBOL[move.suit]} ${suitName(move.suit)}`;
     case 'choose':
       return choiceText(move.value, choices);
+    case 'showHand':
+      return `Go out, discarding ${cardText(move.card, false)}`;
+    case 'arrange':
+      return 'Arrange your cards';
+    case 'sortHand':
+      return 'Sort into melds';
     case 'lookAtHand':
       return 'Look at your cards';
     case 'endTurn':
@@ -87,6 +93,7 @@ export function describeMove(
   const their = who === 'You' ? 'your' : 'their';
   if ('hidden' in move) {
     if (move.type === 'pass') return `${who} passed cards`;
+    if (move.type === 'arrange') return `${who} arranged ${their} cards`;
     return `${who} ${move.type === 'play' ? 'played' : 'discarded'} a card face down`;
   }
   const card = (id: string) => cardText(id, true);
@@ -117,6 +124,12 @@ export function describeMove(
       return `${who} chose ${move.suit}`;
     case 'choose':
       return `${who} chose: ${choiceText(move.value, choices)}`;
+    case 'showHand':
+      return `${who} went out, discarding ${card(move.card)}`;
+    case 'arrange':
+      return `${who} arranged ${their} cards`;
+    case 'sortHand':
+      return `${who} sorted ${their} cards into melds`;
     case 'lookAtHand':
       return `${who} looked at ${their} cards`;
     case 'endTurn':

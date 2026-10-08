@@ -12,7 +12,7 @@ import { useHeaderSlot } from '../headerSlot';
 import { DecisionPanel, HandActions } from './ActionBar';
 import type { GameMessage, TableConnection } from './connection';
 import { bidLabel, describeMove, seatNames } from './describe';
-import { Hand } from './Hand';
+import { GroupSummary, Hand } from './Hand';
 import { buildControls, quickMove, turnPrompt } from './moves';
 import { Dialog, HistoryTable, RoundTable, Scoreboard } from './Scores';
 import { Seat } from './Seat';
@@ -85,6 +85,7 @@ export function TableView({
     connection.send(message).catch((e: unknown) => setMoveError(errorText(e)));
   };
 
+  const arrangement = view.arrangement;
   const press = (card: CardData) => {
     setMoveError(null);
     if (selected.includes(card.id)) {
@@ -93,9 +94,10 @@ export function TableView({
       else setSelection({ seq, cards: selected.filter((id) => id !== card.id) });
       return;
     }
-    // Cards that can be chosen together (to pass or meld) add to the selection.
+    // Cards that can be chosen together (to pass, meld, or group) add to the selection.
     const together =
-      controls.groupCards.has(card.id) && selected.every((id) => controls.groupCards.has(id));
+      arrangement !== null ||
+      (controls.groupCards.has(card.id) && selected.every((id) => controls.groupCards.has(id)));
     setSelection({ seq, cards: together ? [...selected, card.id] : [card.id] });
   };
 
@@ -108,7 +110,9 @@ export function TableView({
     if (card) card.focus({ preventScroll: true });
   };
 
-  const lastLog = view.log[view.log.length - 1];
+  // Arranging cards isn't news for anyone else, so it stays out of the log.
+  const log = view.log.filter((m) => m.type !== 'arrange' && m.type !== 'sortHand');
+  const lastLog = log[log.length - 1];
   const announcement = [
     lastLog ? describeMove(lastLog, names, view.choiceLabels) : null,
     yourTurn && !paused ? turnPrompt(controls) : null,
@@ -289,11 +293,11 @@ export function TableView({
           <section className="log" aria-label="Game log">
             <h2>Log</h2>
             <ol reversed>
-              {view.log
+              {log
                 .slice(-30)
                 .reverse()
                 .map((move, i) => (
-                  <li key={view.log.length - i}>{describeMove(move, names, view.choiceLabels)}</li>
+                  <li key={log.length - i}>{describeMove(move, names, view.choiceLabels)}</li>
                 ))}
             </ol>
           </section>
@@ -316,9 +320,11 @@ export function TableView({
             {showTricks && ` You've won ${view.players[view.you]?.tricks ?? 0}.`}
           </span>
         </div>
+        <GroupSummary arrangement={arrangement} />
         <Hand
           zone={layout.hand?.view ?? null}
           controls={controls}
+          arrangement={arrangement}
           selected={selected}
           onPress={press}
           onClear={() => setSelection({ seq, cards: [] })}
@@ -330,6 +336,7 @@ export function TableView({
         )}
         <HandActions
           controls={controls}
+          arrangement={arrangement}
           selected={selected}
           names={names}
           busy={busy}

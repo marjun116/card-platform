@@ -37,6 +37,8 @@ export function actionMoves(state: GameState, player: PlayerId, action: ActionDe
       return bidding.declareTrumpMoves(state, player, action);
     case 'choose':
       return bidding.chooseMoves(state, player, action);
+    case 'showHand':
+      return cardMovement.showHandMoves(state, player, action);
   }
 }
 
@@ -64,5 +66,7 @@ export function applyAction(state: GameState, move: Move, action: ActionDef): Ac
       return bidding.applyBid(state, move);
     case 'choose':
       return bidding.applyChoose(state, move, action);
+    case 'showHand':
+      return cardMovement.applyShowHand(state, move, action);
   }
 }

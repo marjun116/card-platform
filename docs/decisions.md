@@ -524,3 +524,105 @@ General parts of the game format, added because crazy eights needed them.
 - **`endCondition.winner`** can be an expression, like `ties`.
 - **Expressions:** comparing `null` with `<`, `>` and so on is an error, so a custom value that
   may not be set yet needs a starting value (`setup.flip.set` here sets `state.penalty` to 0).
+
+## 2026-10-08: Rummy and gin rummy
+
+Two separate built-in games. Rummy 500 (scoring melds, taking deeper into the discard pile)
+would be a third game, later.
+
+### Rummy
+
+- **Defaults follow the 13-card ("Indian") style the family plays**, with Hoyle's basic rummy
+  reachable through house rules: 2 to 6 players, 13 cards each, decks added as needed (one deck
+  while players × cards dealt is 38 or less, leaving a stock of about 14; two beyond that).
+- **Jokers:** two printed jokers per deck, plus a **cut joker**: after the deal a card is
+  turned face up and every card of its rank is wild (if it's a printed joker, aces are wild).
+  The cut card stays out of play. A wild card stands in for any card in a meld.
+- **Pure run:** a run with no wild card standing in for another card. A player needs one
+  before laying down any meld that uses a wild card, and to go out. A loser with no pure run
+  counts every card in their hand.
+- **Melds** are laid down as you go (Hoyle); a house rule keeps them in hand until a player
+  goes out by showing their whole hand arranged into melds (discarding their last card).
+- **Scoring:** the player who goes out scores the unconnected cards (deadwood) left in the
+  other hands, counted the way that leaves the fewest points: face cards 10, aces 1, others
+  their number, printed jokers 0. First to 100.
+- **House rules:** play to 100/150/250/500; penalty scoring (lowest wins); aces high, or high
+  or low (not K-A-2); must discard to go out; "going rummy" doubles the score (on by default);
+  throwing back the card just taken from the discard pile (not allowed by default); empty
+  stock (reuse the discard pile by default, reuse it once, or end the hand); melds kept in hand;
+  cards dealt (13, 10, or Hoyle's 10/7/6 by player count); jokers (printed + cut, printed
+  only, none); the pure-run rule (on by default).
+- **Left out:** a minimum value for a player's first meld.
+
+### Gin rummy
+
+- **Hoyle:** 2 players, 10 cards each, aces low. First turn: non-dealer, then dealer, may take
+  the upcard; if both pass, the non-dealer draws from the stock. Knock with 10 or less
+  deadwood after discarding; the opponent lays off onto the knocker's melds (not after gin).
+  Knock: difference in deadwood; undercut: difference + 25 to the opponent; gin: opponent's
+  deadwood + 25. A hand with 2 cards left in the stock and no knock is a draw. Game to 100,
+  then +100 game bonus, +25 per hand won (box), and the winner's score doubled on a shutout.
+- **House rules:** play to 100/150/250; gin bonus (20/25/50); undercut bonus (10/20/25); big
+  gin (all 11 cards melded, bonus 31 or 50); Oklahoma gin (the upcard sets the knock limit,
+  an ace means gin only, a spade upcard doubles the hand); box and game bonuses (on by
+  default); aces high or low.
+
+### Players arrange their own hands
+
+- In rummy-family games each player groups the cards in their hand themselves, at any time
+  (it doesn't use a turn and works when it's not their turn). Groups are private. New cards
+  arrive ungrouped. The engine only checks groups: is each one a valid set or run (and is
+  there a pure run if one is needed)? Cards outside valid groups are deadwood.
+- Rummy losers get a last turn to fix their groups and confirm ("Show my hand") before the
+  hand is scored. Gin's knocker chooses their own melds by how they've grouped them.
+- Because there are far too many ways to group a hand to list, an arrangement isn't one of the
+  legal moves; the engine checks it when it arrives. The server doesn't apply the stale-move
+  check to arrangements (they only touch the player's own groups).
+- **"Sort into melds"** arranges the hand for you, using the engine's best-arrangement search
+  (the least deadwood, with wild cards and the pure-run rule). It is a legal move like any
+  other, and a house rule can switch it off. Bots and simulations use the same search, but
+  only when they need it, never to work out legal moves.
+
+### A pile running out for good ends the phase, not the whole round
+
+- When a `whenEmpty` rule says a pile running out ends things (`"endRound"`, or a reshuffle
+  limit used up), the current phase now ends; any later phases still happen before the round
+  is scored. Games with one phase behave exactly as before. Rummy needs this: when the stock
+  runs out, players still get to show their hands.
+
+## 2026-10-08: Building blocks added for rummy and gin
+
+General parts of the game format, added because rummy and gin needed them.
+
+- **`meldRules`** (top level): `kinds`, `minSize`, `aces` ("low", "high" or "both"; a setting
+  house rules can change), `pureRunRequired`, `autoArrange` (the "Sort into melds" move) and
+  the per-player meld `zone`. With meld rules, players arrange their hands (see above), meld
+  moves are their valid groups, and lay-offs follow the same rules.
+- **`cardOrder.wild`**: which cards are wild in melds, e.g.
+  `"card.isJoker || card.rank == state.cutRank"`. A card of a wild rank in its natural place
+  counts as itself, so 4♥ 5♥ 6♥ is still a pure run when fives are wild. Sets hold at most one
+  card of each suit (so two decks can't make a set of two 7♥s); runs go up to 13 cards and
+  never round the corner (K-A-2).
+- **Meld conditions** can read the group being melded: `meld.kind`, `meld.size`,
+  `meld.isPure`, `meld.usesWild`. Players have `player.deadwood` (points outside valid groups,
+  or every card if a needed pure run is missing) and `player.hasPureRun` (on the table).
+- **`showHand` action**: go out by discarding one card when every other card is in a valid
+  group. **`layOutMelds` effect**: move a player's valid groups onto the table.
+- **Per-player custom values**: `"set": { "player.x": … }`, read as `player.x`, reset every
+  round and never sent to anyone. Rummy remembers the card a player just took from the
+  discard pile this way (in `state.x` everyone would see which card it is).
+- **`set` can store `null`**, to clear a value.
+- **Draw effects see the card drawn** as `card`, when one card is drawn.
+- **`setup.flip`** can be a list, each with an optional `if` (rummy turns the upcard, then the
+  cut joker).
+- **`deck.jokers`** can be an expression.
+- **`scoring.atGameEnd`**: rules run once when the game ends, before the winner is decided
+  (gin's bonuses). If a tie means play goes on after all, they're undone.
+- **A turn with nothing left to do ends by itself**: when ending the turn is the only legal
+  move (say an optional knock that isn't possible), the engine ends it, counting it as a pass.
+- **Legal moves are remembered per game state** handed back by `createGame`/`applyMove`
+  (those are never changed), so asking several times costs nothing. Simulations of rummy
+  and gin were otherwise too slow.
+- **Simulating rummy and gin**: purely random players never arrange their hands, so nobody
+  would go out. Their random games use random legal moves, except that they meld, lay off or
+  go out whenever they can and arrange their hand after each draw.

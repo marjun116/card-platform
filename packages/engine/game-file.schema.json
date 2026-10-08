@@ -92,9 +92,16 @@
           }
         },
         "jokers": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 2
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2
+            },
+            {
+              "$ref": "#/$defs/__schema2"
+            }
+          ]
         },
         "remove": {
           "minItems": 1,
@@ -126,6 +133,9 @@
               "const": "declared"
             }
           ]
+        },
+        "wild": {
+          "$ref": "#/$defs/__schema2"
         }
       },
       "additionalProperties": false
@@ -170,6 +180,62 @@
         ],
         "additionalProperties": false
       }
+    },
+    "meldRules": {
+      "type": "object",
+      "properties": {
+        "kinds": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema10"
+          }
+        },
+        "minSize": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "aces": {
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "low",
+                "high",
+                "both"
+              ]
+            },
+            {
+              "$ref": "#/$defs/__schema2"
+            }
+          ]
+        },
+        "pureRunRequired": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/__schema2"
+            }
+          ]
+        },
+        "autoArrange": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "$ref": "#/$defs/__schema2"
+            }
+          ]
+        },
+        "zone": {
+          "$ref": "#/$defs/__schema7"
+        }
+      },
+      "additionalProperties": false
     },
     "zones": {
       "type": "object",
@@ -246,35 +312,18 @@
           "$ref": "#/$defs/__schema7"
         },
         "flip": {
-          "type": "object",
-          "properties": {
-            "from": {
-              "$ref": "#/$defs/__schema7"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema11"
             },
-            "to": {
-              "$ref": "#/$defs/__schema7"
-            },
-            "triggerEffects": {
-              "type": "boolean"
-            },
-            "set": {
-              "type": "object",
-              "propertyNames": {
-                "type": "string"
-              },
-              "additionalProperties": {
-                "$ref": "#/$defs/__schema10"
+            {
+              "minItems": 1,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema11"
               }
-            },
-            "reflipIf": {
-              "$ref": "#/$defs/__schema2"
             }
-          },
-          "required": [
-            "from",
-            "to"
-          ],
-          "additionalProperties": false
+          ]
         },
         "dealerRotation": {
           "type": "string",
@@ -294,7 +343,7 @@
       "minItems": 1,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema11"
+        "$ref": "#/$defs/__schema13"
       }
     },
     "scoring": {
@@ -303,13 +352,13 @@
         "perTeam": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema21"
+            "$ref": "#/$defs/__schema23"
           }
         },
         "perPlayer": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema21"
+            "$ref": "#/$defs/__schema23"
           }
         },
         "cardValue": {
@@ -336,6 +385,12 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/__schema2"
+          }
+        },
+        "atGameEnd": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema23"
           }
         }
       },
@@ -497,6 +552,47 @@
       }
     },
     "__schema10": {
+      "type": "string",
+      "enum": [
+        "set",
+        "run"
+      ]
+    },
+    "__schema11": {
+      "type": "object",
+      "properties": {
+        "if": {
+          "$ref": "#/$defs/__schema2"
+        },
+        "from": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "to": {
+          "$ref": "#/$defs/__schema7"
+        },
+        "triggerEffects": {
+          "type": "boolean"
+        },
+        "set": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema12"
+          }
+        },
+        "reflipIf": {
+          "$ref": "#/$defs/__schema2"
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "__schema12": {
       "anyOf": [
         {
           "$ref": "#/$defs/__schema2"
@@ -506,10 +602,13 @@
         },
         {
           "type": "boolean"
+        },
+        {
+          "type": "null"
         }
       ]
     },
-    "__schema11": {
+    "__schema13": {
       "type": "object",
       "properties": {
         "name": {
@@ -569,20 +668,20 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema12"
+            "$ref": "#/$defs/__schema14"
           }
         },
         "turn": {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema20"
+            "$ref": "#/$defs/__schema22"
           }
         },
         "afterTrick": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema15"
+            "$ref": "#/$defs/__schema17"
           }
         },
         "whenEmpty": {
@@ -636,7 +735,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema12": {
+    "__schema14": {
       "oneOf": [
         {
           "type": "object",
@@ -646,10 +745,10 @@
               "const": "play"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "to": {
               "$ref": "#/$defs/__schema7"
@@ -672,10 +771,10 @@
               "const": "playToTrick"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "to": {
               "$ref": "#/$defs/__schema7"
@@ -702,7 +801,7 @@
               "minItems": 1,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema16"
+                "$ref": "#/$defs/__schema18"
               }
             }
           },
@@ -719,10 +818,10 @@
               "const": "draw"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "from": {
               "$ref": "#/$defs/__schema7"
@@ -761,10 +860,10 @@
               "const": "discard"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "to": {
               "$ref": "#/$defs/__schema7"
@@ -787,10 +886,10 @@
               "const": "pass"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "count": {
               "type": "integer",
@@ -833,10 +932,10 @@
               "const": "meld"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "to": {
               "$ref": "#/$defs/__schema7"
@@ -845,7 +944,7 @@
               "minItems": 1,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema17"
+                "$ref": "#/$defs/__schema19"
               }
             },
             "minSize": {
@@ -871,10 +970,10 @@
               "const": "layOff"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "to": {
               "$ref": "#/$defs/__schema7"
@@ -897,10 +996,10 @@
               "const": "pickUpPile"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "from": {
               "$ref": "#/$defs/__schema7"
@@ -923,10 +1022,10 @@
               "const": "bid"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "values": {
               "anyOf": [
@@ -961,7 +1060,7 @@
                   "minItems": 1,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema18"
+                    "$ref": "#/$defs/__schema20"
                   }
                 }
               ]
@@ -981,10 +1080,10 @@
               "const": "passBid"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             }
           },
           "required": [
@@ -1000,10 +1099,10 @@
               "const": "declareTrump"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "suits": {
               "minItems": 1,
@@ -1026,16 +1125,16 @@
               "const": "choose"
             },
             "if": {
-              "$ref": "#/$defs/__schema13"
+              "$ref": "#/$defs/__schema15"
             },
             "effects": {
-              "$ref": "#/$defs/__schema14"
+              "$ref": "#/$defs/__schema16"
             },
             "values": {
               "minItems": 1,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema19"
+                "$ref": "#/$defs/__schema21"
               }
             },
             "labels": {
@@ -1051,19 +1150,42 @@
             "set"
           ],
           "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "showHand"
+            },
+            "if": {
+              "$ref": "#/$defs/__schema15"
+            },
+            "effects": {
+              "$ref": "#/$defs/__schema16"
+            },
+            "to": {
+              "$ref": "#/$defs/__schema7"
+            }
+          },
+          "required": [
+            "type",
+            "to"
+          ],
+          "additionalProperties": false
         }
       ]
     },
-    "__schema13": {
+    "__schema15": {
       "$ref": "#/$defs/__schema2"
     },
-    "__schema14": {
+    "__schema16": {
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema15"
+        "$ref": "#/$defs/__schema17"
       }
     },
-    "__schema15": {
+    "__schema17": {
       "type": "object",
       "properties": {
         "if": {
@@ -1080,7 +1202,7 @@
                 "type": "string"
               },
               "additionalProperties": {
-                "$ref": "#/$defs/__schema10"
+                "$ref": "#/$defs/__schema12"
               }
             }
           ]
@@ -1141,11 +1263,14 @@
         },
         "breakSuit": {
           "$ref": "#/$defs/__schema4"
+        },
+        "layOutMelds": {
+          "$ref": "#/$defs/__schema7"
         }
       },
       "additionalProperties": false
     },
-    "__schema16": {
+    "__schema18": {
       "type": "object",
       "properties": {
         "if": {
@@ -1160,31 +1285,31 @@
       },
       "additionalProperties": false
     },
-    "__schema17": {
+    "__schema19": {
       "type": "string",
       "enum": [
         "set",
         "run"
       ]
     },
-    "__schema18": {
+    "__schema20": {
       "type": [
         "number",
         "string"
       ]
     },
-    "__schema19": {
+    "__schema21": {
       "type": "string",
       "minLength": 1
     },
-    "__schema20": {
+    "__schema22": {
       "type": "object",
       "properties": {
         "actions": {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema12"
+            "$ref": "#/$defs/__schema14"
           }
         },
         "optional": {
@@ -1199,7 +1324,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema21": {
+    "__schema23": {
       "type": "object",
       "properties": {
         "if": {

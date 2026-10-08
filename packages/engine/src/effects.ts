@@ -6,7 +6,7 @@ import { RANKS } from './cards/card';
 import { trickWinnerIndex } from './cards/order';
 import { ExprError, GameFileError } from './errors';
 import { evaluate, evaluateCondition, type Value } from './expr/evaluate';
-import { buildScope, type ScopeContext } from './game/scope';
+import { buildScope, PLAYER_PROPERTIES, type ScopeContext } from './game/scope';
 import {
   type AfterAction,
   type GameState,
@@ -20,6 +20,7 @@ import {
 } from './game/state';
 import type { EffectDef } from './game/types';
 import { cardCount, drawCards } from './game/zones';
+import { layOutMelds } from './game/arrangement';
 
 /**
  * Runs effects in order. Returns true if one of them is waiting for a
@@ -60,6 +61,12 @@ export function runEffects(
     if (effect.skip) state.cursor.skipNext++;
     if (effect.reverse) state.cursor.direction = state.cursor.direction === 1 ? -1 : 1;
     if (effect.breakSuit) state.vars[`${effect.breakSuit}Broken`] = true;
+    if (effect.layOutMelds) {
+      if (ctx.player === undefined) {
+        throw new GameFileError('"layOutMelds" can only be used in an action\'s effects');
+      }
+      layOutMelds(state, ctx.player, effect.layOutMelds);
+    }
     // winnerLeads: the trick winner leading the next trick is already the default.
   }
   return false;
@@ -72,25 +79,38 @@ export function applySet(
   ctx: ScopeContext,
 ): void {
   if (typeof set === 'string') {
-    setVar(state, set, true);
+    setVar(state, set, true, ctx.player);
     return;
   }
   for (const [path, expr] of Object.entries(set)) {
     const value = typeof expr === 'string' ? evaluate(expr, buildScope(state, ctx)) : expr;
-    setVar(state, path, toVarValue(value, path));
+    setVar(state, path, toVarValue(value, path), ctx.player);
   }
 }
 
-export function setVar(state: GameState, path: string, value: VarValue): void {
-  const match = /^state\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(path);
-  if (!match) throw new GameFileError(`Can only set "state.<name>" values, not "${path}"`);
-  state.vars[match[1] as string] = value;
+/** Sets "state.x", or "player.x" for the player in question. */
+export function setVar(state: GameState, path: string, value: VarValue, player?: number): void {
+  const match = /^(state|player)\.([A-Za-z_][A-Za-z0-9_]*)$/.exec(path);
+  if (!match) {
+    throw new GameFileError(`Can only set "state.<name>" or "player.<name>" values, not "${path}"`);
+  }
+  const name = match[2] as string;
+  if (match[1] === 'state') {
+    state.vars[name] = value;
+    return;
+  }
+  const target = player === undefined ? undefined : state.players[player];
+  if (!target) throw new GameFileError(`"${path}" needs a player, and there is none here`);
+  if (PLAYER_PROPERTIES.includes(name) || Object.hasOwn(state.file.zones, name)) {
+    throw new GameFileError(`"${path}" is already something else; pick another name`);
+  }
+  target.vars[name] = value;
 }
 
 function toVarValue(value: Value, path: string): VarValue {
   if (Array.isArray(value)) return (value as readonly Value[]).map((v) => toVarValue(v, path));
-  if (typeof value === 'object' || typeof value === 'function') {
-    throw new ExprError(`${path} can only hold numbers, text, true/false or lists`);
+  if ((typeof value === 'object' && value !== null) || typeof value === 'function') {
+    throw new ExprError(`${path} can only hold numbers, text, true/false, null or lists`);
   }
   return value;
 }

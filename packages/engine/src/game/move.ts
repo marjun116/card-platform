@@ -20,6 +20,11 @@ export type Move =
   | { player: PlayerId; type: 'declareTrump'; suit: Suit }
   | { player: PlayerId; type: 'chooseSuit'; suit: Suit }
   | { player: PlayerId; type: 'choose'; value: string }
+  | { player: PlayerId; type: 'showHand'; card: CardId; to: string }
+  /** Group the cards in your hand (free; any time). Not listed in legal moves. */
+  | { player: PlayerId; type: 'arrange'; groups: CardId[][] }
+  /** "Sort into melds": the engine groups your hand for you (free; any time). */
+  | { player: PlayerId; type: 'sortHand' }
   | { player: PlayerId; type: 'lookAtHand' }
   | { player: PlayerId; type: 'endTurn' };
 
@@ -50,6 +55,12 @@ export function moveKey(move: Move): string {
       return `${base}|${move.suit}`;
     case 'choose':
       return `${base}|${move.value}`;
+    case 'showHand':
+      return `${base}|${move.card}|${move.to}`;
+    case 'arrange':
+      return `${base}|${move.groups.map((g) => [...g].sort().join(',')).join(';')}`;
+    case 'sortHand':
+      return base;
     case 'passBid':
     case 'lookAtHand':
     case 'endTurn':

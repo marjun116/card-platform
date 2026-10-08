@@ -16,6 +16,10 @@ export interface PlayerState {
   tricks: number;
   tracks: Record<string, number>;
   hasLookedAtHand: boolean;
+  /** Custom values (`player.x`), reset every round. */
+  vars: Record<string, VarValue>;
+  /** How the player has grouped their hand (card ids; cards no longer held are ignored). */
+  groups: CardId[][];
 }
 
 export interface TeamState {
@@ -241,7 +245,12 @@ export function draft(state: GameState): GameState {
     ...state,
     options: { ...state.options },
     rng: [...state.rng],
-    players: state.players.map((p) => ({ ...p, tracks: { ...p.tracks } })),
+    players: state.players.map((p) => ({
+      ...p,
+      tracks: { ...p.tracks },
+      vars: copyRecord(p.vars, (v) => (Array.isArray(v) ? structuredCopy(v) : v)),
+      groups: p.groups.map((g) => [...g]),
+    })),
     teams: state.teams.map((t) => ({ ...t, players: [...t.players], tracks: { ...t.tracks } })),
     zones: copyRecord(state.zones, (cards) => [...cards]),
     melds: copyRecord(state.melds, (melds) => melds.map((m) => [...m])),

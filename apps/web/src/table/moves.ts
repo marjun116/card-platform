@@ -2,9 +2,9 @@
  * Turns the legal moves the server sent into controls. Nothing here knows
  * the game's rules: if a move isn't in the list, there's no control for it.
  */
-import type { BidValue, Move, Suit } from '@card-table/engine';
+import type { BidValue, Move, PlayerView, Suit } from '@card-table/engine';
 
-type CardMove = Extract<Move, { type: 'play' | 'playToTrick' | 'discard' | 'layOff' }>;
+type CardMove = Extract<Move, { type: 'play' | 'playToTrick' | 'discard' | 'layOff' | 'showHand' }>;
 type PileMove = Extract<Move, { type: 'draw' | 'pickUpPile' }>;
 type GroupMove = Extract<Move, { type: 'pass' | 'meld' }>;
 
@@ -22,6 +22,8 @@ export interface Controls {
   suits: { suit: Suit; move: Move }[];
   /** Named choices from a `choose` action, e.g. how to score shooting the moon. */
   choices: Move[];
+  /** "Sort into melds", in games where players arrange their hands. */
+  sort: Move | null;
   /** Everything else with no card: pass the bid, look at hand, end turn. */
   other: Move[];
   /** True if there's any move at all. */
@@ -37,6 +39,7 @@ export function buildControls(moves: Move[]): Controls {
     bids: [],
     suits: [],
     choices: [],
+    sort: null,
     other: [],
     any: moves.length > 0,
   };
@@ -46,6 +49,7 @@ export function buildControls(moves: Move[]): Controls {
       case 'playToTrick':
       case 'discard':
       case 'layOff':
+      case 'showHand':
         push(controls.byCard, move.card, move);
         break;
       case 'draw':
@@ -66,6 +70,12 @@ export function buildControls(moves: Move[]): Controls {
         break;
       case 'choose':
         controls.choices.push(move);
+        break;
+      case 'sortHand':
+        controls.sort = move;
+        break;
+      case 'arrange':
+        // Never offered: arranging is done with your own groups (see Hand).
         break;
       case 'passBid':
       case 'lookAtHand':
@@ -148,4 +158,19 @@ export function turnPrompt(controls: Controls): string {
   else if (controls.groups.length > 0) tasks.push('choose cards');
   if (tasks.length === 0) return 'Your turn.';
   return `Your turn: ${tasks.length > 1 ? `${tasks.slice(0, -1).join(', ')} or ${tasks[tasks.length - 1]}` : tasks[0]}.`;
+}
+
+/**
+ * The groups after putting the selected cards in a group of their own (`group`)
+ * or taking them out of their groups (`ungroup`).
+ */
+export function regroup(
+  arrangement: NonNullable<PlayerView['arrangement']>,
+  selected: readonly string[],
+  action: 'group' | 'ungroup',
+): string[][] {
+  const rest = arrangement.groups
+    .map((g) => g.cards.filter((id) => !selected.includes(id)))
+    .filter((g) => g.length > 0);
+  return action === 'group' ? [...rest, [...selected]] : rest;
 }

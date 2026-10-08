@@ -4,6 +4,7 @@
  */
 import type { Card, CardId } from './cards/card';
 import { turnSteps } from './game/legal';
+import { checkedGroups, deadwood } from './game/arrangement';
 import type { BidValue, Move, PlayerId, ZoneKey } from './game/move';
 import {
   type GameState,
@@ -26,6 +27,7 @@ export type ZoneView =
 export type PublicMove =
   | Move
   | { player: PlayerId; type: 'pass'; hidden: true }
+  | { player: PlayerId; type: 'arrange'; hidden: true }
   | { player: PlayerId; type: 'play' | 'discard'; to: string; hidden: true };
 
 export interface PlayerView {
@@ -68,6 +70,15 @@ export interface PlayerView {
   history: RoundResult[];
   /** Words for `choose` values, e.g. { "shooterMinus26": "Take 26 off my score" }. */
   choiceLabels: Record<string, string>;
+  /**
+   * How you've grouped your hand, in games where players arrange their hands
+   * (null otherwise): each group with what kind of meld it is (null if it
+   * isn't a valid one), and the points left outside valid groups.
+   */
+  arrangement: {
+    groups: { cards: CardId[]; kind: 'set' | 'run' | null; pure: boolean }[];
+    deadwood: number;
+  } | null;
 }
 
 export interface TrickView {
@@ -157,6 +168,7 @@ function trickView(state: GameState, trick: TrickState | null, viewer: PlayerId)
 function publicMove(state: GameState, move: Move, viewer: PlayerId): PublicMove {
   if (move.player === viewer) return move;
   if (move.type === 'pass') return { player: move.player, type: 'pass', hidden: true };
+  if (move.type === 'arrange') return { player: move.player, type: 'arrange', hidden: true };
   if (move.type === 'play' || move.type === 'discard') {
     const level = access(state, zoneKey(state, move.to, move.player), viewer);
     if (level !== 'cards' && level !== 'top') {
@@ -216,5 +228,17 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     log: state.log.map((m) => publicMove(state, m, viewer)),
     history: state.history,
     choiceLabels: choiceLabelsOf(state.file),
+    // A hand that is still face down (blind bids) shows no groups either.
+    arrangement:
+      state.file.meldRules && !(state.lookRequired && !state.players[viewer]?.hasLookedAtHand)
+        ? {
+            groups: checkedGroups(state, viewer).map(({ cards, info }) => ({
+              cards: cards.map((c) => c.id),
+              kind: info?.kind ?? null,
+              pure: info?.pure ?? false,
+            })),
+            deadwood: deadwood(state, viewer),
+          }
+        : null,
   };
 }

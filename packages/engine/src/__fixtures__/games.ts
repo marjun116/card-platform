@@ -254,4 +254,94 @@ export const passing: GameFile = {
   endCondition: { when: 'anyPlayer.score >= 30', winner: 'lowestScore' },
 };
 
-export const allFixtures = { spades, sevensUp, tinyTricks, miniRummy, passing };
+/** Two-player rummy with wild jokers and a cut joker, small enough to set up by hand. */
+export const wildRummy: GameFile = {
+  meta: { name: 'Wild Rummy', players: 2 },
+  deck: { jokers: 'options.jokers ? 2 : 0' },
+  cardOrder: { wild: 'card.isJoker || card.rank == state.cutRank' },
+  options: {
+    jokers: { label: 'Jokers', type: 'boolean', default: true },
+    cut: { label: 'Cut joker', type: 'boolean', default: true },
+    pure: { label: 'Pure run needed', type: 'boolean', default: true },
+    sort: { label: 'Sort button', type: 'boolean', default: true },
+  },
+  meldRules: { pureRunRequired: 'options.pure', autoArrange: 'options.sort' },
+  zones: {
+    hand: { per: 'player', visibility: 'owner' },
+    stock: { shared: true, visibility: 'none', countVisible: true },
+    discard: { shared: true, visibility: 'topCardOnly' },
+    cut: { shared: true, visibility: 'all' },
+    melds: { per: 'player', visibility: 'all', melds: true },
+  },
+  setup: {
+    deal: { to: 'hand', count: 7 },
+    rest: 'stock',
+    flip: [
+      { from: 'stock', to: 'discard' },
+      {
+        if: 'options.cut',
+        from: 'stock',
+        to: 'cut',
+        set: { 'state.cutRank': "card.isJoker ? 'A' : card.rank" },
+      },
+    ],
+  },
+  phases: [
+    {
+      name: 'play',
+      until: 'anyPlayer.hand.count == 0 || state.out != null',
+      turn: [
+        {
+          actions: [
+            { type: 'draw', from: 'stock', effects: [{ set: { 'player.taken': null } }] },
+            { type: 'draw', from: 'discard', effects: [{ set: { 'player.taken': 'card.id' } }] },
+          ],
+        },
+        {
+          optional: true,
+          repeatable: true,
+          actions: [
+            { type: 'meld', to: 'melds', if: '!meld.usesWild || player.hasPureRun' },
+            { type: 'layOff', to: 'melds' },
+          ],
+        },
+        {
+          actions: [
+            {
+              type: 'discard',
+              to: 'discard',
+              if: 'card.id != player.taken',
+              effects: [{ if: 'hand.count > 0', set: { 'player.hasMelded': 'melds.melds > 0' } }],
+            },
+            {
+              type: 'showHand',
+              to: 'discard',
+              effects: [{ set: { 'state.out': 'player.id' } }, { layOutMelds: 'melds' }],
+            },
+          ],
+        },
+      ],
+      whenEmpty: { stock: { policy: 'reshuffleDiscardExceptTop', limit: 1 } },
+    },
+    {
+      name: 'show',
+      if: 'state.out != null',
+      rounds: 1,
+      actions: [{ type: 'choose', values: ['show'], set: 'state.shown', if: 'hand.count > 0' }],
+    },
+  ],
+  scoring: {
+    cardValue: { J: 10, Q: 10, K: 10, A: 1, JOKER: 0, default: 'rankNumber' },
+    playerValues: { dw: 'player.deadwood' },
+    perPlayer: [
+      {
+        if: 'player.hand.count == 0 || state.out == player.id',
+        add: 'sum(activePlayers, dw)',
+      },
+    ],
+    atGameEnd: [{ if: 'player.score > 0', add: 1000 }],
+  },
+  endCondition: { when: 'true', winner: 'highestScore' },
+};
+
+export const allFixtures = { spades, sevensUp, tinyTricks, miniRummy, passing, wildRummy };

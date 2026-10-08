@@ -6,7 +6,8 @@
  */
 import { applyMove, createGame, getLegalMoves, playersToAct, replay, viewFor } from '../api';
 import type { Move, PlayerId } from '../game/move';
-import { type GameState, parseZoneKey, zoneDef } from '../game/state';
+import { draft, type GameState, parseZoneKey, zoneDef } from '../game/state';
+import { sortHand } from '../game/arrangement';
 import type { GameFile, OptionValue } from '../game/types';
 import { moveKey } from '../game/move';
 import { randomInt, seedRng } from '../rng';
@@ -16,6 +17,16 @@ export type Strategy = (moves: Move[], state: GameState, pick: (n: number) => nu
 
 /** Any legal move, uniformly at random. */
 export const randomStrategy: Strategy = (moves, _state, pick) => moves[pick(moves.length)] as Move;
+
+/**
+ * The arrangement "Sort into melds" would make, as an ordinary arrange move,
+ * for strategies in games where the house rules switch that button off.
+ */
+export function bestArrangeMove(state: GameState, player: PlayerId): Move {
+  const next = draft(state);
+  sortHand(next, player);
+  return { player, type: 'arrange', groups: next.players[player]?.groups ?? [] };
+}
 
 /** A random move that matches `prefer` when there is one, otherwise any random move. */
 export function preferring(prefer: (move: Move, state: GameState) => boolean): Strategy {
@@ -91,7 +102,8 @@ export function simulateGame(
     if (legal.length === 0) fail(`Player ${actor} is due to act but has no legal moves`);
 
     const move = strategy(legal, state, pick);
-    if (!legal.some((m) => moveKey(m) === moveKey(move))) {
+    // Arrangements aren't listed among the legal moves; applyMove checks them.
+    if (move.type !== 'arrange' && !legal.some((m) => moveKey(m) === moveKey(move))) {
       fail(`The strategy chose a move that isn't legal: ${JSON.stringify(move)}`);
     }
     try {

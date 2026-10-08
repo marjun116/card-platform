@@ -47,6 +47,8 @@ export function startGame(
       tricks: 0,
       tracks: {},
       hasLookedAtHand: true,
+      vars: {},
+      groups: [],
     })),
     teams,
     zones: {},
@@ -189,6 +191,8 @@ export function startRound(state: GameState): void {
     player.bid = null;
     player.tricks = 0;
     player.hasLookedAtHand = !state.lookRequired;
+    player.vars = {};
+    player.groups = [];
   }
   for (const team of state.teams) team.tricks = 0;
   state.vars = {};
@@ -215,13 +219,11 @@ export function startRound(state: GameState): void {
     }
   }
 
-  const copies = file.deck.copies;
+  const number = (n: number | string | undefined) =>
+    typeof n === 'string' ? evaluateNumber(n, buildScope(state)) : n;
   const deck = withoutRemoved(
     state,
-    buildDeck({
-      ...file.deck,
-      copies: typeof copies === 'string' ? evaluateNumber(copies, buildScope(state)) : copies,
-    }),
+    buildDeck({ ...file.deck, copies: number(file.deck.copies), jokers: number(file.deck.jokers) }),
   );
   if (file.setup.shuffle !== false) shuffle(deck, state.rng);
 
@@ -242,8 +244,9 @@ export function startRound(state: GameState): void {
 
   if (file.setup.rest) zoneCards(state, zoneKey(state, file.setup.rest, null)).push(...deck);
 
-  const flip = file.setup.flip;
-  if (flip) {
+  const flips = file.setup.flip;
+  for (const flip of Array.isArray(flips) ? flips : flips ? [flips] : []) {
+    if (flip.if && !evaluateCondition(flip.if, buildScope(state))) continue;
     if (flip.triggerEffects) {
       throw new GameFileError('setup.flip with "triggerEffects": true isn\'t supported yet');
     }

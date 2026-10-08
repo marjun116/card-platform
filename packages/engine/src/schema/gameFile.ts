@@ -48,7 +48,7 @@ export const deckSchema = z.strictObject({
   copies: z.union([count(1).max(6), expr]).optional(),
   ranks: z.array(rank).min(1).optional(),
   suits: z.array(suit).min(1).optional(),
-  jokers: count(0).max(2).optional(),
+  jokers: z.union([count(0).max(2), expr]).optional(),
   /** Cards taken out (every copy), e.g. the 2♦ when three play hearts. */
   remove: z
     .array(z.strictObject({ if: expr.optional(), cards: z.array(cardCode).min(1) }))
@@ -59,6 +59,29 @@ export const deckSchema = z.strictObject({
 export const cardOrderSchema = z.strictObject({
   ranks: z.array(rank).min(1).optional(),
   trump: z.union([suit, z.literal('declared')]).optional(),
+  /** Which cards are wild in melds, e.g. "card.isJoker || card.rank == state.cutRank". */
+  wild: expr.optional(),
+});
+
+export const ACES = ['low', 'high', 'both'] as const;
+/**
+ * How melds work in games where players arrange their own hands: what counts
+ * as a meld, and the rules melding, laying off and scoring share.
+ */
+export const meldRulesSchema = z.strictObject({
+  kinds: z
+    .array(z.enum(['set', 'run']))
+    .min(1)
+    .optional(),
+  minSize: count(1).optional(),
+  /** Aces in runs: low (A-2-3), high (Q-K-A) or both (but not K-A-2). */
+  aces: settingOr(ACES).optional(),
+  /** Without a pure run (no wild card filling in), a player's melds don't count. */
+  pureRunRequired: z.union([z.boolean(), expr]).optional(),
+  /** Players may use "Sort into melds". Default true. */
+  autoArrange: z.union([z.boolean(), expr]).optional(),
+  /** Per-player zone holding each player's melds on the table. Default "melds". */
+  zone: name.optional(),
 });
 
 export const optionSchema = z.strictObject({
@@ -77,22 +100,24 @@ export const zoneSchema = z.strictObject({
   melds: z.boolean().optional(),
 });
 
-const setValue = z.union([expr, z.number(), z.boolean()]);
+const setValue = z.union([expr, z.number(), z.boolean(), z.null()]);
+
+export const flipSchema = z.strictObject({
+  if: expr.optional(),
+  from: name,
+  to: name,
+  triggerEffects: z.boolean().optional(),
+  set: z.record(z.string(), setValue).optional(),
+  /** Put the card back in the stock (at a random spot) and turn another while this holds. */
+  reflipIf: expr.optional(),
+});
 
 export const setupSchema = z.strictObject({
   shuffle: z.boolean().optional(),
   deal: z.strictObject({ to: name, count: z.union([count(0), expr]) }),
   rest: name.optional(),
-  flip: z
-    .strictObject({
-      from: name,
-      to: name,
-      triggerEffects: z.boolean().optional(),
-      set: z.record(z.string(), setValue).optional(),
-      /** Put the card back in the stock (at a random spot) and turn another while this holds. */
-      reflipIf: expr.optional(),
-    })
-    .optional(),
+  /** One card turned face up, or several in order. */
+  flip: z.union([flipSchema, z.array(flipSchema).min(1)]).optional(),
   dealerRotation: z.enum(['left', 'right', 'none']).optional(),
 });
 
@@ -114,6 +139,8 @@ export const effectSchema = z.strictObject({
   reverse: z.boolean().optional(),
   winnerLeads: z.boolean().optional(),
   breakSuit: suit.optional(),
+  /** Moves the player's valid groups from their hand to this meld zone. */
+  layOutMelds: name.optional(),
 });
 
 const common = { if: expr.optional(), effects: z.array(effectSchema).optional() };
@@ -164,6 +191,8 @@ export const meldActionSchema = action('meld', {
   from: name.optional(),
 });
 export const layOffActionSchema = action('layOff', { to: name, from: name.optional() });
+/** Go out by discarding one card when every other card is in a valid group. */
+export const showHandActionSchema = action('showHand', { to: name });
 export const pickUpPileActionSchema = action('pickUpPile', { from: name, to: name.optional() });
 export const bidActionSchema = action('bid', {
   values: z.union([
@@ -195,6 +224,7 @@ export const ACTION_TYPES = [
   'passBid',
   'declareTrump',
   'choose',
+  'showHand',
 ] as const;
 
 export const actionSchema = z.discriminatedUnion(
@@ -212,6 +242,7 @@ export const actionSchema = z.discriminatedUnion(
     passBidActionSchema,
     declareTrumpActionSchema,
     chooseActionSchema,
+    showHandActionSchema,
   ],
   { error: `Unknown action type. Use one of: ${ACTION_TYPES.join(', ')}` },
 );
@@ -275,6 +306,8 @@ export const scoringSchema = z.strictObject({
    * sum(activePlayers, handValue).
    */
   playerValues: z.record(name, expr).optional(),
+  /** Rules run once when the game ends, before the winner is decided (bonuses). */
+  atGameEnd: z.array(scoreRuleSchema).optional(),
 });
 
 export const TIES = ['playOn', 'share'] as const;
@@ -292,6 +325,7 @@ export const gameFileSchema = z.strictObject({
   deck: deckSchema,
   cardOrder: cardOrderSchema.optional(),
   options: z.record(name, optionSchema).optional(),
+  meldRules: meldRulesSchema.optional(),
   zones: z.record(name, zoneSchema),
   setup: setupSchema,
   phases: z.array(phaseSchema).min(1),

@@ -31,13 +31,15 @@ A game file has eight top-level sections. The engine supplies the behavior for e
 
 Inside `phases`, each phase lists the **actions** players may take on their turn, drawn from a fixed library:
 
-- **Card movement:** `draw`, `discard`, `play`, `pass`, `meld`, `layOff`, `pickUpPile`
+- **Card movement:** `draw`, `discard`, `play`, `pass`, `meld`, `layOff`, `pickUpPile`, `showHand` (go out by showing a fully arranged hand)
 - **Trick-taking:** `playToTrick` with `followSuit` rules, `resolveTrick`, `breakSuit` (e.g. spades broken)
 - **Bidding:** `bid` with allowed values, `passBid`, `declareTrump`
 - **Choices:** `choose` (pick one of several named options, e.g. how to score shooting the moon)
 - **Turn control:** `nextPlayer`, `winnerLeads`, `skip`, `reverse`
 
 Actions can carry **conditions** (when the move is legal) and **effects** (what happens after). Conditions use a small expression language with fixed operators, such as `hand.count == 0` or `card.rank in ["J", "Q", "K"]`. There are no loops or arbitrary code, so a custom game can't hang or break the server.
+
+In rummy-style games (with `meldRules`), players **arrange their own hands** into groups at any time, and a "Sort into melds" move can do it for them. Melds, lay-offs, going out and deadwood all follow those groups.
 
 **Hidden information** is declared per zone: `visibility` is `owner`, `all`, `none`, or `topCardOnly`. The server only sends each player what that setting allows.
 

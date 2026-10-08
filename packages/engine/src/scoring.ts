@@ -19,12 +19,7 @@ export function scoreRound(state: GameState): boolean {
   for (const team of liveTeams) {
     for (const rule of scoring.perTeam ?? []) applyRule(state, rule, { team: team.id }, team, team);
   }
-  for (const player of state.players.filter((p) => p.active)) {
-    const team = state.teams[player.team] as TeamState;
-    for (const rule of scoring.perPlayer ?? []) {
-      applyRule(state, rule, { player: player.id }, team, rule.to === 'team' ? team : player);
-    }
-  }
+  applyPlayerRules(state, scoring.perPlayer ?? []);
 
   if (elimination) {
     const active = state.players.filter((p) => p.active);
@@ -33,6 +28,21 @@ export function scoreRound(state: GameState): boolean {
     );
     // If everyone would be knocked out at once, nobody is.
     if (out.length < active.length) for (const p of out) p.active = false;
+  }
+
+  // When the game ends, end-of-game rules (bonuses) run before the winner is decided.
+  // If a tie means play goes on after all, they're undone.
+  const ending = evaluateCondition(endCondition.when, buildScope(state));
+  let winners: PlayerId[] | null = null;
+  if (ending) {
+    const beforeBonuses = state.teams.map((t) => ({ score: t.score, tracks: { ...t.tracks } }));
+    const playersBefore = state.players.map((p) => ({ ...p.tracks }));
+    applyPlayerRules(state, scoring.atGameEnd ?? []);
+    winners = findWinners(state);
+    if (winners === null) {
+      state.teams.forEach((t, i) => Object.assign(t, beforeBonuses[i]));
+      state.players.forEach((p, i) => (p.tracks = playersBefore[i] ?? {}));
+    }
   }
 
   state.history.push({
@@ -54,12 +64,20 @@ export function scoreRound(state: GameState): boolean {
     })),
   });
 
-  if (!evaluateCondition(endCondition.when, buildScope(state))) return false;
-  const winners = findWinners(state);
   if (winners === null) return false;
   state.status = 'over';
   state.winners = winners;
   return true;
+}
+
+/** Runs each rule for each active player, in seat order. */
+function applyPlayerRules(state: GameState, rules: readonly ScoreRuleDef[]): void {
+  for (const player of state.players.filter((p) => p.active)) {
+    const team = state.teams[player.team] as TeamState;
+    for (const rule of rules) {
+      applyRule(state, rule, { player: player.id }, team, rule.to === 'team' ? team : player);
+    }
+  }
 }
 
 function applyRule(

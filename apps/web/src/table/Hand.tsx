@@ -2,8 +2,12 @@
  * Your hand. Each card is a toggle button: the first press selects it, a
  * second press plays it when that's the only thing it can do. Arrow keys,
  * Home and End move between cards; only one card is in the Tab order.
+ *
+ * In games where players arrange their hands (rummy, gin), your groups come
+ * first, each set apart by a gap, then the cards you haven't grouped; any card
+ * can be selected at any time so it can be grouped.
  */
-import type { Card as CardData, ZoneView } from '@card-table/engine';
+import type { Card as CardData, PlayerView, ZoneView } from '@card-table/engine';
 import { type KeyboardEvent, useRef, useState } from 'react';
 import { CardBack, CardFace } from './Card';
 import { sortHand, spokenLabel } from './cards';
@@ -15,9 +19,11 @@ export function Hand({
   selected,
   onPress,
   onClear,
+  arrangement = null,
 }: {
   zone: ZoneView | null;
   controls: Controls;
+  arrangement?: Arrangement;
   selected: readonly string[];
   /** A card was pressed (clicked, tapped, Enter or Space). */
   onPress: (card: CardData) => void;
@@ -45,7 +51,8 @@ export function Hand({
     );
   }
 
-  const cards = sortHand(zone.kind === 'cards' ? zone.cards : zone.melds.flat());
+  const all = zone.kind === 'cards' ? zone.cards : zone.melds.flat();
+  const { cards, groupStarts } = arranged(all, arrangement);
   const current = Math.min(focus, cards.length - 1);
   // Dim unusable cards only when some card can be used (not while bidding, say).
   const choosing = controls.byCard.size > 0 || controls.groupCards.size > 0;
@@ -78,11 +85,13 @@ export function Hand({
       style={{ ['--n' as string]: cards.length }}
     >
       {cards.map((card, i) => {
-        const usable = isCardUsable(controls, card.id);
+        // When hands are arranged, any card can be selected to group it.
+        const usable = isCardUsable(controls, card.id) || arrangement !== null;
         const isSelected = selected.includes(card.id);
         const state = [
-          choosing && usable ? 'playable' : null,
-          choosing && !usable ? 'unusable' : null,
+          choosing && isCardUsable(controls, card.id) ? 'playable' : null,
+          choosing && !isCardUsable(controls, card.id) ? 'unusable' : null,
+          groupStarts.has(i) ? 'group-start' : null,
           isSelected ? 'selected' : null,
         ];
         return (
@@ -97,7 +106,7 @@ export function Hand({
             tabIndex={i === current ? 0 : -1}
             aria-pressed={isSelected}
             aria-disabled={!usable}
-            aria-label={`${spokenLabel(card)}${choosing && !usable ? ", can't be used now" : ''}`}
+            aria-label={`${spokenLabel(card)}${choosing && !isCardUsable(controls, card.id) ? ", can't be played now" : ''}`}
             onFocus={() => setFocus(i)}
             onClick={() => usable && onPress(card)}
           >
@@ -105,6 +114,54 @@ export function Hand({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+export type Arrangement = PlayerView['arrangement'];
+
+/** Your cards in display order (groups first, then the rest) and where each group starts. */
+function arranged(
+  cards: readonly CardData[],
+  arrangement: Arrangement,
+): { cards: CardData[]; groupStarts: Set<number> } {
+  if (!arrangement) return { cards: sortHand(cards), groupStarts: new Set() };
+  const byId = new Map(cards.map((c) => [c.id, c]));
+  const ordered: CardData[] = [];
+  const groupStarts = new Set<number>();
+  for (const group of arrangement.groups) {
+    const groupCards = group.cards.flatMap((id) => byId.get(id) ?? []);
+    if (groupCards.length === 0) continue;
+    if (ordered.length > 0) groupStarts.add(ordered.length);
+    // Runs read naturally in rank order.
+    ordered.push(...sortHand(groupCards));
+  }
+  const grouped = new Set(ordered.map((c) => c.id));
+  const loose = sortHand(cards.filter((c) => !grouped.has(c.id)));
+  if (ordered.length > 0 && loose.length > 0) groupStarts.add(ordered.length);
+  return { cards: [...ordered, ...loose], groupStarts };
+}
+
+const KIND_TEXT = { set: 'Set', run: 'Run' } as const;
+
+/** One line per group above your hand: its cards and whether it's a meld, then your deadwood. */
+export function GroupSummary({ arrangement }: { arrangement: Arrangement }) {
+  if (!arrangement) return null;
+  return (
+    <div className="group-summary" aria-label="Your groups">
+      {arrangement.groups.map((group) => {
+        const label =
+          group.kind === null ? 'Not a meld' : group.pure ? 'Pure run' : KIND_TEXT[group.kind];
+        return (
+          <span
+            key={group.cards.join(',')}
+            className={`group-chip ${group.kind === null ? 'invalid' : 'valid'}`}
+          >
+            {group.kind === null ? '✗' : '✓'} {label} ({group.cards.length})
+          </span>
+        );
+      })}
+      <span className="muted">Deadwood: {arrangement.deadwood}</span>
     </div>
   );
 }

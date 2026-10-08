@@ -12,6 +12,15 @@ import {
   zoneKey,
 } from '../game/state';
 import { canDraw, cardCount, drawCards } from '../game/zones';
+import { evaluateCondition } from '../expr/evaluate';
+import { buildScope } from '../game/scope';
+import {
+  canShowHandWithout,
+  checkedGroups,
+  fitsMeld,
+  groupUsesWild,
+  meldRulesOf,
+} from '../game/arrangement';
 import type {
   DiscardAction,
   DrawAction,
@@ -21,8 +30,9 @@ import type {
   PassDirection,
   PickUpPileAction,
   PlayAction,
+  ShowHandAction,
 } from '../game/types';
-import { type ActionResult, allowsCard, combinations } from './common';
+import { type ActionResult, allowsCard, cardsAllowed, combinations } from './common';
 import { canLayOff, findMelds, sortMeld } from './melds';
 
 const handOf = (state: GameState, player: PlayerId, from = 'hand') =>
@@ -38,7 +48,7 @@ export function playMoves(
   action: PlayAction | DiscardAction,
 ): Move[] {
   return handOf(state, player, action.from)
-    .filter((card) => allowsCard(state, player, action, card))
+    .filter(cardsAllowed(state, player, action))
     .map((card) => ({ player, type: action.type, card: card.id, to: action.to }));
 }
 
@@ -69,7 +79,8 @@ export function applyDraw(state: GameState, move: Move, action: DrawAction): Act
     cardCount(state, action.count ?? 1, { player: move.player }),
   );
   state.cursor.draws += drawn.length;
-  return { drawn };
+  // Effects of a one-card draw can refer to the card drawn as `card`.
+  return drawn.length === 1 ? { drawn, card: drawn[0] } : { drawn };
 }
 
 // ---- pick up a whole pile ----
@@ -144,6 +155,7 @@ export function applyPass(state: GameState, move: Move, action: PassAction): Act
 // ---- melds ----
 
 export function meldMoves(state: GameState, player: PlayerId, action: MeldAction): Move[] {
+  if (state.file.meldRules) return groupMeldMoves(state, player, action);
   if (!allowsCard(state, player, action)) return [];
   const melds = findMelds(
     handOf(state, player, action.from),
@@ -152,6 +164,23 @@ export function meldMoves(state: GameState, player: PlayerId, action: MeldAction
     rankOrder(state),
   );
   return melds.map((meld) => ({ player, type: 'meld', cards: meld.map((c) => c.id).sort() }));
+}
+
+/** With meld rules, a player melds one of the valid groups they've arranged. */
+function groupMeldMoves(state: GameState, player: PlayerId, action: MeldAction): Move[] {
+  const moves: Move[] = [];
+  for (const { cards, info } of checkedGroups(state, player)) {
+    if (!info) continue;
+    const meld = {
+      kind: info.kind,
+      size: cards.length,
+      isPure: info.pure,
+      usesWild: groupUsesWild(state, cards),
+    };
+    if (action.if && !evaluateCondition(action.if, buildScope(state, { player, meld }))) continue;
+    moves.push({ player, type: 'meld', cards: cards.map((c) => c.id).sort() });
+  }
+  return moves;
 }
 
 export function applyMeld(state: GameState, move: Move, action: MeldAction): ActionResult {
@@ -165,13 +194,13 @@ export function applyMeld(state: GameState, move: Move, action: MeldAction): Act
 
 export function layOffMoves(state: GameState, player: PlayerId, action: LayOffAction): Move[] {
   const moves: Move[] = [];
-  const hand = handOf(state, player, action.from).filter((card) =>
-    allowsCard(state, player, action, card),
-  );
+  const hand = handOf(state, player, action.from).filter(cardsAllowed(state, player, action));
+  const rules = meldRulesOf(state);
   for (const zone of zoneInstances(state, action.to)) {
     meldsIn(state, zone).forEach((meld, index) => {
       for (const card of hand) {
-        if (canLayOff(meld, card, rankOrder(state))) {
+        const fits = rules ? fitsMeld(rules, meld, card) : canLayOff(meld, card, rankOrder(state));
+        if (fits) {
           moves.push({ player, type: 'layOff', card: card.id, meld: { zone, index } });
         }
       }
@@ -187,5 +216,22 @@ export function applyLayOff(state: GameState, move: Move, action: LayOffAction):
   if (!meld) throw new GameFileError(`No meld ${move.meld.index} in ${move.meld.zone}`);
   meld.push(card);
   sortMeld(meld, rankOrder(state));
+  return { card };
+}
+
+// ---- go out by showing your hand ----
+
+/** Discards that leave every other card in a valid group. */
+export function showHandMoves(state: GameState, player: PlayerId, action: ShowHandAction): Move[] {
+  return handOf(state, player)
+    .filter(cardsAllowed(state, player, action))
+    .filter((card) => canShowHandWithout(state, player, card))
+    .map((card) => ({ player, type: 'showHand', card: card.id, to: action.to }));
+}
+
+export function applyShowHand(state: GameState, move: Move, action: ShowHandAction): ActionResult {
+  if (move.type !== 'showHand') return {};
+  const card = takeCard(state, zoneKey(state, 'hand', move.player), move.card);
+  zoneCards(state, zoneKey(state, action.to, move.player)).push(card);
   return { card };
 }

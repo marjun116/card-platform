@@ -1258,3 +1258,26 @@ kbd {
     animation: none;
   }
 }
+
+/* Arranged hands (rummy, gin): a gap before each group, and a line saying what each is. */
+.hand-card.group-start {
+  margin-left: 14px;
+}
+.group-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 0.85rem;
+}
+.group-chip {
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.group-chip.valid {
+  border-color: var(--playable);
+}
+.group-chip.invalid {
+  color: var(--muted);
+}

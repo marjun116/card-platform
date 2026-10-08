@@ -1,7 +1,7 @@
 /** The engine's public API. Every function is pure: inputs are never changed. */
 import { GameFileError, IllegalMoveError } from './errors';
 import { performMove, settle } from './game/flow';
-import { candidates, findCandidate, getLegalMoves } from './game/legal';
+import { findCandidate, getLegalMoves, stableCandidates } from './game/legal';
 import type { Move, PlayerId } from './game/move';
 import { startGame } from './game/setup';
 import { draft, type GameState } from './game/state';
@@ -42,6 +42,14 @@ export function applyMove(state: GameState, move: Move): GameState {
   const player = state.players[move.player];
   if (!player) throw new IllegalMoveError(`There is no player ${move.player}`);
 
+  // An arrangement can't be listed among the legal moves (there are far too many);
+  // it's checked as it's applied.
+  if (move.type === 'arrange') {
+    const next = draft(state);
+    performMove(next, { move, step: -1, action: null }, move);
+    return next;
+  }
+
   const candidate = findCandidate(state, move);
   if (!candidate) {
     const waitingOn = state.pending?.player ?? state.cursor.current;
@@ -66,7 +74,7 @@ export function isGameOver(state: GameState): boolean {
 /** Seats that have a move to make right now (ignoring "look at hand"). */
 export function playersToAct(state: GameState): PlayerId[] {
   return state.players
-    .filter((p) => candidates(state, p.id, { skipLook: true }).length > 0)
+    .filter((p) => stableCandidates(state, p.id, { skipLook: true }).length > 0)
     .map((p) => p.id);
 }
 

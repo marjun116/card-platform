@@ -218,7 +218,10 @@ export class TableRoom {
     const seat = this.requireSeat(user);
     const state = this.state;
     if (!state) throw new RoomError('WRONG_STATUS', "The game hasn't started");
-    if (seq !== state.log.length) {
+    // Arranging your hand only touches your own groups, so it can't go stale: it's
+    // often done while other players are moving.
+    const free = requested.type === 'arrange' || requested.type === 'sortHand';
+    if (requested.type !== 'arrange' && seq !== state.log.length) {
       throw new RoomError(
         'STALE_SEQ',
         `You've seen ${seq} moves but there have been ${state.log.length}`,
@@ -243,9 +246,10 @@ export class TableRoom {
     const over = isGameOver(next);
     // The move exactly as the engine accepted it.
     const saved = next.log[next.log.length - 1] as Move;
-    await this.deps.store.recordMove(this.table.id, seq, saved, {
+    await this.deps.store.recordMove(this.table.id, state.log.length, saved, {
       toAct: playersToAct(next),
-      turnSince: over ? null : now,
+      // Arranging doesn't change whose turn it is, so the idle timer keeps running.
+      turnSince: over ? null : free ? this.table.turnSince : now,
       ...(over && {
         finished: { endedAt: now, result: { winners: [...next.winners], scores: getScores(next) } },
       }),
@@ -403,7 +407,7 @@ function isBlind(state: GameState, seat: number): boolean {
   return state.lookRequired && state.players[seat]?.hasLookedAtHand === false;
 }
 
-const namesCards = (move: Move) => 'card' in move || 'cards' in move;
+const namesCards = (move: Move) => 'card' in move || 'cards' in move || 'groups' in move;
 
 /** The legal moves a player may be told about: none that name cards they can't see. */
 function legalMovesFor(state: GameState, seat: number): Move[] {

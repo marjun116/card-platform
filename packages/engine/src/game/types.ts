@@ -9,7 +9,9 @@ import type {
   cardOrderSchema,
   effectSchema,
   endConditionSchema,
+  flipSchema,
   gameFileSchema,
+  meldRulesSchema,
   metaSchema,
   optionSchema,
   optionValueSchema,
@@ -32,7 +34,8 @@ export type OptionValue = z.infer<typeof optionValueSchema>;
 export type ZoneDef = z.infer<typeof zoneSchema>;
 export type Visibility = ZoneDef['visibility'];
 export type SetupDef = z.infer<typeof setupSchema>;
-export type FlipDef = NonNullable<SetupDef['flip']>;
+export type FlipDef = z.infer<typeof flipSchema>;
+export type MeldRulesDef = z.infer<typeof meldRulesSchema>;
 export type PhaseDef = z.infer<typeof phaseSchema>;
 export type OrderDef = NonNullable<PhaseDef['order']>;
 export type LeaderDef = NonNullable<PhaseDef['leader']>;
@@ -57,6 +60,7 @@ export type BidAction = Action<'bid'>;
 export type PassBidAction = Action<'passBid'>;
 export type DeclareTrumpAction = Action<'declareTrump'>;
 export type ChooseAction = Action<'choose'>;
+export type ShowHandAction = Action<'showHand'>;
 export type PlayRestriction = NonNullable<PlayToTrickAction['restrictions']>[number];
 export type PassDirection = PassAction['direction'];
 export type BidValues = BidAction['values'];

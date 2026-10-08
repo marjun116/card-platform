@@ -8,6 +8,7 @@ import {
   isCardUsable,
   movesForSelection,
   quickMove,
+  regroup,
   turnPrompt,
 } from './moves';
 
@@ -121,5 +122,36 @@ describe('buildControls', () => {
     expect(hasDecisions(buildControls([{ player: p, type: 'draw', from: 'stock' }]))).toBe(true);
     const card: Move = { player: p, type: 'playToTrick', card: '9H.0' };
     expect(hasDecisions(buildControls([card]))).toBe(false);
+  });
+});
+
+describe('arranged hands', () => {
+  it('keeps "Sort into melds" apart from decisions, and treats going out as a card move', () => {
+    const controls = buildControls([
+      { player: p, type: 'sortHand' },
+      { player: p, type: 'showHand', card: '9C.0', to: 'discard' },
+      { player: p, type: 'discard', card: '9C.0', to: 'discard' },
+    ]);
+    expect(controls.sort).toEqual({ player: p, type: 'sortHand' });
+    expect(hasDecisions(controls)).toBe(false);
+    expect(controls.byCard.get('9C.0')?.map((m) => m.type)).toEqual(['showHand', 'discard']);
+    // Two things the card can do, so a second tap doesn't play it.
+    expect(quickMove(controls, '9C.0')).toBeNull();
+  });
+
+  it('puts selected cards into a group of their own, or takes them out', () => {
+    const arrangement = {
+      groups: [
+        { cards: ['3H.0', '4H.0', '5H.0'], kind: 'run' as const, pure: true },
+        { cards: ['9C.0', '9D.0'], kind: null, pure: false },
+      ],
+      deadwood: 18,
+    };
+    expect(regroup(arrangement, ['5H.0', '9C.0', 'KS.0'], 'group')).toEqual([
+      ['3H.0', '4H.0'],
+      ['9D.0'],
+      ['5H.0', '9C.0', 'KS.0'],
+    ]);
+    expect(regroup(arrangement, ['9C.0', '9D.0'], 'ungroup')).toEqual([['3H.0', '4H.0', '5H.0']]);
   });
 });

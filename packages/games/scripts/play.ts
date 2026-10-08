@@ -138,6 +138,12 @@ function describeMove(move: Move): string {
       return `choose ${move.suit}`;
     case 'choose':
       return `choose ${choiceLabels[move.value] ?? move.value}`;
+    case 'showHand':
+      return `go out, discarding ${labelFromId(move.card)}`;
+    case 'arrange':
+      return 'arrange your hand';
+    case 'sortHand':
+      return 'sort your hand into melds';
     case 'endTurn':
       return 'end your turn';
   }
@@ -200,6 +206,13 @@ function show(view: PlayerView, legal: Move[]): void {
   if (hand?.kind === 'cards') console.log(`\nYour hand:  ${handText(hand.cards)}`);
   else if (hand?.kind === 'count')
     console.log(`\nYour hand:  ${hand.count} cards, face down (you haven't looked)`);
+  if (view.arrangement && view.arrangement.groups.length > 0) {
+    const groups = view.arrangement.groups.map((g) => {
+      const kind = g.kind === null ? '✗' : g.pure ? 'pure run' : g.kind;
+      return `[${g.cards.map(labelFromId).join(' ')}] ${kind}`;
+    });
+    console.log(`Your melds: ${groups.join('  ')}  (deadwood ${view.arrangement.deadwood})`);
+  }
 
   console.log('\nYour moves:');
   const width = Math.max(...legal.map((m, i) => `${i + 1}) ${describeMove(m)}`.length)) + 3;

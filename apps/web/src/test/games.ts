@@ -19,6 +19,7 @@ export {
   passing,
   sevensUp,
   spades,
+  wildRummy,
 } from '../../../../packages/engine/src/__fixtures__/games';
 export { createGame };
 

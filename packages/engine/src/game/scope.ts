@@ -19,6 +19,7 @@ import {
   type Value,
 } from '../expr/evaluate';
 import { hasLegalPlay } from './legal';
+import { deadwood, hasPureRunOnTable } from './arrangement';
 import type { PlayerId, ZoneKey } from './move';
 import { type GameState, type TrickState, teamZoneKey } from './state';
 
@@ -29,6 +30,8 @@ export interface ScopeContext {
   team?: number;
   /** The card being considered (when checking a card's legality or running its effects). */
   card?: Card;
+  /** The meld being considered (a meld action's `if`). */
+  meld?: { kind: string; size: number; isPure: boolean; usesWild: boolean };
 }
 
 const fn = (f: (...args: Value[]) => Value): ExprFunction => f;
@@ -115,6 +118,21 @@ function trackNames(state: GameState): Set<string> {
   return names;
 }
 
+/** Names of custom per-player values: every "player.x" the game file sets. */
+const playerVarCache = new WeakMap<object, Set<string>>();
+export function playerVarNames(state: { file: GameState['file'] }): Set<string> {
+  let names = playerVarCache.get(state.file);
+  if (!names) {
+    names = new Set(
+      [...JSON.stringify(state.file).matchAll(/"player\.([A-Za-z_][A-Za-z0-9_]*)":/g)].map(
+        (m) => m[1] as string,
+      ),
+    );
+    playerVarCache.set(state.file, names);
+  }
+  return names;
+}
+
 /** A per-player or per-team zone read as a property, e.g. `player.hand` or `team.won`. */
 function ownedZone(
   state: GameState,
@@ -126,6 +144,21 @@ function ownedZone(
   if (def?.per !== per) return undefined;
   return zoneObject(state, per === 'player' ? `${name}@${owner}` : teamZoneKey(name, owner));
 }
+
+/** Properties every player has; custom `player.x` values can't use these names. */
+export const PLAYER_PROPERTIES = [
+  'id',
+  'team',
+  'score',
+  'bid',
+  'tricks',
+  'active',
+  'isDealer',
+  'hasLookedAtHand',
+  'hasLegalPlay',
+  'deadwood',
+  'hasPureRun',
+];
 
 function playerObject(state: GameState, id: PlayerId): ExprObject {
   const player = state.players[id];
@@ -150,9 +183,16 @@ function playerObject(state: GameState, id: PlayerId): ExprObject {
         return player.hasLookedAtHand;
       case 'hasLegalPlay':
         return hasLegalPlay(state, id);
+      case 'deadwood':
+        return deadwood(state, id);
+      case 'hasPureRun':
+        return hasPureRunOnTable(state, id);
     }
     if (trackNames(state).has(name)) return player.tracks[name] ?? 0;
-    return ownedZone(state, 'player', id, name);
+    const zone = ownedZone(state, 'player', id, name);
+    if (zone) return zone;
+    // Custom per-player values (`player.x`) read as null until set.
+    return playerVarNames(state).has(name) ? (player.vars[name] ?? null) : undefined;
   });
 }
 
@@ -269,6 +309,8 @@ export function buildScope(state: GameState, ctx: ScopeContext = {}): Scope {
         return team === undefined ? undefined : teamObject(state, team);
       case 'card':
         return ctx.card ? cardObject(ctx.card) : undefined;
+      case 'meld':
+        return ctx.meld ? { ...ctx.meld } : undefined;
       case 'trick':
         return trickObject(state.trick);
       case 'state':

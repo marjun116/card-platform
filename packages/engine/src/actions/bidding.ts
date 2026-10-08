@@ -40,7 +40,7 @@ export function chooseMoves(state: GameState, player: PlayerId, action: ChooseAc
 }
 
 export function applyChoose(state: GameState, move: Move, action: ChooseAction): ActionResult {
-  if (move.type === 'choose') setVar(state, action.set, move.value);
+  if (move.type === 'choose') setVar(state, action.set, move.value, move.player);
   return {};
 }
 

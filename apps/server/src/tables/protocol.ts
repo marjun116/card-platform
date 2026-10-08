@@ -43,6 +43,13 @@ export const moveSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...player, type: z.literal('declareTrump'), suit }),
   z.strictObject({ ...player, type: z.literal('chooseSuit'), suit }),
   z.strictObject({ ...player, type: z.literal('choose'), value: z.string().min(1).max(40) }),
+  z.strictObject({ ...player, type: z.literal('showHand'), card: cardId, to: zoneName }),
+  z.strictObject({
+    ...player,
+    type: z.literal('arrange'),
+    groups: z.array(z.array(cardId).max(60)).max(60),
+  }),
+  z.strictObject({ ...player, type: z.literal('sortHand') }),
   z.strictObject({ ...player, type: z.literal('lookAtHand') }),
   z.strictObject({ ...player, type: z.literal('endTurn') }),
 ]);

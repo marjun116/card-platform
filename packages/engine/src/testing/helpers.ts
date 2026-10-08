@@ -1,6 +1,6 @@
 /** Helpers for building exact test situations. */
 import { applyMove } from '../api';
-import { type Card, isRank, isSuit, type Suit, suitedCard } from '../cards/card';
+import { type Card, isRank, isSuit, jokerCard, type Suit, suitedCard } from '../cards/card';
 import type { Move, PlayerId } from '../game/move';
 import { enterPhase, settle } from '../game/flow';
 import { draft, type GameState } from '../game/state';
@@ -12,8 +12,10 @@ const SUIT_BY_LETTER: Record<string, Suit> = {
   S: 'spades',
 };
 
-/** "QH" → queen of hearts, "10S" → ten of spades (first deck copy). */
+/** "QH" → queen of hearts, "10S" → ten of spades (first deck copy), "JOKER.1" → a joker. */
 export function card(spec: string): Card {
+  const joker = /^JOKER\.(\d+)$/.exec(spec);
+  if (joker) return jokerCard(Number(joker[1]));
   const rank = spec.slice(0, -1);
   const suit = SUIT_BY_LETTER[spec.slice(-1)];
   if (!isRank(rank) || !isSuit(suit)) throw new Error(`Bad card "${spec}"`);

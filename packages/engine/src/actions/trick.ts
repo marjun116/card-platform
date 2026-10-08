@@ -6,7 +6,7 @@ import { buildScope, withCard } from '../game/scope';
 import { type GameState, takeCard, zoneCards, zoneKey } from '../game/state';
 import type { PlayRestriction, PlayToTrickAction } from '../game/types';
 import type { Card } from '../cards/card';
-import { type ActionResult, allowsCard } from './common';
+import { type ActionResult, cardsAllowed } from './common';
 
 export function playToTrickMoves(
   state: GameState,
@@ -16,7 +16,7 @@ export function playToTrickMoves(
   const trick = state.trick;
   if (!trick) return [];
   const hand = zoneCards(state, zoneKey(state, 'hand', player));
-  let cards = hand.filter((card) => allowsCard(state, player, action, card));
+  let cards = hand.filter(cardsAllowed(state, player, action));
 
   if (trick.plays.length === 0) {
     const restriction = action.leadRestriction;

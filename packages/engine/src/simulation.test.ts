@@ -40,6 +40,7 @@ const GAMES: Record<keyof typeof allFixtures, number> = {
   tinyTricks: 30,
   miniRummy: 10,
   passing: 10,
+  wildRummy: 20,
 };
 
 describe('random play', () => {
