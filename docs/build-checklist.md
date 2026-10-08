@@ -357,6 +357,7 @@ Harden the platform for strangers, not just family. Several items here involve l
 - [ ] Production hosting with database backups, error monitoring and uptime alerts
 - [ ] Load test: many simultaneous tables without slowdowns
 - [ ] Security review: auth, WebSocket messages, hidden-information leaks, rate limits, the AI pipeline
+- [ ] "Sign out everywhere" for accounts (for a lost phone), which also closes that user's open table connections
 - [ ] Optional: "Sign in with Google" alongside email links (sessions were built so it can be added without other changes)
 - [ ] Moderation basics: report a user, block a user, content filter on game names and chat
 - [ ] Privacy policy and terms of service (have a lawyer review; extra rules apply if under-13s could sign up)
