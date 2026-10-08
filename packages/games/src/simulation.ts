@@ -78,6 +78,36 @@ const lowBidding =
     return options[pick(options.length)] as Move;
   };
 
+/**
+ * Random canasta: takes the pile whenever it can, melds, lays off and goes out
+ * whenever it can (asking first, and answering at random), and sorts its hand
+ * after drawing. Purely random players never arrange their cards, so they'd
+ * never meld.
+ */
+const canastaPlayer =
+  (choose: Strategy): Strategy =>
+  (moves, state, pick) => {
+    const take = moves.filter((m) => m.type === 'pickUpPile');
+    if (take.length > 0) return take[pick(take.length)] as Move;
+    const meld = moves.filter(
+      (m) =>
+        ['meld', 'layOff', 'showHand'].includes(m.type) ||
+        (m.type === 'choose' && ['layDown', 'askToGoOut'].includes(m.value)),
+    );
+    if (meld.length > 0) return meld[pick(meld.length)] as Move;
+    const last = state.log.at(-1);
+    const drew =
+      (last?.type === 'draw' || last?.type === 'pickUpPile') &&
+      last.player === state.cursor.current;
+    const sort = moves.find((m) => m.type === 'sortHand');
+    if (drew && sort) return sort;
+    return choose(
+      moves.filter((m) => m.type !== 'sortHand'),
+      state,
+      pick,
+    );
+  };
+
 /** How each game is played randomly, where plain random moves wouldn't do. */
 const RANDOM: Partial<Record<BuiltInGameName, Strategy>> = {
   rummy: arranging(randomStrategy),
@@ -89,6 +119,7 @@ const RANDOM: Partial<Record<BuiltInGameName, Strategy>> = {
       ? (moves.find((m) => m.type === 'choose' && m.value === 'play') as Move)
       : randomStrategy(moves, state, pick),
   ),
+  canasta: canastaPlayer(randomStrategy),
 };
 
 /**
@@ -118,6 +149,10 @@ const SENSIBLE: Record<BuiltInGameName, Strategy> = {
   // Keep fives and ten-cards for fifteens, so hands score and games reach 121 sooner.
   cribbage: preferring((m) => m.type === 'discard' && !/^(5|10|J|Q|K)[CDHS]/.test(m.card)),
   // Only the first player to speak bids (the minimum), so bids are usually made.
+  // Never discards a wild card (that freezes the pile), so piles are taken more often.
+  canasta: canastaPlayer(
+    preferring((m) => m.type !== 'discard' || !/^(2[CDHS]|JOKER)/.test(m.card)),
+  ),
   pinochle: (moves, state, pick) => {
     const pass = moves.find((m) => m.type === 'passBid');
     if (pass && state.vars.bidder != null) return pass;
@@ -205,6 +240,10 @@ const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> 
     { sequence: 'down', maxCards: 'max', scoring: 'penalty', blindBids: true },
     { sequence: 'up', maxCards: 13 },
   ],
+  canasta: [
+    { drawTwo: true, alwaysFrozen: true, targetScore: 3000 },
+    { askPartner: true, concealedNeedsPartner: true, wildLimit: 'none' },
+  ],
   pinochle: [
     { passing: false, mustBeat: false, throwIn: true, dealerMustBid: false },
     { classic: true, targetScore: 100, minBid: 25 },
@@ -235,6 +274,8 @@ const MIN_ROUNDS: Record<BuiltInGameName, number> = {
   // About 8 hands to reach 121 with two players, fewer with three or four.
   cribbage: 5,
   pinochle: 4,
+  // A game to 5,000 takes a few hands of good melding.
+  canasta: 3,
 };
 
 /**

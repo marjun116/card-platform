@@ -1,0 +1,342 @@
+{
+  "$schema": "../engine/game-file.schema.json",
+  "meta": {
+    "name": "Canasta",
+    "players": [2, 4],
+    "teams": {
+      "4": [
+        [0, 2],
+        [1, 3]
+      ]
+    },
+    "description": "Meld sets of the same rank with jokers and 2s wild. Seven-card melds are canastas. First team to 5,000 wins."
+  },
+  "deck": {
+    "copies": 2,
+    "jokers": 2
+  },
+  "cardOrder": {
+    "wild": "card.isJoker || card.rank == '2'"
+  },
+  "meldRules": {
+    "kinds": ["set"],
+    "minSize": 3,
+    "sets": "anySuits",
+    "zone": "melds",
+    "allowed": "meld.naturals >= 2 && (options.wildLimit == 'none' || meld.wilds <= 3) && (meld.rank != '3' || (meld.goingOut && meld.wilds == 0))"
+  },
+  "options": {
+    "targetScore": {
+      "label": "Play to",
+      "type": "choice",
+      "values": [5000, 3000, 10000],
+      "default": 5000
+    },
+    "drawTwo": {
+      "label": "Draw 2 cards from the stock (two players always draw 2)",
+      "type": "boolean",
+      "default": false
+    },
+    "alwaysFrozen": {
+      "label": "The discard pile is always frozen: taking it needs two natural cards matching the top card",
+      "type": "boolean",
+      "default": false
+    },
+    "askPartner": {
+      "label": "\"May I go out?\": you may ask your partner before going out, and must do as they say",
+      "type": "boolean",
+      "default": false
+    },
+    "concealedNeedsPartner": {
+      "label": "Going out concealed needs your partner to have melded",
+      "type": "boolean",
+      "default": false
+    },
+    "wildLimit": {
+      "label": "Wild cards in a meld",
+      "type": "choice",
+      "values": ["three", "none"],
+      "labels": {
+        "three": "At most 3",
+        "none": "Any number (still at least 2 natural cards)"
+      },
+      "default": "three"
+    }
+  },
+  "zones": {
+    "hand": {
+      "per": "player",
+      "visibility": "owner"
+    },
+    "stock": {
+      "shared": true,
+      "visibility": "none",
+      "countVisible": true
+    },
+    "discard": {
+      "shared": true,
+      "visibility": "topCardOnly"
+    },
+    "melds": {
+      "per": "team",
+      "visibility": "all",
+      "melds": true
+    },
+    "redThrees": {
+      "per": "team",
+      "visibility": "all"
+    }
+  },
+  "bonusCards": {
+    "if": "card.rank == '3' && (card.suit == 'hearts' || card.suit == 'diamonds')",
+    "to": "redThrees",
+    "replaceFrom": "stock"
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": {
+      "to": "hand",
+      "count": "activePlayers.count == 2 ? 15 : activePlayers.count == 3 ? 13 : 11"
+    },
+    "rest": "stock",
+    "flip": [
+      {
+        "from": "stock",
+        "to": "discard",
+        "set": {
+          "state.frozen": "card.isJoker || card.rank == '2' || (card.rank == '3' && (card.suit == 'hearts' || card.suit == 'diamonds'))",
+          "state.cover": "card.isJoker || card.rank == '2' || (card.rank == '3' && (card.suit == 'hearts' || card.suit == 'diamonds'))"
+        }
+      },
+      {
+        "if": "state.cover == true",
+        "from": "stock",
+        "to": "discard",
+        "set": {
+          "state.cover": "card.isJoker || card.rank == '2' || (card.rank == '3' && (card.suit == 'hearts' || card.suit == 'diamonds'))"
+        }
+      },
+      {
+        "if": "state.cover == true",
+        "from": "stock",
+        "to": "discard",
+        "set": {
+          "state.cover": "card.isJoker || card.rank == '2' || (card.rank == '3' && (card.suit == 'hearts' || card.suit == 'diamonds'))"
+        }
+      },
+      {
+        "if": "state.cover == true",
+        "from": "stock",
+        "to": "discard",
+        "set": {
+          "state.cover": "card.isJoker || card.rank == '2' || (card.rank == '3' && (card.suit == 'hearts' || card.suit == 'diamonds'))"
+        }
+      }
+    ],
+    "dealerRotation": "left"
+  },
+  "phases": [
+    {
+      "name": "play",
+      "order": "leftOfDealer",
+      "until": "state.wentOut != null",
+      "whenEmpty": {
+        "stock": {
+          "policy": "endRound",
+          "if": "!player.hasMove('pickUpPile')"
+        }
+      },
+      "turn": [
+        {
+          "actions": [
+            {
+              "type": "draw",
+              "from": "stock",
+              "count": "activePlayers.count == 2 || options.drawTwo ? 2 : 1",
+              "effects": [
+                {
+                  "set": {
+                    "state.answer": null
+                  }
+                }
+              ]
+            },
+            {
+              "type": "pickUpPile",
+              "from": "discard",
+              "meldTop": {
+                "to": "melds"
+              },
+              "if": "!(card.isJoker || card.rank == '2') && card.rank != '3' && (!(state.frozen == true || options.alwaysFrozen || team.melds.melds == 0) || (meld.isNew && meld.wilds == 0)) && (team.melds.melds > 0 || meld.points + sum(player.groups, cardValue) >= (team.score < 0 ? 15 : team.score < 1500 ? 50 : team.score < 3000 ? 90 : 120))",
+              "effects": [
+                {
+                  "set": {
+                    "state.answer": null
+                  }
+                },
+                {
+                  "set": {
+                    "state.frozen": false
+                  }
+                },
+                {
+                  "set": {
+                    "player.melded": true
+                  }
+                },
+                {
+                  "if": "meld.isNew && team.melds.melds == 1",
+                  "layOutMelds": "melds"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "optional": true,
+          "repeatable": true,
+          "actions": [
+            {
+              "type": "choose",
+              "values": ["layDown"],
+              "labels": {
+                "layDown": "Lay down my melds"
+              },
+              "set": "state.laidDown",
+              "if": "team.melds.melds == 0 && player.groups.melds > 0 && sum(player.groups, cardValue) >= (team.score < 0 ? 15 : team.score < 1500 ? 50 : team.score < 3000 ? 90 : 120) && hand.count > player.groups.count",
+              "effects": [
+                {
+                  "layOutMelds": "melds"
+                },
+                {
+                  "set": {
+                    "player.melded": true
+                  }
+                }
+              ]
+            },
+            {
+              "type": "meld",
+              "to": "melds",
+              "if": "team.melds.melds > 0 && hand.count > meld.size",
+              "effects": [
+                {
+                  "set": {
+                    "player.melded": true
+                  }
+                }
+              ]
+            },
+            {
+              "type": "layOff",
+              "to": "melds",
+              "own": true,
+              "if": "team.melds.melds > 0 && hand.count >= 2",
+              "effects": [
+                {
+                  "set": {
+                    "player.melded": true
+                  }
+                }
+              ]
+            },
+            {
+              "type": "choose",
+              "values": ["askToGoOut"],
+              "labels": {
+                "askToGoOut": "Ask partner: may I go out?"
+              },
+              "set": "state.asked",
+              "if": "options.askPartner && activePlayers.count == 4 && state.answer == null && player.hasMove('showHand')",
+              "effects": [
+                {
+                  "ask": "(player.id + 2) % 4",
+                  "values": ["yes", "no"],
+                  "labels": {
+                    "yes": "Yes, go out",
+                    "no": "No, not yet"
+                  },
+                  "set": "state.answer"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "actions": [
+            {
+              "type": "discard",
+              "to": "discard",
+              "if": "!(state.answer == 'yes' && player.hasMove('showHand'))",
+              "effects": [
+                {
+                  "if": "card.isJoker || card.rank == '2'",
+                  "set": {
+                    "state.frozen": true
+                  }
+                }
+              ]
+            },
+            {
+              "type": "showHand",
+              "to": "discard",
+              "discard": "optional",
+              "if": "team.melds.countMelds(7) + player.groups.countMelds(7) >= (activePlayers.count == 2 ? 2 : 1) && state.answer != 'no' && (player.melded == true || team.melds.melds > 0 || !(options.concealedNeedsPartner && activePlayers.count == 4))",
+              "effects": [
+                {
+                  "set": {
+                    "state.concealed": "player.melded != true"
+                  }
+                },
+                {
+                  "layOutMelds": "melds"
+                },
+                {
+                  "set": {
+                    "state.wentOut": "player.id"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "cardValue": {
+      "JOKER": 50,
+      "2": 20,
+      "A": 20,
+      "K": 10,
+      "Q": 10,
+      "J": 10,
+      "10": 10,
+      "9": 10,
+      "8": 10,
+      "default": 5
+    },
+    "perTeam": [
+      {
+        "add": "sum(team.melds, cardValue) + 500 * team.melds.countNaturalMelds(7) + 300 * (team.melds.countMelds(7) - team.melds.countNaturalMelds(7))"
+      },
+      {
+        "if": "team.redThrees.count > 0",
+        "add": "(team.redThrees.count == 4 ? 800 : team.redThrees.count * 100) * (team.melds.melds > 0 ? 1 : -1)"
+      }
+    ],
+    "perPlayer": [
+      {
+        "add": "-sum(player.hand, cardValue)"
+      },
+      {
+        "if": "player.id == state.wentOut",
+        "add": "state.concealed ? 200 : 100"
+      }
+    ]
+  },
+  "endCondition": {
+    "when": "anyTeam.score >= options.targetScore",
+    "winner": "highestScore"
+  }
+}
