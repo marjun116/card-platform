@@ -20,7 +20,7 @@ import {
 } from '../expr/evaluate';
 import { hasLegalPlay } from './legal';
 import { deadwood, hasPureRunOnTable } from './arrangement';
-import type { PlayerId, ZoneKey } from './move';
+import type { BidValue, PlayerId, ZoneKey } from './move';
 import { type GameState, suitOf, type TrickState, teamZoneKey } from './state';
 
 export interface ScopeContext {
@@ -32,6 +32,8 @@ export interface ScopeContext {
   card?: Card;
   /** The suit being considered (a declareTrump action's `if`). */
   suit?: Suit;
+  /** The bid being considered (a bid action's `if`). */
+  bid?: BidValue;
   /** The meld being considered (a meld action's `if`). */
   meld?: { kind: string; size: number; isPure: boolean; usesWild: boolean };
 }
@@ -319,6 +321,8 @@ export function buildScope(state: GameState, ctx: ScopeContext = {}): Scope {
         return ctx.meld ? { ...ctx.meld } : undefined;
       case 'suit':
         return ctx.suit;
+      case 'bid':
+        return ctx.bid;
       case 'trick':
         return trickObject(state, state.trick);
       case 'state':

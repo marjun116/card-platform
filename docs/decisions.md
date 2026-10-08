@@ -656,3 +656,12 @@ General parts of the game format, added because rummy and gin needed them.
 - Euchre's dealer exchange is an ordinary phase (`"order": "dealer"`) whose actions are only
   for the dealer; when the dealer sits out (their partner went alone, or defends alone), nobody
   takes the upcard.
+
+## 2026-10-08: Building block added for Oh Hell
+
+- **A `bid` action's `if` can read `bid`**, the value being considered (like `suit` for
+  `declareTrump`), so bids can depend on the hand and the table: Oh Hell offers
+  `"bid <= hand.count"`, and the hook stops the dealer making the total equal the tricks.
+- Oh Hell's changing hand sizes need no new block: the deal count and the number of hands are
+  expressions of `round`, the player count and the options (integer division is written with
+  `%`, as `(51 - 51 % n) / n`).

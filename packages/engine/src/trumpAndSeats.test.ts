@@ -1,6 +1,7 @@
 /**
- * Building blocks added for euchre but meant for any game: bowers, trump
- * declarations whose condition sees the suit, and a seat sitting out a round.
+ * Building blocks added for euchre and Oh Hell but meant for any game:
+ * bowers, trump declarations and bids whose conditions see the suit or bid in
+ * question, and a seat sitting out a round.
  */
 import { describe, expect, it } from 'vitest';
 import { passing, tinyTricks } from './__fixtures__/games';
@@ -175,5 +176,48 @@ describe('sitting out a round', () => {
     let s = applyMove(state, choose(state.cursor.current, 'alone'));
     while (s.round === 1) s = applyMove(s, getLegalMoves(s, s.cursor.current)[0] as Move);
     expect(s.players.every((p) => !p.sittingOut)).toBe(true);
+  });
+});
+
+describe('bids with a condition on the bid', () => {
+  const file: GameFile = {
+    ...tinyTricks,
+    phases: [
+      {
+        name: 'bidding',
+        rounds: 1,
+        actions: [
+          // Up to the cards held, and the dealer may not bid exactly 2.
+          {
+            type: 'bid',
+            values: { range: [0, 6] },
+            if: 'bid <= hand.count && !(player.isDealer && bid == 2)',
+          },
+        ],
+      },
+      ...tinyTricks.phases,
+    ],
+  };
+
+  it('offers only the bids the condition allows', () => {
+    const state = createGame(file, {}, 2, 'bids');
+    const first = state.cursor.current;
+    const bids = (seat: number, s = state) =>
+      getLegalMoves(s, seat).flatMap((m) => (m.type === 'bid' ? [m.value] : []));
+    expect(bids(first)).toEqual([0, 1, 2, 3, 4]);
+    const next = applyMove(state, { player: first, type: 'bid', value: 1 });
+    expect(bids(1 - first, next)).toEqual([0, 1, 3, 4]);
+  });
+
+  it('only lets bid conditions use "bid"', () => {
+    const result = validate({
+      ...file,
+      phases: [
+        { name: 'p', rounds: 1, actions: [{ type: 'passBid', if: 'bid == 1' }] },
+        ...tinyTricks.phases,
+      ],
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.errors[0]?.message).toMatch(/only a bid action/);
   });
 });

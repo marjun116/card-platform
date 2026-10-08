@@ -18,9 +18,12 @@ function bidValues(action: BidAction): BidValue[] {
   return Array.from({ length: high - low + 1 }, (_, i) => low + i);
 }
 
+/** One move per bid value the action's `if` allows; the `if` can read the `bid` in question. */
 export function bidMoves(state: GameState, player: PlayerId, action: BidAction): Move[] {
-  if (!allowsCard(state, player, action)) return [];
-  return bidValues(action).map((value) => ({ player, type: 'bid', value }));
+  const condition = action.if;
+  return bidValues(action)
+    .filter((bid) => !condition || evaluateCondition(condition, buildScope(state, { player, bid })))
+    .map((value) => ({ player, type: 'bid', value }));
 }
 
 export function passBidMoves(state: GameState, player: PlayerId, action: PassBidAction): Move[] {

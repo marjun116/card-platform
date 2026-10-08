@@ -137,6 +137,8 @@ interface ExprContext {
   meld?: boolean;
   /** A declareTrump action's `if`: `suit` is the suit being considered. */
   suit?: boolean;
+  /** A bid action's `if`: `bid` is the bid being considered. */
+  bid?: boolean;
 }
 
 const NO_CONTEXT: ExprContext = { player: false, team: false, card: false };
@@ -189,6 +191,7 @@ const RESERVED = new Set([
   'turn',
   'meld',
   'suit',
+  'bid',
   ...FUNCTIONS,
   ...Object.keys(QUANTIFIER_KIND),
   'true',
@@ -552,7 +555,9 @@ class Checker {
         ? { ...PLAYER, meld: true }
         : action.type === 'declareTrump'
           ? { ...PLAYER, suit: true }
-          : ctx;
+          : action.type === 'bid'
+            ? { ...PLAYER, bid: true }
+            : ctx;
     // A one-card draw's effects can see the card drawn.
     const effectCtx = action.type === 'draw' ? PLAYER_CARD : ctx;
     if (action.if) this.checkExpr(action.if, [...path, 'if'], ifCtx);
@@ -909,6 +914,8 @@ class Checker {
         return ctx.meld ? 'meld' : unavailable('only a meld action\'s "if" has a meld');
       case 'suit':
         return ctx.suit ? 'value' : unavailable('only a declareTrump action\'s "if" has a suit');
+      case 'bid':
+        return ctx.bid ? 'value' : unavailable('only a bid action\'s "if" has a bid');
       case 'round':
         return 'value';
     }
