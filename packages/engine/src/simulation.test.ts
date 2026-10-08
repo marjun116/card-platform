@@ -32,6 +32,8 @@ const sensible = preferring(
  */
 const OPTIONS: Partial<Record<keyof typeof allFixtures, Record<string, number>>> = {
   miniRummy: { reshuffles: 1 },
+  // Short games, so most end in the middle of a round.
+  counting: { target: 5 },
 };
 
 const GAMES: Record<keyof typeof allFixtures, number> = {
@@ -41,6 +43,7 @@ const GAMES: Record<keyof typeof allFixtures, number> = {
   miniRummy: 10,
   passing: 10,
   wildRummy: 20,
+  counting: 30,
 };
 
 describe('random play', () => {

@@ -15,6 +15,7 @@ import type { GameMessage } from '../table/connection';
 
 // The engine's hand-written test games (not part of its public API).
 export {
+  counting,
   miniRummy,
   passing,
   sevensUp,

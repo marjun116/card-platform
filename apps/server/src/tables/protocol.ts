@@ -93,7 +93,10 @@ export interface GameSummary {
   name: string;
   /** Allowed player counts, smallest first. */
   players: number[];
+  /** Partnerships, for a game always played in teams. */
   teams: number[][] | null;
+  /** Player counts that play in partnerships, for games where only some do. */
+  partnersWith: number[];
   options: Record<string, OptionDef>;
 }
 

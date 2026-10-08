@@ -1,3 +1,4 @@
+import { ExprError } from './errors';
 import { evaluateCondition, evaluateNumber } from './expr/evaluate';
 import { buildScope, type ScopeContext } from './game/scope';
 import type { PlayerId } from './game/move';
@@ -11,9 +12,8 @@ import type { ScoreRuleDef } from './game/types';
  * Returns true if the game is over.
  */
 export function scoreRound(state: GameState): boolean {
-  const { scoring, elimination, endCondition } = state.file;
+  const { scoring, elimination } = state.file;
   const liveTeams = state.teams.filter((t) => t.players.some((p) => state.players[p]?.active));
-  const scoresBefore = state.teams.map((t) => t.score);
   const activeBefore = state.players.map((p) => p.active);
 
   for (const team of liveTeams) {
@@ -30,27 +30,81 @@ export function scoreRound(state: GameState): boolean {
     if (out.length < active.length) for (const p of out) p.active = false;
   }
 
-  // When the game ends, end-of-game rules (bonuses) run before the winner is decided.
-  // If a tie means play goes on after all, they're undone.
-  const ending = evaluateCondition(endCondition.when, buildScope(state));
-  let winners: PlayerId[] | null = null;
-  if (ending) {
-    const beforeBonuses = state.teams.map((t) => ({ score: t.score, tracks: { ...t.tracks } }));
-    const playersBefore = state.players.map((p) => ({ ...p.tracks }));
-    applyPlayerRules(state, scoring.atGameEnd ?? []);
-    winners = findWinners(state);
-    if (winners === null) {
-      state.teams.forEach((t, i) => Object.assign(t, beforeBonuses[i]));
-      state.players.forEach((p, i) => (p.tracks = playersBefore[i] ?? {}));
-    }
-  }
+  const winners = decideEnd(state);
+  recordRound(state, activeBefore);
+  if (winners === null) return false;
+  finishGame(state, winners);
+  return true;
+}
 
+/**
+ * Points scored during a round (a `score` effect): added to the player's team
+ * straight away and noted for the game log. With `endCondition.immediate`, the
+ * game ends the moment its end condition holds; returns true if it did.
+ */
+export function scoreNow(
+  state: GameState,
+  player: PlayerId,
+  points: number,
+  label: string | null,
+): boolean {
+  const team = state.teams[state.players[player]?.team ?? -1];
+  if (!team) throw new ExprError(`There is no player ${player} to score for`);
+  team.score += points;
+  state.scoreEvents.push({
+    round: state.round,
+    at: state.log.length,
+    player,
+    team: team.id,
+    points,
+    label,
+  });
+  if (!state.file.endCondition.immediate) return false;
+  const winners = decideEnd(state);
+  if (winners === null) return false;
+  // The round stops here; it's recorded with the points scored so far.
+  recordRound(
+    state,
+    state.players.map((p) => p.active),
+  );
+  finishGame(state, winners);
+  return true;
+}
+
+/**
+ * If the end condition holds, runs the end-of-game rules (bonuses) and
+ * returns the winners. Returns null if the game goes on: the condition doesn't
+ * hold, or a tie means play goes on (then the bonuses are undone).
+ */
+function decideEnd(state: GameState): PlayerId[] | null {
+  if (!evaluateCondition(state.file.endCondition.when, buildScope(state))) return null;
+  const beforeBonuses = state.teams.map((t) => ({ score: t.score, tracks: { ...t.tracks } }));
+  const playersBefore = state.players.map((p) => ({ ...p.tracks }));
+  applyPlayerRules(state, state.file.scoring.atGameEnd ?? []);
+  const winners = findWinners(state);
+  if (winners === null) {
+    state.teams.forEach((t, i) => Object.assign(t, beforeBonuses[i]));
+    state.players.forEach((p, i) => (p.tracks = playersBefore[i] ?? {}));
+  }
+  return winners;
+}
+
+function finishGame(state: GameState, winners: PlayerId[]): void {
+  state.status = 'over';
+  state.winners = winners;
+  state.notes = (state.file.endCondition.notes ?? [])
+    .filter((note) => evaluateCondition(note.if, buildScope(state)))
+    .map((note) => note.text);
+}
+
+/** Adds the round to the history (points count from the round's start). */
+function recordRound(state: GameState, activeBefore: boolean[]): void {
   state.history.push({
     round: state.round,
     dealer: state.dealer,
     teams: state.teams.map((t, i) => ({
       id: t.id,
-      points: t.score - (scoresBefore[i] ?? 0),
+      points: t.score - (state.roundStartScores[i] ?? 0),
       score: t.score,
       tricks: t.tricks,
       tracks: { ...t.tracks },
@@ -63,11 +117,6 @@ export function scoreRound(state: GameState): boolean {
       eliminated: (activeBefore[i] ?? false) && !p.active,
     })),
   });
-
-  if (winners === null) return false;
-  state.status = 'over';
-  state.winners = winners;
-  return true;
 }
 
 /** Runs each rule for each active player, in seat order. */

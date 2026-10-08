@@ -60,6 +60,7 @@ export function applyPlay(
   if (move.type !== 'play' && move.type !== 'discard') return {};
   const card = takeCard(state, zoneKey(state, action.from ?? 'hand', move.player), move.card);
   zoneCards(state, zoneKey(state, action.to, move.player)).push(card);
+  state.playedBy[card.id] = move.player;
   return { card };
 }
 

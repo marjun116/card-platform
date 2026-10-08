@@ -15,7 +15,15 @@ export { buildDeck, type DeckDef } from './cards/deck';
 export type { TrickRule } from './cards/order';
 export { ExprError, GameFileError, IllegalMoveError, SetupError } from './errors';
 export type { BidValue, Move, MoveType, PlayerId, ZoneKey } from './game/move';
-export type { GameState, PlayerState, RoundResult, TeamState, VarValue } from './game/state';
+export type {
+  GameState,
+  PlayerState,
+  RoundResult,
+  ScoreEvent,
+  TeamState,
+  VarValue,
+} from './game/state';
+export { teamsFor } from './game/setup';
 export type * from './game/types';
 export { gameFileSchema } from './schema/gameFile';
 export {

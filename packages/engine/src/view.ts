@@ -10,11 +10,14 @@ import {
   type GameState,
   parseZoneKey,
   type RoundResult,
+  type ScoreEvent,
   type TrickState,
   zoneDef,
   zoneKey,
 } from './game/state';
 import type { GameFile, OptionValue } from './game/types';
+import { evaluate, evaluateCondition } from './expr/evaluate';
+import { buildScope } from './game/scope';
 
 /** What a player sees of one zone. */
 export type ZoneView =
@@ -70,6 +73,12 @@ export interface PlayerView {
   log: PublicMove[];
   /** Every finished round, oldest first (public: bids, tricks and scores only). */
   history: RoundResult[];
+  /** Points scored during rounds (`score` effects), oldest first, to show in the log. */
+  scoreEvents: ScoreEvent[];
+  /** Values the game shows on the table (`display`), e.g. { label: "Count", value: 23 }. */
+  display: { label: string; value: string | number | boolean }[];
+  /** Words shown with the result once the game is over, e.g. "Skunk!". */
+  notes: string[];
   /** Words for `choose` values, e.g. { "shooterMinus26": "Take 26 off my score" }. */
   choiceLabels: Record<string, string>;
   /**
@@ -180,6 +189,25 @@ function publicMove(state: GameState, move: Move, viewer: PlayerId): PublicMove 
   return move;
 }
 
+/** The game's `display` values that apply now. The validator keeps them to public values. */
+function displayValues(state: GameState): PlayerView['display'] {
+  const shown: PlayerView['display'] = [];
+  for (const item of state.file.display ?? []) {
+    const scope = buildScope(state);
+    if (item.if && !evaluateCondition(item.if, scope)) continue;
+    const value = evaluate(item.value, scope);
+    if (value === null) continue;
+    shown.push({
+      label: item.label,
+      value:
+        typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean'
+          ? value
+          : JSON.stringify(value),
+    });
+  }
+  return shown;
+}
+
 export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
   const zones: Record<ZoneKey, ZoneView> = {};
   for (const [key, cards] of Object.entries(state.zones)) {
@@ -230,6 +258,9 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     zones,
     log: state.log.map((m) => publicMove(state, m, viewer)),
     history: state.history,
+    scoreEvents: state.scoreEvents,
+    display: displayValues(state),
+    notes: [...state.notes],
     choiceLabels: choiceLabelsOf(state.file),
     // A hand that is still face down (blind bids) shows no groups either.
     arrangement:

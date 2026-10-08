@@ -5,7 +5,7 @@
 import { RANKS } from './cards/card';
 import { trickWinnerIndex } from './cards/order';
 import { ExprError, GameFileError } from './errors';
-import { evaluate, evaluateCondition, type Value } from './expr/evaluate';
+import { evaluate, evaluateCondition, evaluateNumber, type Value } from './expr/evaluate';
 import { buildScope, PLAYER_PROPERTIES, type ScopeContext } from './game/scope';
 import {
   type AfterAction,
@@ -21,10 +21,12 @@ import {
 import type { EffectDef } from './game/types';
 import { cardCount, drawCards } from './game/zones';
 import { layOutMelds } from './game/arrangement';
+import { scoreNow } from './scoring';
 
 /**
  * Runs effects in order. Returns true if one of them is waiting for a
- * player's choice; the rest run once the choice is made.
+ * player's choice (the rest run once the choice is made), or if points scored
+ * ended the game (the rest never run).
  */
 export function runEffects(
   state: GameState,
@@ -62,6 +64,15 @@ export function runEffects(
     if (effect.reverse) state.cursor.direction = state.cursor.direction === 1 ? -1 : 1;
     if (effect.breakSuit) state.vars[`${effect.breakSuit}Broken`] = true;
     if (effect.sitOut !== undefined) sitOut(state, effect.sitOut, ctx);
+    if (effect.returnCards) returnCards(state, effect.returnCards, effect.to ?? 'hand');
+    if (effect.score !== undefined) {
+      if (ctx.player === undefined) {
+        throw new GameFileError('"score" can only be used in an action\'s effects');
+      }
+      const points = evaluateNumber(effect.score, buildScope(state, ctx));
+      // Nothing to note when there are no points (a hand with no pairs, say).
+      if (points !== 0 && scoreNow(state, ctx.player, points, effect.label ?? null)) return true;
+    }
     if (effect.layOutMelds) {
       if (ctx.player === undefined) {
         throw new GameFileError('"layOutMelds" can only be used in an action\'s effects');
@@ -71,6 +82,19 @@ export function runEffects(
     // winnerLeads: the trick winner leading the next trick is already the default.
   }
   return false;
+}
+
+/** Gives each card in a shared pile back to the player who played it, into their `to` zone. */
+function returnCards(state: GameState, from: string, to: string): void {
+  const source = zoneCards(state, zoneKey(state, from, null));
+  for (const card of source) {
+    const owner = state.playedBy[card.id];
+    if (owner === undefined) {
+      throw new GameFileError(`Nobody played ${card.id} into "${from}", so it can't be returned`);
+    }
+    zoneCards(state, zoneKey(state, to, owner)).push(card);
+  }
+  source.length = 0;
 }
 
 /** Takes a seat out of play until the round ends (a lone player's partner). */

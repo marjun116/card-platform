@@ -91,6 +91,17 @@ export interface RoundResult {
   }[];
 }
 
+/** Points scored during a round (a `score` effect), shown in the game log. */
+export interface ScoreEvent {
+  round: number;
+  /** Moves in the log when the points were scored, to place them among the moves. */
+  at: number;
+  player: PlayerId;
+  team: number;
+  points: number;
+  label: string | null;
+}
+
 /** A decision the engine is waiting on before the turn can continue. */
 export type Pending =
   | {
@@ -126,6 +137,12 @@ export interface GameState {
   passing: Card[][];
   /** Custom values (`state.*`). Reset every round. */
   vars: Record<string, VarValue>;
+  /** Who played each card this round (for `returnCards`). Never shown to players. */
+  playedBy: Record<CardId, PlayerId>;
+  /** Points scored during rounds (`score` effects), oldest first. Public. */
+  scoreEvents: ScoreEvent[];
+  /** Each team's score when this round began, so the round summary counts every point. */
+  roundStartScores: number[];
   round: number;
   dealer: PlayerId;
   cursor: Cursor;
@@ -136,6 +153,8 @@ export interface GameState {
   lookRequired: boolean;
   status: 'inProgress' | 'over';
   winners: PlayerId[];
+  /** Words shown with the result (`endCondition.notes`), once the game is over. */
+  notes: string[];
   log: Move[];
   /** Every finished round, oldest first. */
   history: RoundResult[];
@@ -279,11 +298,16 @@ export function draft(state: GameState): GameState {
     reshuffles: { ...state.reshuffles },
     passing: state.passing.map((cards) => [...cards]),
     vars: copyRecord(state.vars, (v) => (Array.isArray(v) ? structuredCopy(v) : v)),
+    playedBy: { ...state.playedBy },
+    // Entries are never changed once added.
+    scoreEvents: [...state.scoreEvents],
+    roundStartScores: [...state.roundStartScores],
     cursor: { ...state.cursor, turns: [...state.cursor.turns] },
     trick: copyTrick(state.trick),
     lastTrick: copyTrick(state.lastTrick),
     pending: state.pending && { ...state.pending },
     winners: [...state.winners],
+    notes: [...state.notes],
     log: [...state.log],
     // Entries are never changed once added.
     history: [...state.history],

@@ -57,6 +57,9 @@ export function startGame(
     reshuffles: {},
     passing: [],
     vars: {},
+    playedBy: {},
+    scoreEvents: [],
+    roundStartScores: [],
     round: 1,
     dealer: randomInt(rng, playerCount),
     cursor: {
@@ -76,6 +79,7 @@ export function startGame(
     lookRequired: usesBlindBids(file, resolved),
     status: 'inProgress',
     winners: [],
+    notes: [],
     log: [],
     history: [],
     roundMoves: 0,
@@ -133,6 +137,17 @@ function checkPlayerCount(file: GameFile, count: number): void {
   }
 }
 
+/**
+ * The partnerships for this many players (`meta.teams`, which may list teams
+ * by player count), or null when everyone plays alone.
+ */
+export function teamsFor(file: GameFile, playerCount: number): number[][] | null {
+  const teams = file.meta.teams;
+  if (!teams) return null;
+  if (Array.isArray(teams)) return teams;
+  return Object.hasOwn(teams, String(playerCount)) ? (teams[String(playerCount)] ?? null) : null;
+}
+
 function buildTeams(file: GameFile, playerCount: number): TeamState[] {
   const team = (id: number, players: PlayerId[]): TeamState => ({
     id,
@@ -141,14 +156,15 @@ function buildTeams(file: GameFile, playerCount: number): TeamState[] {
     tricks: 0,
     tracks: {},
   });
-  if (!file.meta.teams) {
+  const teams = teamsFor(file, playerCount);
+  if (!teams) {
     return Array.from({ length: playerCount }, (_, id) => team(id, [id]));
   }
-  const seats = file.meta.teams.flat().sort((a, b) => a - b);
+  const seats = teams.flat().sort((a, b) => a - b);
   if (seats.length !== playerCount || seats.some((seat, i) => seat !== i)) {
     throw new GameFileError(`meta.teams must list each seat 0 to ${playerCount - 1} exactly once`);
   }
-  return file.meta.teams.map((players, id) => team(id, [...players]));
+  return teams.map((players, id) => team(id, [...players]));
 }
 
 function resolveOptions(
@@ -198,6 +214,8 @@ export function startRound(state: GameState): void {
   }
   for (const team of state.teams) team.tricks = 0;
   state.vars = {};
+  state.playedBy = {};
+  state.roundStartScores = state.teams.map((t) => t.score);
   state.trick = null;
   state.lastTrick = null;
   state.pending = null;

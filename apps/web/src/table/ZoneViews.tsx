@@ -94,16 +94,24 @@ export function Pile({
   const label = humanize(zone.name);
   const count = zoneCount(zone.view);
   const top = topCard(zone.view);
+  // A face-up pile everyone can see (cards played in turn, say) is spread out, oldest first.
+  const spread = zone.view.kind === 'cards' && zone.view.cards.length > 1 ? zone.view.cards : null;
   const description = [
     label,
     count === null ? null : countText(count),
-    top ? `${spokenLabel(top)} on top` : null,
+    spread ? spread.map(spokenLabel).join(', ') : top ? `${spokenLabel(top)} on top` : null,
   ]
     .filter(Boolean)
     .join(', ');
   const picture =
     count === 0 ? (
       <span className="card empty size-normal" aria-hidden="true" />
+    ) : spread ? (
+      <span className="pile-spread">
+        {spread.map((card) => (
+          <CardFace key={card.id} card={card} />
+        ))}
+      </span>
     ) : top ? (
       <CardFace card={top} />
     ) : (

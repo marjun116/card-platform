@@ -4,7 +4,7 @@
  * always replays with the exact file it started with.
  */
 import { createHash } from 'node:crypto';
-import type { GameFile } from '@card-table/engine';
+import { type GameFile, teamsFor } from '@card-table/engine';
 import { builtInGames } from '@card-table/games';
 import type { GameVersion, Store } from '../store/types';
 import type { GameSummary } from '../tables/protocol';
@@ -42,7 +42,8 @@ export class GameCatalog {
       slug,
       name: file.meta.name,
       players: playerCounts(file),
-      teams: file.meta.teams ?? null,
+      teams: Array.isArray(file.meta.teams) ? file.meta.teams : null,
+      partnersWith: playerCounts(file).filter((n) => teamsFor(file, n) !== null),
       options: file.options ?? {},
     }));
   }

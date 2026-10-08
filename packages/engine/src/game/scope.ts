@@ -4,7 +4,19 @@
  * expressions can look at the game but never change it. Values are computed
  * only when an expression reads them.
  */
-import { type Card, cardCode, cardRank, cardSuit, isJoker, type Suit } from '../cards/card';
+import {
+  type Card,
+  cardCode,
+  cardRank,
+  cardSuit,
+  isJoker,
+  isRank,
+  isSuit,
+  RANKS,
+  type Rank,
+  type Suit,
+} from '../cards/card';
+import { countPairs, countSums, runAtEnd, runCards, sameRankAtEnd } from '../cards/patterns';
 import { ExprError } from '../errors';
 import {
   evaluateNumber,
@@ -53,6 +65,7 @@ export function cardObject(card: Card): ExprObject {
 /** A pile of cards: count, top, cards and a few questions about them. */
 function cardsObject(
   cards: readonly Card[],
+  ranks: readonly Rank[],
   extra: (name: string) => Value | undefined = () => undefined,
 ): ExprObject {
   return lookupObject((name) => {
@@ -76,7 +89,17 @@ function cardsObject(
       case 'countRank':
         return fn((rank) => cards.filter((c) => cardRank(c) === rank).length);
       case 'hasCard':
-        return fn((code) => cards.some((c) => cardCode(c) === code));
+        // hasCard('QS'), or a rank and suit: hasCard('J', starter.top.suit).
+        return fn((...args) => {
+          const [code, suit] = args;
+          return args.length < 2
+            ? cards.some((c) => cardCode(c) === code)
+            : cards.some((c) => cardRank(c) === code && cardSuit(c) === suit);
+        });
+      case 'sameRankAtEnd':
+        return sameRankAtEnd(cards);
+      case 'runAtEnd':
+        return runAtEnd(cards, ranks);
       default:
         return extra(name);
     }
@@ -85,14 +108,21 @@ function cardsObject(
 
 function zoneObject(state: GameState, key: ZoneKey): ExprObject {
   const melds = state.melds[key];
+  const ranks = rankOrder(state);
   if (melds)
-    return cardsObject(melds.flat(), (name) => (name === 'melds' ? melds.length : undefined));
-  return cardsObject(state.zones[key] ?? []);
+    return cardsObject(melds.flat(), ranks, (name) =>
+      name === 'melds' ? melds.length : undefined,
+    );
+  return cardsObject(state.zones[key] ?? [], ranks);
+}
+
+function rankOrder(state: GameState): readonly Rank[] {
+  return state.file.cardOrder?.ranks ?? RANKS;
 }
 
 function trickObject(state: GameState, trick: TrickState | null): ExprObject {
   const cards = trick?.plays.map((p) => p.card) ?? [];
-  return cardsObject(cards, (name) => {
+  return cardsObject(cards, rankOrder(state), (name) => {
     switch (name) {
       case 'leader':
         return trick?.leader ?? null;
@@ -267,6 +297,25 @@ function numbersFrom(name: string, list: Value, per?: Value): number[] {
   });
 }
 
+/**
+ * The cards in piles and lists of cards, all together: countPairs(hand, starter)
+ * or countPairs(hand.cards).
+ */
+function cardsFrom(name: string, args: readonly Value[]): Card[] {
+  return args.flatMap((arg): Card[] => {
+    const items = isObject(arg) ? (getProperty(arg, 'cards') ?? null) : arg;
+    if (!isList(items)) throw new ExprError(`${name}() needs piles or lists of cards`);
+    return items.map((item) => {
+      const get = (prop: string) => (isObject(item) ? getProperty(item, prop) : undefined);
+      const [id, rank, suit] = [get('id'), get('rank'), get('suit')];
+      if (typeof id !== 'string') throw new ExprError(`${name}() needs cards`);
+      if (get('isJoker') === true) return { id, joker: true };
+      if (!isRank(rank) || !isSuit(suit)) throw new ExprError(`${name}() needs cards`);
+      return { id, rank, suit };
+    });
+  });
+}
+
 const sum = fn((list, per) => numbersFrom('sum', list, per).reduce((a, b) => a + b, 0));
 const min = fn((list, per) => Math.min(...numbersFrom('min', list, per)));
 const max = fn((list, per) => Math.max(...numbersFrom('max', list, per)));
@@ -354,6 +403,19 @@ export function buildScope(state: GameState, ctx: ScopeContext = {}): Scope {
         return abs;
       case 'holderOf':
         return holderOf(state);
+      case 'countSums':
+        return fn((total, ...piles) => {
+          if (typeof total !== 'number') throw new ExprError('countSums() needs a total first');
+          const cards = cardsFrom('countSums', piles);
+          return countSums(
+            cards.map((c) => cardValue(state, cardObject(c))),
+            total,
+          );
+        });
+      case 'countPairs':
+        return fn((...piles) => countPairs(cardsFrom('countPairs', piles)));
+      case 'runCards':
+        return fn((...piles) => runCards(cardsFrom('runCards', piles), rankOrder(state)));
     }
     const values = state.file.scoring.playerValues;
     if (values && Object.hasOwn(values, name)) {

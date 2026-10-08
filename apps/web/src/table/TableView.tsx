@@ -11,7 +11,7 @@ import { Menu, type MenuItem } from '../components/Menu';
 import { useHeaderSlot } from '../headerSlot';
 import { DecisionPanel, HandActions } from './ActionBar';
 import type { GameMessage, TableConnection } from './connection';
-import { bidLabel, describeMove, seatNames } from './describe';
+import { bidLabel, logLines, seatNames } from './describe';
 import { GroupSummary, Hand } from './Hand';
 import { buildControls, quickMove, turnPrompt } from './moves';
 import { Dialog, HistoryTable, RoundTable, Scoreboard } from './Scores';
@@ -110,13 +110,9 @@ export function TableView({
     if (card) card.focus({ preventScroll: true });
   };
 
-  // Arranging cards isn't news for anyone else, so it stays out of the log.
-  const log = view.log.filter((m) => m.type !== 'arrange' && m.type !== 'sortHand');
+  const log = useMemo(() => logLines(view, names), [view, names]);
   const lastLog = log[log.length - 1];
-  const announcement = [
-    lastLog ? describeMove(lastLog, names, view.choiceLabels) : null,
-    yourTurn && !paused ? turnPrompt(controls) : null,
-  ]
+  const announcement = [lastLog ?? null, yourTurn && !paused ? turnPrompt(controls) : null]
     .filter(Boolean)
     .join('. ');
 
@@ -234,6 +230,16 @@ export function TableView({
             ))}
           </div>
           <div className="center">
+            {view.display.length > 0 && (
+              <p className="display-values">
+                {view.display.map((item) => (
+                  <span key={item.label}>
+                    <span className="muted">{item.label}</span>{' '}
+                    <strong>{String(item.value)}</strong>
+                  </span>
+                ))}
+              </p>
+            )}
             <div className="center-row">
               {trickToShow && trickToShow.plays.length > 0 && (
                 <Trick
@@ -296,8 +302,8 @@ export function TableView({
               {log
                 .slice(-30)
                 .reverse()
-                .map((move, i) => (
-                  <li key={log.length - i}>{describeMove(move, names, view.choiceLabels)}</li>
+                .map((line, i) => (
+                  <li key={log.length - i}>{line}</li>
                 ))}
             </ol>
           </section>

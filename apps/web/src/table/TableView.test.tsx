@@ -3,6 +3,7 @@ import type { TableInfo } from '@card-table/server/protocol';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
+  counting,
   createGame,
   gameMessage,
   miniRummy,
@@ -252,5 +253,48 @@ describe('TableView: hands you arrange (wild rummy)', () => {
     const { connection } = show(state, seat);
     fireEvent.click(screen.getByRole('button', { name: 'Sort into melds' }));
     expect(connection.move).toHaveBeenLastCalledWith({ player: seat, type: 'sortHand' });
+  });
+});
+
+describe('TableView: scoring as cards are played (counting game)', () => {
+  /** Two players: the first to play holds 5H 6H 7H, the other 5C 6D JS; the first two cards are played. */
+  function pairPlayed() {
+    const start = createGame(counting, {}, 2, 'view-count');
+    const first = start.cursor.current;
+    const other = 1 - first;
+    const dealt = withZones(
+      start,
+      { [`hand@${first}`]: ['5H', '6H', '7H'], [`hand@${other}`]: ['5C', '6D', 'JS'] },
+      'stock',
+    );
+    const play = (s: GameState, player: number, card: string) =>
+      applyMove(s, { player, type: 'play', card, to: 'pile' });
+    return { state: play(play(dealt, first, '5H.0'), other, '5C.0'), first, other };
+  }
+
+  it('shows the points scored in the log, after the move that scored them', () => {
+    const { state, first, other } = pairPlayed();
+    show(state, first);
+    const log = within(screen.getByRole('region', { name: 'Game log' }));
+    const lines = log.getAllByRole('listitem').map((li) => li.textContent);
+    // Newest first.
+    expect(lines.slice(0, 2)).toEqual([
+      `${NAMES[other]}: Pair for 2`,
+      `${NAMES[other]} played 5 of clubs to the pile`,
+    ]);
+  });
+
+  it("shows the game's values on the table", () => {
+    const { state, first } = pairPlayed();
+    show(state, first);
+    expect(screen.getByText('Total').parentElement?.textContent).toBe('Total 10');
+  });
+
+  it('spreads out a face-up pile so every card in it can be seen', () => {
+    const { state, first } = pairPlayed();
+    show(state, first);
+    const pile = screen.getByRole('img', { name: /^Pile, 2 cards/ });
+    expect(pile.getAttribute('aria-label')).toBe('Pile, 2 cards, 5 of hearts, 5 of clubs');
+    expect(within(pile).getAllByRole('img')).toHaveLength(2);
   });
 });

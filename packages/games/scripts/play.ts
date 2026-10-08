@@ -195,6 +195,13 @@ function show(view: PlayerView, legal: Move[]): void {
     );
     console.log(`Bids:   ${bids.join(' · ')}`);
   }
+  for (const item of view.display) console.log(`${item.label}: ${String(item.value)}`);
+  // Face-up shared piles (an upcard, cards played in turn).
+  for (const [key, zone] of Object.entries(view.zones)) {
+    if (key.includes('@') || zone.kind !== 'cards' || zone.cards.length === 0) continue;
+    if (view.trickZones.includes(key)) continue;
+    console.log(`${key}: ${handText(zone.cards)}`);
+  }
   if (view.trick && view.trick.plays.length > 0) {
     const plays = view.trick.plays.map(
       (p) => `${seatName(p.player)} ${p.card ? cardLabel(p.card) : '?'}`,
@@ -320,13 +327,17 @@ async function main(): Promise<void> {
     console.log(
       `\nGame over. ${winners} ${state.winners.length > 1 || winners === 'You' ? 'win' : 'wins'}!`,
     );
+    if (state.notes.length > 0) console.log(state.notes.join(' '));
   } finally {
     rl.close();
   }
 }
 
-/** Announces finished tricks and rounds. */
+/** Announces points scored during play, finished tricks and rounds. */
 function reportChanges(before: GameState, after: GameState): void {
+  for (const event of after.scoreEvents.slice(before.scoreEvents.length)) {
+    console.log(`  + ${seatName(event.player)}: ${event.label ?? 'points'} for ${event.points}`);
+  }
   const trick = after.lastTrick;
   const newTrick = JSON.stringify(trick) !== JSON.stringify(before.lastTrick);
   if (trick && newTrick && trick.winner !== null) {
@@ -335,9 +346,10 @@ function reportChanges(before: GameState, after: GameState): void {
   }
   if (after.round !== before.round || after.status === 'over') {
     const scores = getScores(after).teams;
+    const round = after.history.at(-1);
     console.log(`\nEnd of round ${before.round}:`);
     for (const t of scores) {
-      const gained = t.score - (before.teams[t.team]?.score ?? 0);
+      const gained = round?.teams.find((r) => r.id === t.team)?.points ?? 0;
       console.log(`  ${teamName(t.players)}: ${t.score} (${gained >= 0 ? '+' : ''}${gained})`);
     }
   }

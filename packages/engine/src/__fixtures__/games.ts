@@ -344,4 +344,84 @@ export const wildRummy: GameFile = {
   endCondition: { when: 'true', winner: 'highestScore' },
 };
 
-export const allFixtures = { spades, sevensUp, tinyTricks, miniRummy, passing, wildRummy };
+/**
+ * Each player plays a card to a shared pile, scoring pairs and runs at once.
+ * When the hands are empty the cards go back to their players, who count
+ * fifteens and the jack of spades.
+ */
+export const counting: GameFile = {
+  meta: {
+    name: 'Counting',
+    players: [2, 4],
+    teams: {
+      '4': [
+        [0, 2],
+        [1, 3],
+      ],
+    },
+  },
+  deck: { copies: 1, jokers: 0 },
+  cardOrder: { ranks: ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'] },
+  options: {
+    target: { label: 'Play to', type: 'choice', values: [100, 5, 2], default: 100 },
+    immediate: { label: 'End at once', type: 'boolean', default: true },
+  },
+  zones: {
+    hand: { per: 'player', visibility: 'owner' },
+    stock: { shared: true, visibility: 'none' },
+    pile: { shared: true, visibility: 'all' },
+    played: { per: 'player', visibility: 'all' },
+  },
+  setup: { shuffle: true, deal: { to: 'hand', count: 3 }, rest: 'stock' },
+  phases: [
+    {
+      name: 'play',
+      until: 'everyPlayer.hand.count == 0',
+      actions: [
+        {
+          type: 'play',
+          to: 'pile',
+          effects: [
+            { set: { 'state.total': '(state.total == null ? 0 : state.total) + cardValue(card)' } },
+            { score: 'pile.sameRankAtEnd * (pile.sameRankAtEnd - 1)', label: 'Pair' },
+            { score: 'pile.runAtEnd', label: 'Run' },
+            { if: 'everyPlayer.hand.count == 0', returnCards: 'pile', to: 'played' },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'show',
+      rounds: 1,
+      actions: [
+        {
+          type: 'choose',
+          values: ['count'],
+          set: 'state.counted',
+          effects: [
+            { score: '2 * countSums(15, played)', label: 'Fifteens' },
+            { score: "played.hasCard('J', 'spades') ? 1 : 0", label: 'Jack' },
+          ],
+        },
+      ],
+    },
+  ],
+  scoring: { cardValue: { J: 10, Q: 10, K: 10 } },
+  endCondition: {
+    when: 'anyTeam.score >= options.target',
+    winner: 'highestScore',
+    immediate: true,
+    notes: [{ if: 'anyTeam.score == 0', text: 'Shutout!' }],
+  },
+  display: [{ label: 'Total', value: 'state.total' }],
+};
+
+export const allFixtures = {
+  spades,
+  sevensUp,
+  tinyTricks,
+  miniRummy,
+  passing,
+  wildRummy,
+  counting,
+};

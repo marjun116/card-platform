@@ -679,3 +679,59 @@ General parts of the game format, added because rummy and gin needed them.
 - Oh Hell's changing hand sizes need no new block: the deal count and the number of hands are
   expressions of `round`, the player count and the options (integer division is written with
   `%`, as `(51 - 51 % n) / n`).
+
+## 2026-10-08: Cribbage
+
+- **Standard rules:** 2 players (3 alone, or 4 as two partnerships also allowed). 6 cards each
+  for two players, 5 for three or four. Each player puts cards in the dealer's crib until
+  they hold 4 (with three players, one card from the deck goes in too). The dealer turns up
+  the starter; a jack pegs 2 for the dealer (his heels). In the play, the count can't pass
+  31: fifteen 2, 31 2, pairs 2/6/12, runs 1 per card (any order), go 1, last card 1. The
+  show: the pone's hand, then the dealer's, then the crib, each with the starter: fifteens 2,
+  pairs 2, runs 1 per card (double runs count twice), flush 4 (5 with the starter; the crib
+  only with all 5), nobs 1. First to 121, the moment it happens, even mid-hand.
+- **Counting is automatic**, but each player presses "Count my hand" (and the dealer turns
+  over the crib) so the order is visible and everyone sees each hand. Muggins is left out.
+- **"Go" is automatic:** a player who can't play is passed over. After each card, if nobody
+  can play, the player who played it scores the go (or 2 for 31) and the count starts
+  again with the next player.
+- **Skunks** (loser under 91, double under 61; under 31 when playing to 61) are shown with
+  the result, not counted as extra wins.
+- **House rules (options):** play to 121 or 61; five-card cribbage (two players: 5 cards each,
+  keep 3, the pone pegs 3 each hand); a four-card crib flush counts; a hand flush needs the
+  starter too; his heels (on by default).
+- **Left out:** muggins, lowball (first to 121 loses), and the six-player game.
+
+## 2026-10-08: Building blocks added for cribbage
+
+General parts of the game format, added because cribbage needed them; none mention it.
+
+- **`score` effect**: `{ "score": <expr>, "label": "Fifteen" }` adds points to the acting
+  player's team at once (only in an action's effects). Each score is kept in
+  `scoreEvents` (public, in the view) and shown in the game log: "Raj: Fifteen for 2". A
+  score of 0 is skipped. The round summary now counts points from the round's start, so
+  points scored during the round are included.
+- **`endCondition.immediate`**: the end condition is also checked after every `score`; when
+  it holds the game ends at once, the rest of the effects and the round are skipped, and the
+  round is recorded as it stands.
+- **`endCondition.notes`**: `[{ "if": …, "text": "Skunk!" }]`, evaluated when the game ends,
+  shown under the result (`view.notes`).
+- **`display`** (top level): `[{ "label": "Count", "value": "state.total", "if": … }]`, values
+  shown in the middle of the table (skipped while null). Every player sees them, so they may
+  only use `state`, `options` and `round` (never a pile, which could hold hidden cards).
+- **`returnCards` effect**: `{ "returnCards": "pegging", "to": "played" }` gives each card in a
+  shared pile back to the player who played it. The engine remembers who played each card
+  this round (never sent to players).
+- **Pattern counting**: `countSums(15, a, b…)` (different groups adding up to 15, by
+  `cardValue`), `countPairs(a, b…)`, `runCards(a, b…)` (cards in runs of 3+, each different
+  run counted: 3-3-4-5 gives 6), all taking piles or card lists. Piles also have
+  `sameRankAtEnd` and `runAtEnd` (the top cards, in any order). `hasCard('J', suit)` takes a
+  rank and a suit as well as a card code.
+- **Teams by player count**: `"teams": { "4": [[0, 2], [1, 3]] }`; other counts play alone.
+  The game list says "2–4 players, partners with 4".
+- **`draw` can go to a shared zone** (turning up a starter card).
+- **Shared face-up piles are spread out** on the table, so every card in them can be seen.
+- **Validator warning for `!anyPlayer…`**: `anyPlayer`/`everyPlayer` apply to the whole
+  expression, so `!anyPlayer.hasLegalPlay` means "some player can't play", not "nobody can".
+  The validator now warns and suggests `everyPlayer.hasLegalPlay == false`. (Cribbage's
+  first draft made exactly this mistake.)

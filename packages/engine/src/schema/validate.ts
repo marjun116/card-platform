@@ -12,6 +12,7 @@ import { ExprError } from '../errors';
 import { compile, walk } from '../expr/evaluate';
 import type { Node } from '../expr/parser';
 import type {
+  DisplayDef,
   ActionDef,
   EffectDef,
   GameFile,
@@ -166,13 +167,23 @@ type Kind =
 const PLAYER_PROPS = PLAYER_PROPERTIES;
 const TEAM_PROPS = ['id', 'score', 'tricks', 'bid', 'players'];
 const CARD_PROPS = ['id', 'code', 'suit', 'rank', 'isJoker'];
-const ZONE_PROPS = ['count', 'top', 'cards'];
+const ZONE_PROPS = ['count', 'top', 'cards', 'sameRankAtEnd', 'runAtEnd'];
 const SUIT_FUNCTIONS = ['containsSuit', 'onlySuit', 'countSuit'];
 const RANK_FUNCTIONS = ['hasRank', 'countRank'];
 /** Functions taking a card code such as "QS". */
 const CODE_FUNCTIONS = ['hasCard', 'holderOf'];
 const TRICK_PROPS = ['leader', 'winner', 'ledSuit', 'number'];
-const FUNCTIONS = ['cardValue', 'sum', 'min', 'max', 'abs', 'holderOf'];
+const FUNCTIONS = [
+  'cardValue',
+  'sum',
+  'min',
+  'max',
+  'abs',
+  'holderOf',
+  'countSums',
+  'countPairs',
+  'runCards',
+];
 const CODE_HINT = 'use a rank and suit letter, e.g. "QS", "10H", "2C", or JOKER';
 const QUANTIFIER_KIND: Record<string, Kind> = {
   anyPlayer: 'player',
@@ -274,13 +285,32 @@ class Checker {
       this.error(['meta', 'players'], `The minimum (${min}) is more than the maximum (${max})`);
     const teams = this.file.meta.teams;
     if (!teams) return;
-    if (min !== max) {
-      this.error(['meta', 'teams'], 'Teams need a fixed number of players (e.g. "players": 4)');
+    if (Array.isArray(teams)) {
+      if (min !== max) {
+        this.error(
+          ['meta', 'teams'],
+          'Teams need a fixed number of players (e.g. "players": 4), or give teams by ' +
+            'player count (e.g. { "4": [[0, 2], [1, 3]] })',
+        );
+        return;
+      }
+      this.checkTeams(teams, min, ['meta', 'teams']);
       return;
     }
+    for (const [players, list] of Object.entries(teams)) {
+      const n = Number(players);
+      if (n < min || n > max) {
+        this.error(['meta', 'teams', players], `This game is for ${min} to ${max} players`);
+      } else {
+        this.checkTeams(list, n, ['meta', 'teams', players]);
+      }
+    }
+  }
+
+  private checkTeams(teams: number[][], players: number, path: Path): void {
     const seats = teams.flat().sort((a, b) => a - b);
-    if (seats.length !== min || seats.some((seat, i) => seat !== i)) {
-      this.error(['meta', 'teams'], `Teams must list each seat 0 to ${min - 1} exactly once`);
+    if (seats.length !== players || seats.some((seat, i) => seat !== i)) {
+      this.error(path, `Teams must list each seat 0 to ${players - 1} exactly once`);
     }
   }
 
@@ -594,7 +624,8 @@ class Checker {
         break;
       case 'draw': {
         this.zone(action.from, [...path, 'from'], { per: 'any' });
-        this.zone(action.to ?? 'hand', [...path, 'to'], { per: 'player' });
+        // Usually into a hand; a shared zone turns a card up for everyone (a starter card).
+        this.zone(action.to ?? 'hand', [...path, 'to'], { per: 'any' });
         const phaseActions = [
           ...(phase.actions ?? []),
           ...(phase.turn ?? []).flatMap((s) => s.actions),
@@ -662,6 +693,8 @@ class Checker {
       effect.breakSuit && 'breakSuit',
       effect.layOutMelds && 'layOutMelds',
       effect.sitOut !== undefined && 'sitOut',
+      effect.score !== undefined && 'score',
+      effect.returnCards && 'returnCards',
     ].filter((v): v is string => typeof v === 'string');
     if (verbs.length === 0) this.error(path, "This effect doesn't do anything");
     if (verbs.length > 1) {
@@ -670,6 +703,20 @@ class Checker {
 
     if (effect.of && !effect.moveTrick)
       this.error([...path, 'of'], '"of" only goes with moveTrick');
+    if (effect.to && !effect.returnCards)
+      this.error([...path, 'to'], '"to" only goes with returnCards');
+    if (effect.label && effect.score === undefined)
+      this.error([...path, 'label'], '"label" only goes with score');
+    if (effect.score !== undefined) {
+      if (typeof effect.score === 'string') this.checkExpr(effect.score, [...path, 'score'], ctx);
+      if (!ctx.player) {
+        this.error(path, "score needs a player to score for: use it in an action's effects");
+      }
+    }
+    if (effect.returnCards) {
+      this.zone(effect.returnCards, [...path, 'returnCards'], { per: 'shared' });
+      this.zone(effect.to ?? 'hand', [...path, 'to'], { per: 'player' });
+    }
     if ((effect.resolveTrick || effect.moveTrick || effect.winnerLeads) && !afterTrick) {
       this.error(path, `${verbs[0] ?? 'This'} only works in a trick phase's "afterTrick"`);
     }
@@ -791,7 +838,11 @@ class Checker {
   }
 
   private checkEnd(): void {
-    const { when, winner, ties } = this.file.endCondition;
+    const { when, winner, ties, notes = [] } = this.file.endCondition;
+    notes.forEach((note, i) =>
+      this.checkExpr(note.if, ['endCondition', 'notes', i, 'if'], NO_CONTEXT),
+    );
+    (this.file.display ?? []).forEach((item, i) => this.checkDisplay(item, ['display', i]));
     const ast = this.checkExpr(when, ['endCondition', 'when'], NO_CONTEXT);
     if (ties !== undefined) this.checkSetting(ties, TIES, ['endCondition', 'ties']);
     this.checkSetting(winner, WINNERS, ['endCondition', 'winner']);
@@ -825,6 +876,33 @@ class Checker {
     }
   }
 
+  /**
+   * Shown to every player, so a display may only use values everyone already
+   * sees (state, options, round): never a pile, which could hold hidden cards.
+   */
+  private checkDisplay(item: DisplayDef, path: Path): void {
+    for (const [key, source] of [
+      ['value', item.value],
+      ['if', item.if],
+    ] as const) {
+      if (source === undefined) continue;
+      const ast = this.checkExpr(source, [...path, key], NO_CONTEXT);
+      if (!ast) continue;
+      const names = new Set<string>();
+      walk(ast, (node) => {
+        if (node.kind === 'name') names.add(node.name);
+      });
+      const others = [...names].filter((n) => !['state', 'options', 'round'].includes(n));
+      if (others.length > 0) {
+        this.error(
+          [...path, key],
+          `A display can only use state, options and round (so it never shows hidden cards), ` +
+            `not ${others.map((n) => `"${n}"`).join(', ')}`,
+        );
+      }
+    }
+  }
+
   // ---- expressions ----
 
   /** Parses an expression and checks the names in it; returns the tree if it parsed. */
@@ -839,7 +917,30 @@ class Checker {
     const problems: string[] = [];
     this.kindOf(ast, ctx, problems);
     for (const problem of [...new Set(problems)]) this.error(path, `${problem} in "${source}"`);
+    this.checkNegatedQuantifier(ast, source, path);
     return ast;
+  }
+
+  /**
+   * anyPlayer/everyPlayer apply to the whole expression, so "!anyPlayer.x"
+   * means "some player isn't x", which is easy to misread as "nobody is x".
+   */
+  private checkNegatedQuantifier(ast: Node, source: string, path: Path): void {
+    walk(ast, (node) => {
+      if (node.kind !== 'unary' || node.op !== '!') return;
+      let target = node.arg;
+      while (target.kind === 'member') target = target.object;
+      if (target.kind !== 'name' || !Object.hasOwn(QUANTIFIER_KIND, target.name)) return;
+      const q = target.name;
+      const other = q.startsWith('any') ? q.replace('any', 'every') : q.replace('every', 'any');
+      this.warn(
+        path,
+        `"!${q}…" in "${source}" means "${q.startsWith('any') ? 'some' : 'every'} ` +
+          `${q.endsWith('Player') ? 'player' : 'team'} doesn't…", because ${q} applies to the ` +
+          `whole expression. For "${q.startsWith('any') ? 'none' : 'not all'}", write ` +
+          `"${other}.… == false"`,
+      );
+    });
   }
 
   private zoneNames(per: 'player' | 'team' | undefined): string[] {
@@ -1009,6 +1110,11 @@ class Checker {
   }
 
   private checkCallArgs(fn: string, args: Node[], problems: string[]): void {
+    // hasCard('J', suit) takes a rank and a suit instead of a card code.
+    if (fn === 'hasCard' && args.length === 2) {
+      fn = 'hasRank';
+      args = args.slice(0, 1);
+    }
     for (const arg of args) {
       if (arg.kind !== 'lit' || typeof arg.value !== 'string') continue;
       if (SUIT_FUNCTIONS.includes(fn) && !isSuit(arg.value)) {

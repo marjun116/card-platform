@@ -7,7 +7,7 @@ import { createTable, listen, type Player, playRandomly, spadesTable } from '../
 import { defaultConfig } from '../config';
 import { MemoryStore } from '../store/memory';
 import type { Store } from '../store/types';
-import type { TableInfo } from './protocol';
+import type { GameSummary, TableInfo } from './protocol';
 
 let server: TestServer;
 let baseUrl: string;
@@ -53,6 +53,32 @@ describe('games and tables over HTTP', () => {
       'blindNil',
       'targetScore',
       'mercyRule',
+    ]);
+  });
+
+  it('lists the player counts that play in partnerships', async () => {
+    const res = await server.app.inject({ method: 'GET', url: '/api/games' });
+    const { games } = res.json<{ games: GameSummary[] }>();
+    const cribbage = games.find((g) => g.slug === 'cribbage');
+    expect(cribbage).toMatchObject({ players: [2, 3, 4], teams: null, partnersWith: [4] });
+    expect(games.find((g) => g.slug === 'spades')?.partnersWith).toEqual([4]);
+  });
+
+  it('gives a table the teams for its number of players', async () => {
+    const { token } = await guest(server.app, 'Host');
+    const create = async (playerCount: number) => {
+      const res = await server.app.inject({
+        method: 'POST',
+        url: '/api/tables',
+        body: { game: 'cribbage', playerCount },
+        headers: withSession(token),
+      });
+      return res.json<{ table: TableInfo }>().table.teams;
+    };
+    expect(await create(2)).toBeNull();
+    expect(await create(4)).toEqual([
+      [0, 2],
+      [1, 3],
     ]);
   });
 

@@ -1,5 +1,5 @@
 /** Words for moves: button labels, the game log and screen reader announcements. */
-import type { BidValue, Move, PublicMove } from '@card-table/engine';
+import type { BidValue, Move, PlayerView, PublicMove, ScoreEvent } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
 import { cardFromId, shortLabel, spokenLabel, SUIT_SYMBOL, suitName } from './cards';
 import { humanize, parseZoneKey } from './zones';
@@ -135,6 +135,36 @@ export function describeMove(
     case 'endTurn':
       return `${who} ended ${their} turn`;
   }
+}
+
+/** Points scored during a round, e.g. "Raj: Fifteen for 2". */
+export function describeScore(event: ScoreEvent, names: SeatNames): string {
+  const who = names(event.player);
+  return event.label
+    ? `${who}: ${event.label} for ${event.points}`
+    : `${who} scored ${event.points}`;
+}
+
+/**
+ * The game log as lines of text, oldest first: every move worth telling
+ * others about, with the points scored along the way placed after the move
+ * that scored them.
+ */
+export function logLines(view: PlayerView, names: SeatNames): string[] {
+  const scoredAfter = new Map<number, ScoreEvent[]>();
+  for (const event of view.scoreEvents) {
+    scoredAfter.set(event.at, [...(scoredAfter.get(event.at) ?? []), event]);
+  }
+  const scores = (at: number) => (scoredAfter.get(at) ?? []).map((e) => describeScore(e, names));
+  const lines = scores(0);
+  view.log.forEach((move, i) => {
+    // Arranging cards isn't news for anyone else, so it stays out of the log.
+    if (move.type !== 'arrange' && move.type !== 'sortHand') {
+      lines.push(describeMove(move, names, view.choiceLabels));
+    }
+    lines.push(...scores(i + 1));
+  });
+  return lines;
 }
 
 /** "Ana" for a one-player team, otherwise "Team 1 (You & Sam)". */

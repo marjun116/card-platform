@@ -17,6 +17,7 @@ import {
   type Move,
   playersToAct,
   replay,
+  teamsFor,
   viewFor,
 } from '@card-table/engine';
 import type { WebSocket } from '@fastify/websocket';
@@ -426,7 +427,7 @@ export function tableInfo(
     game: { slug: game.slug, name: game.name, version: game.version },
     options: table.options,
     playerCount: table.playerCount,
-    teams: game.file.meta.teams ?? null,
+    teams: teamsFor(game.file, table.playerCount),
     status: table.status,
     hostId: table.hostId,
     seats: Array.from({ length: table.playerCount }, (_, seat) => {

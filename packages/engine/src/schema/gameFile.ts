@@ -32,12 +32,17 @@ const settingOr = <T extends readonly [string, ...string[]]>(values: T) =>
 
 export const optionValueSchema = z.union([z.boolean(), z.number(), z.string()]);
 
+const teams = z.array(z.array(count(0)).min(1)).min(1);
+
 export const metaSchema = z.strictObject({
   name: z.string().min(1),
   players: z.union([count(1).max(10), z.tuple([count(1).max(10), count(1).max(10)])]),
+  /**
+   * Partnerships: a list of teams, or teams by player count, e.g.
+   * { "4": [[0, 2], [1, 3]] } (other player counts play alone).
+   */
   teams: z
-    .array(z.array(count(0)).min(1))
-    .min(1)
+    .union([teams, z.record(z.string().regex(/^\d+$/, 'Use a player count, e.g. "4"'), teams)])
     .optional(),
   custom: z.boolean().optional(),
   description: z.string().optional(),
@@ -148,6 +153,13 @@ export const effectSchema = z.strictObject({
   layOutMelds: name.optional(),
   /** The seat (an expression) sits out until the round ends, e.g. "(player.id + 2) % 4". */
   sitOut: expr.optional(),
+  /** Points for the acting player's team straight away, e.g. 2 for a fifteen. */
+  score: z.union([expr, z.number()]).optional(),
+  /** Words for the points in the game log, e.g. "Fifteen". */
+  label: z.string().min(1).optional(),
+  /** Gives each card in this shared zone back to the player who played it, into `to`. */
+  returnCards: name.optional(),
+  to: name.optional(),
 });
 
 const common = { if: expr.optional(), effects: z.array(effectSchema).optional() };
@@ -323,6 +335,20 @@ export const endConditionSchema = z.strictObject({
   when: expr,
   winner: settingOr(WINNERS),
   ties: settingOr(TIES).optional(),
+  /** Also check `when` each time points are scored during a round, ending the game at once. */
+  immediate: z.boolean().optional(),
+  /** Words shown with the result when their condition holds at the end, e.g. "Skunk!". */
+  notes: z
+    .array(z.strictObject({ if: expr, text: z.string().min(1) }))
+    .min(1)
+    .optional(),
+});
+
+/** Values shown on the table, e.g. { "label": "Count", "value": "state.total" }. */
+export const displaySchema = z.strictObject({
+  label: z.string().min(1),
+  value: expr,
+  if: expr.optional(),
 });
 
 export const gameFileSchema = z.strictObject({
@@ -339,4 +365,5 @@ export const gameFileSchema = z.strictObject({
   scoring: scoringSchema,
   elimination: z.strictObject({ when: expr }).optional(),
   endCondition: endConditionSchema,
+  display: z.array(displaySchema).min(1).optional(),
 });

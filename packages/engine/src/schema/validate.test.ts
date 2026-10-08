@@ -68,7 +68,8 @@ describe('validate', () => {
         'meta.players: The minimum (6) is more than the maximum (2)',
       );
       expect(errors({ ...spades, meta: { ...spades.meta, players: [4, 6] } })).toContain(
-        'meta.teams: Teams need a fixed number of players (e.g. "players": 4)',
+        'meta.teams: Teams need a fixed number of players (e.g. "players": 4), or give teams ' +
+          'by player count (e.g. { "4": [[0, 2], [1, 3]] })',
       );
       expect(
         errors({

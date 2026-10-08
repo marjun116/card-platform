@@ -36,6 +36,9 @@ export function GameOver({
   return (
     <div className="page game-over">
       <h1>{headline}</h1>
+      {!abandoned && view.notes.length > 0 && (
+        <p className="result-notes">{view.notes.join(' ')}</p>
+      )}
       {abandoned && (
         <p className="muted">These are the scores when it ended. No result is recorded.</p>
       )}

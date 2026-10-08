@@ -806,6 +806,26 @@ kbd {
 .pile-label {
   font-size: 0.85rem;
 }
+.pile-spread {
+  display: inline-flex;
+}
+.pile-spread .card + .card {
+  margin-left: calc(var(--w) * -0.6);
+}
+/* Values the game shows on the table, such as a running count. */
+.display-values {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 0;
+}
+.display-values strong {
+  font-size: 1.4rem;
+}
+.result-notes {
+  font-size: 1.3rem;
+  font-weight: bold;
+}
 .last-trick {
   position: absolute;
   right: 16px;
