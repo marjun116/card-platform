@@ -7,8 +7,8 @@ import type { Outgoing, TableConnection } from './connection';
 import { humanize } from './zones';
 
 function optionText(value: OptionValue): string {
-  if (value === true) return 'on';
-  if (value === false) return 'off';
+  if (value === true) return 'On';
+  if (value === false) return 'Off';
   return String(value);
 }
 

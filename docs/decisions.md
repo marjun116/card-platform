@@ -403,3 +403,11 @@ Agreed now, built later (see the Phase 5 checklist):
   would be, is empty), and on short laptop screens (under 760px tall) its cards are drawn at
   62px, so it stays clear of the players at the top.
 
+
+## 2026-10-07: Guests can't sign out
+
+- A guest has no email address, so signing out would lose their seats and tables for good.
+  Guests see **Sign in** instead of Sign out. The sign-in page then offers only the email
+  link, and opening it in the same browser turns the guest into an account, keeping their
+  name, seats and tables. Signed-in accounts keep Sign out.
+- House-rule values in the lobby read "On" and "Off".

@@ -1,5 +1,5 @@
 import { type FormEvent, type ReactNode, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api, ApiError } from '../api';
 import { useSession } from '../useSession';
 
@@ -122,14 +122,47 @@ function SignInOptions({ onDone }: { onDone?: () => void }) {
 export function SignIn() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
+  const { user } = useSession();
+  const expired = params.get('signin') === 'expired' && (
+    <p role="alert" className="error">
+      That sign-in link has expired or was already used. Ask for a new one below.
+    </p>
+  );
+
+  if (user?.signedIn) {
+    return (
+      <div className="page narrow">
+        <h1>You're signed in</h1>
+        <p>
+          You're signed in as <strong>{user.displayName}</strong>. <Link to="/">Go home</Link>.
+        </p>
+      </div>
+    );
+  }
+  if (user) {
+    // A guest: only the email option, since they already have a name.
+    return (
+      <div className="page narrow">
+        <h1>Sign in</h1>
+        {expired}
+        <section className="panel stack">
+          <p>
+            You're playing as <strong>{user.displayName}</strong> (guest). Sign in with your email
+            to keep your seats and tables on every device, with no password.
+          </p>
+          <p className="muted">
+            Open the link we send in this browser, and everything you've played as a guest comes
+            with you.
+          </p>
+          <EmailForm />
+        </section>
+      </div>
+    );
+  }
   return (
     <div className="page narrow">
       <h1>Sign in</h1>
-      {params.get('signin') === 'expired' && (
-        <p role="alert" className="error">
-          That sign-in link has expired or was already used. Ask for a new one below.
-        </p>
-      )}
+      {expired}
       <SignInOptions onDone={() => void navigate('/')} />
     </div>
   );

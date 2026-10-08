@@ -23,13 +23,17 @@ export function Layout() {
       {!user.signedIn && <span className="muted"> (guest)</span>}
     </>
   );
+  // Guests have no email, so signing out would lose their seats for good. They get
+  // "Sign in" instead, which turns the guest into an account (keeping their tables).
+  const signedIn = user?.signedIn === true;
+  const account = signedIn
+    ? { label: 'Sign out', onSelect: doSignOut }
+    : { label: 'Sign in', onSelect: () => void navigate('/sign-in') };
   const menuItems: MenuItem[] = [
     { label: 'Home', onSelect: () => void navigate('/') },
     { label: 'Games', onSelect: () => void navigate('/games') },
     { label: 'About', onSelect: () => void navigate('/about') },
-    user
-      ? { label: 'Sign out', onSelect: doSignOut }
-      : { label: 'Sign in', onSelect: () => void navigate('/sign-in') },
+    account,
   ];
 
   return (
@@ -53,12 +57,12 @@ export function Layout() {
           {who && <span className="who wide-only">{who}</span>}
           {!inGame && (
             <span className="wide-only">
-              {user ? (
+              {signedIn ? (
                 <button type="button" className="link-button" onClick={doSignOut}>
                   Sign out
                 </button>
               ) : (
-                user === null && <Link to="/sign-in">Sign in</Link>
+                user !== undefined && <Link to="/sign-in">Sign in</Link>
               )}
             </span>
           )}
@@ -68,7 +72,13 @@ export function Layout() {
               label="Site menu"
               buttonText="☰ Menu"
               items={menuItems}
-              note={who && <>Signed in as {who}</>}
+              note={
+                who && (
+                  <>
+                    {signedIn ? 'Signed in as' : 'Playing as'} {who}
+                  </>
+                )
+              }
             />
           )}
         </div>
