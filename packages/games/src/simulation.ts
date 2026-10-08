@@ -95,6 +95,8 @@ const SENSIBLE: Record<BuiltInGameName, Strategy> = {
   euchre: preferring((m) => m.type === 'choose' && m.value === 'withPartner'),
   // Bid low, so some bids are made and scores spread out.
   'oh-hell': preferring((m) => m.type === 'bid' && typeof m.value === 'number' && m.value <= 1),
+  // Keep fives and ten-cards for fifteens, so hands score and games reach 121 sooner.
+  cribbage: preferring((m) => m.type === 'discard' && !/^(5|10|J|Q|K)[CDHS]/.test(m.card)),
 };
 
 /**
@@ -173,6 +175,11 @@ const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> 
     { sequence: 'down', maxCards: 'max', scoring: 'penalty', blindBids: true },
     { sequence: 'up', maxCards: 13 },
   ],
+  cribbage: [
+    { fiveCard: true, targetScore: 61 },
+    { cribFourFlush: true, handFlushFive: true, hisHeels: false },
+    { targetScore: 61 },
+  ],
 };
 const VARIANT_GAMES = 200;
 
@@ -190,6 +197,8 @@ const MIN_ROUNDS: Record<BuiltInGameName, number> = {
   euchre: 5,
   // A full game is 19 hands with 3–5 players.
   'oh-hell': 10,
+  // About 8 hands to reach 121 with two players, fewer with three or four.
+  cribbage: 5,
 };
 
 /**

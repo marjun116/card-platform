@@ -1,0 +1,226 @@
+{
+  "$schema": "../engine/game-file.schema.json",
+  "meta": {
+    "name": "Cribbage",
+    "players": [2, 4],
+    "teams": {
+      "4": [
+        [0, 2],
+        [1, 3]
+      ]
+    },
+    "description": "Peg points for fifteens, pairs and runs as you play, then count your hand. First to 121 wins."
+  },
+  "deck": { "copies": 1, "jokers": 0 },
+  "cardOrder": {
+    "ranks": ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
+  },
+  "options": {
+    "targetScore": {
+      "label": "Play to",
+      "type": "choice",
+      "values": [121, 61],
+      "default": 121
+    },
+    "fiveCard": {
+      "label": "Five-card cribbage (two players): 5 cards each, and the pone pegs 3 each hand. Usually played to 61",
+      "type": "boolean",
+      "default": false
+    },
+    "cribFourFlush": {
+      "label": "A four-card flush counts in the crib",
+      "type": "boolean",
+      "default": false
+    },
+    "handFlushFive": {
+      "label": "A flush in hand only counts if the starter matches too",
+      "type": "boolean",
+      "default": false
+    },
+    "hisHeels": {
+      "label": "His heels: the dealer pegs 2 when the starter is a jack",
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "zones": {
+    "hand": { "per": "player", "visibility": "owner" },
+    "stock": { "shared": true, "visibility": "none", "countVisible": true },
+    "crib": { "shared": true, "visibility": "none", "countVisible": true },
+    "starter": { "shared": true, "visibility": "all" },
+    "pegging": { "shared": true, "visibility": "all" },
+    "played": { "per": "player", "visibility": "all" },
+    "cribCards": { "per": "player", "visibility": "all" }
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": {
+      "to": "hand",
+      "count": "activePlayers.count == 2 ? (options.fiveCard ? 5 : 6) : 5"
+    },
+    "rest": "stock",
+    "flip": { "if": "activePlayers.count == 3", "from": "stock", "to": "crib" },
+    "dealerRotation": "left"
+  },
+  "phases": [
+    {
+      "name": "toTheCrib",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "turn": [
+        {
+          "actions": [
+            {
+              "type": "discard",
+              "to": "crib",
+              "if": "hand.count > (activePlayers.count == 2 && options.fiveCard ? 3 : 4)"
+            }
+          ]
+        },
+        {
+          "actions": [
+            {
+              "type": "discard",
+              "to": "crib",
+              "if": "hand.count > (activePlayers.count == 2 && options.fiveCard ? 3 : 4)",
+              "effects": [
+                {
+                  "if": "options.fiveCard && activePlayers.count == 2 && !player.isDealer",
+                  "score": 3,
+                  "label": "Three for last"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cut",
+      "order": "dealer",
+      "until": "starter.count == 1",
+      "actions": [
+        {
+          "type": "draw",
+          "from": "stock",
+          "to": "starter",
+          "if": "player.isDealer",
+          "effects": [
+            { "set": { "state.total": 0 } },
+            {
+              "if": "options.hisHeels && card.rank == 'J'",
+              "score": 2,
+              "label": "His heels"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "play",
+      "order": "leftOfDealer",
+      "until": "everyPlayer.hand.count == 0",
+      "actions": [
+        {
+          "type": "play",
+          "to": "pegging",
+          "if": "state.total + cardValue(card) <= 31",
+          "effects": [
+            { "set": { "state.total": "state.total + cardValue(card)" } },
+            { "if": "state.total == 15", "score": 2, "label": "Fifteen" },
+            { "if": "state.total == 31", "score": 2, "label": "Thirty-one" },
+            { "if": "pegging.sameRankAtEnd == 2", "score": 2, "label": "Pair" },
+            { "if": "pegging.sameRankAtEnd == 3", "score": 6, "label": "Three of a kind" },
+            { "if": "pegging.sameRankAtEnd == 4", "score": 12, "label": "Four of a kind" },
+            { "score": "pegging.runAtEnd", "label": "Run" },
+            { "set": { "state.stuck": "everyPlayer.hasLegalPlay == false" } },
+            {
+              "if": "state.stuck && state.total != 31 && anyPlayer.hand.count > 0",
+              "score": 1,
+              "label": "Go"
+            },
+            {
+              "if": "state.stuck && state.total != 31 && everyPlayer.hand.count == 0",
+              "score": 1,
+              "label": "Last card"
+            },
+            { "if": "state.stuck", "returnCards": "pegging", "to": "played" },
+            { "if": "state.stuck", "set": { "state.total": 0 } },
+            {
+              "if": "state.stuck && everyPlayer.hand.count == 0",
+              "set": { "state.total": null }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "show",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "actions": [
+        {
+          "type": "choose",
+          "values": ["countHand"],
+          "labels": { "countHand": "Count my hand" },
+          "set": "state.counted",
+          "effects": [
+            { "score": "2 * countSums(15, played, starter)", "label": "Fifteens" },
+            { "score": "2 * countPairs(played, starter)", "label": "Pairs" },
+            { "score": "runCards(played, starter)", "label": "Runs" },
+            {
+              "score": "played.onlySuit(played.top.suit) && (!options.handFlushFive || starter.top.suit == played.top.suit) ? played.count + (starter.top.suit == played.top.suit ? 1 : 0) : 0",
+              "label": "Flush"
+            },
+            { "score": "played.hasCard('J', starter.top.suit) ? 1 : 0", "label": "Nobs" }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "crib",
+      "order": "dealer",
+      "until": "crib.count == 0",
+      "actions": [
+        {
+          "type": "pickUpPile",
+          "from": "crib",
+          "to": "cribCards",
+          "if": "player.isDealer",
+          "effects": [
+            { "score": "2 * countSums(15, cribCards, starter)", "label": "Crib fifteens" },
+            { "score": "2 * countPairs(cribCards, starter)", "label": "Crib pairs" },
+            { "score": "runCards(cribCards, starter)", "label": "Crib runs" },
+            {
+              "score": "cribCards.onlySuit(cribCards.top.suit) && (options.cribFourFlush || starter.top.suit == cribCards.top.suit) ? cribCards.count + (starter.top.suit == cribCards.top.suit ? 1 : 0) : 0",
+              "label": "Crib flush"
+            },
+            {
+              "score": "cribCards.hasCard('J', starter.top.suit) ? 1 : 0",
+              "label": "Crib nobs"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "cardValue": { "J": 10, "Q": 10, "K": 10 }
+  },
+  "endCondition": {
+    "when": "anyTeam.score >= options.targetScore",
+    "winner": "highestScore",
+    "immediate": true,
+    "notes": [
+      {
+        "if": "options.targetScore == 121 && anyTeam.score < 61",
+        "text": "Double skunk!"
+      },
+      {
+        "if": "anyTeam.score < options.targetScore - 30 && (options.targetScore != 121 || anyTeam.score >= 61)",
+        "text": "Skunk!"
+      }
+    ]
+  },
+  "display": [{ "label": "Count", "value": "state.total" }]
+}

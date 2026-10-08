@@ -1,5 +1,6 @@
 import { formatIssues, type GameFile, validate } from '@card-table/engine';
 import crazyEightsJson from '../crazy-eights.json';
+import cribbageJson from '../cribbage.json';
 import euchreJson from '../euchre.json';
 import ginRummyJson from '../gin-rummy.json';
 import heartsJson from '../hearts.json';
@@ -23,6 +24,7 @@ export const builtInGames = {
   'gin-rummy': load('gin-rummy', ginRummyJson),
   euchre: load('euchre', euchreJson),
   'oh-hell': load('oh-hell', ohHellJson),
+  cribbage: load('cribbage', cribbageJson),
 } as const satisfies Record<string, GameFile>;
 
 export type BuiltInGameName = keyof typeof builtInGames;
