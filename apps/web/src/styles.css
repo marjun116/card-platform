@@ -255,8 +255,84 @@ legend {
   display: flex;
   align-items: center;
   gap: 1em;
-  flex-wrap: wrap;
   font-size: 0.9rem;
+}
+/* Filled by the table screen during a game (see headerSlot.ts). */
+.header-slot {
+  display: contents;
+}
+.site-header.in-game {
+  flex-wrap: nowrap;
+}
+
+/* Shown only on wide screens, or only on phones (the switch is at 700px). */
+.phone-only {
+  display: none !important;
+}
+
+/* The game's part of the header: name, round and phase, then buttons. */
+.game-bar {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6em;
+}
+.game-title {
+  min-width: 0;
+  display: flex;
+  gap: 0.6em;
+  align-items: baseline;
+  white-space: nowrap;
+}
+.game-title .muted {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.game-tools,
+.game-host {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  flex: none;
+}
+
+/* Dropdown menus (components/Menu.tsx). */
+.menu {
+  position: relative;
+}
+.menu-popup {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 20;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  padding: 4px;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.25);
+}
+.menu-popup button {
+  justify-content: flex-start;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  min-height: 44px;
+}
+.menu-popup button:hover,
+.menu-popup button:focus-visible {
+  background: var(--bg);
+}
+.menu-note {
+  padding: 0.5em 0.9em;
+  font-size: 0.85rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
 }
 
 main:focus {
@@ -507,30 +583,6 @@ kbd {
   flex-direction: column;
   min-height: calc(100dvh - 58px);
 }
-.table-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5em;
-  flex-wrap: wrap;
-  padding: 0.4em 16px;
-  background: var(--surface);
-  border-bottom: 1px solid var(--border);
-}
-.table-title {
-  display: flex;
-  gap: 0.8em;
-  align-items: baseline;
-  flex-wrap: wrap;
-}
-.table-tools {
-  display: flex;
-  gap: 0.4em;
-}
-.panel-toggle {
-  display: none;
-}
-
 .table-main {
   flex: 1;
   display: grid;
@@ -663,7 +715,9 @@ kbd {
 .center {
   position: absolute;
   left: 50%;
-  top: 50%;
+  /* A little below the middle: the bottom of the table (your seat) is empty, and the
+     players at the top need the room. */
+  top: 58%;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
@@ -704,6 +758,13 @@ kbd {
   /* Width and height are set by trickLayout(), to fit the number of players. */
   position: relative;
   flex: none;
+}
+/* Short laptop screens: slightly smaller trick cards, so the trick stays clear of the
+   players at the top of the table. (Sizes inside the trick all follow --card-w.) */
+@media (min-width: 701px) and (max-height: 760px) {
+  .trick {
+    --card-w: 62px;
+  }
 }
 .trick-card {
   position: absolute;
@@ -876,10 +937,20 @@ kbd {
   cursor: default;
 }
 
+/* Always one button row tall, even when empty, so nothing jumps as cards are selected. */
 .action-bar {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-height: 40px;
+}
+.fade-in {
+  animation: fade-in 120ms ease-out;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
 }
 .action-row {
   display: flex;
@@ -962,6 +1033,29 @@ kbd {
 /* ---- phones and small tablets ---- */
 
 @media (max-width: 700px) {
+  .phone-only {
+    display: revert !important;
+  }
+  .menu.phone-only,
+  button.phone-only {
+    display: inline-flex !important;
+  }
+  .wide-only {
+    display: none !important;
+  }
+  .site-header {
+    flex-wrap: nowrap;
+    gap: 0.6em;
+  }
+  .brand {
+    flex: none;
+  }
+  .game-title {
+    flex-direction: column;
+    gap: 0;
+    line-height: 1.2;
+    font-size: 0.9rem;
+  }
   :root {
     --card-w: 54px;
     --small-w: 38px;
@@ -976,9 +1070,6 @@ kbd {
     flex-direction: column;
     align-items: stretch;
     padding: 8px 8px 0;
-  }
-  .panel-toggle {
-    display: inline-flex;
   }
   /* Scores and log fold away behind the "Scores" button. */
   .side {
@@ -1162,5 +1253,8 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .hand-card {
     transition: none;
+  }
+  .fade-in {
+    animation: none;
   }
 }

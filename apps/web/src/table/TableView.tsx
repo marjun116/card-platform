@@ -6,6 +6,9 @@
 import type { Card as CardData, Move } from '@card-table/engine';
 import type { ErrorCode, TableInfo } from '@card-table/server/protocol';
 import { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { Menu, type MenuItem } from '../components/Menu';
+import { useHeaderSlot } from '../headerSlot';
 import { DecisionPanel, HandActions } from './ActionBar';
 import type { GameMessage, TableConnection } from './connection';
 import { bidLabel, describeMove, seatNames } from './describe';
@@ -96,6 +99,15 @@ export function TableView({
     setSelection({ seq, cards: together ? [...selected, card.id] : [card.id] });
   };
 
+  // Clear selection removes the button that was pressed, so put keyboard focus back on
+  // the card that was selected rather than letting it drop to the top of the page.
+  const clearFromButton = () => {
+    const first = selected[0];
+    setSelection({ seq, cards: [] });
+    const card = first && document.querySelector<HTMLElement>(`.hand [data-card="${first}"]`);
+    if (card) card.focus({ preventScroll: true });
+  };
+
   const lastLog = view.log[view.log.length - 1];
   const announcement = [
     lastLog ? describeMove(lastLog, names) : null,
@@ -118,42 +130,65 @@ export function TableView({
     }
   };
 
+  // The game's name, round and buttons go in the site header, not a second bar.
+  const header = useHeaderSlot();
+  const menuItems: MenuItem[] = [
+    ...(isHost
+      ? [
+          {
+            label: paused ? 'Resume' : 'Pause',
+            onSelect: () => send({ type: paused ? 'resume' : 'pause' }),
+          },
+          { label: 'End game', onSelect: hostEnd, danger: true },
+        ]
+      : []),
+    ...(view.history.length > 0
+      ? [{ label: 'Every round', onSelect: () => setShowHistory(true) }]
+      : []),
+  ];
+  const gameBar = (
+    <div className="game-bar">
+      <div className="game-title">
+        <strong>{view.game}</strong>
+        <span className="muted">
+          <span className="wide-only">Round {view.round}</span>
+          <span className="phone-only">R{view.round}</span> · {humanize(view.phase)}
+        </span>
+      </div>
+      <div className="game-tools">
+        <button
+          type="button"
+          className="small phone-only"
+          aria-expanded={panelOpen}
+          aria-controls="side-panel"
+          onClick={() => setPanelOpen(!panelOpen)}
+        >
+          {panelOpen ? 'Hide scores' : 'Scores'}
+        </button>
+        {isHost && (
+          <span className="wide-only game-host">
+            <button
+              type="button"
+              className="small"
+              onClick={() => send({ type: paused ? 'resume' : 'pause' })}
+            >
+              {paused ? 'Resume' : 'Pause'}
+            </button>
+            <button type="button" className="small danger" onClick={hostEnd}>
+              End game
+            </button>
+          </span>
+        )}
+        {menuItems.length > 0 && (
+          <Menu className="phone-only" label="Game menu" buttonText="⋯" items={menuItems} />
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="table-screen">
-      <div className="table-bar">
-        <div className="table-title">
-          <strong>{view.game}</strong>
-          <span className="muted">
-            Round {view.round} · {humanize(view.phase)}
-          </span>
-        </div>
-        <div className="table-tools">
-          <button
-            type="button"
-            className="small panel-toggle"
-            aria-expanded={panelOpen}
-            aria-controls="side-panel"
-            onClick={() => setPanelOpen(!panelOpen)}
-          >
-            {panelOpen ? 'Hide scores' : 'Scores'}
-          </button>
-          {isHost && (
-            <>
-              <button
-                type="button"
-                className="small"
-                onClick={() => send({ type: paused ? 'resume' : 'pause' })}
-              >
-                {paused ? 'Resume' : 'Pause'}
-              </button>
-              <button type="button" className="small danger" onClick={hostEnd}>
-                End game
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
+      {header ? header.slot && createPortal(gameBar, header.slot) : gameBar}
       {nudgedBy !== null && (
         <p className="banner" role="alert">
           {names(nudgedBy)} nudged you: it's your turn.{' '}
@@ -293,7 +328,7 @@ export function TableView({
           names={names}
           busy={busy}
           onMove={act}
-          onClear={() => setSelection({ seq, cards: [] })}
+          onClear={clearFromButton}
         />
       </div>
 
