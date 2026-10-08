@@ -483,6 +483,27 @@ General parts of the game format, added because hearts needed them; none mention
 - **Simulation**: built-in games can list house-rule sets in `simulation.test.ts`
   (`VARIANTS`); each set plays 200 extra random games, so options are tested too.
 
+## 2026-10-08: Crazy eights
+
+- **Players:** 2 to 10. One deck, except two decks for 8 or more players, or when the hands
+  dealt would leave too small a stock (players × cards dealt over 40, e.g. 8 cards each for
+  6 players).
+- **Standard rules (Hoyle):** 7 cards each for two players, 5 for more. A starting 8 is put
+  back in the stock and another card turned. Match the top card's suit or rank; 8s are wild
+  and the player names the suit (not when it's their last card). If you can't play, draw
+  until you can; you may also draw when you could play. No reshuffle: with the stock empty,
+  a player who can't play passes. The first player out scores the cards left in other hands
+  (8 = 50, K/Q/J = 10, A = 1, others face value). A blocked hand is won by the lowest hand,
+  which scores the difference to each other hand; players tied for lowest both score. First
+  to 100 wins.
+- **House rules (options):** play to 100/200/500 or one hand; penalty scoring (everyone
+  scores their own cards, lowest wins); drawing (draw one and play it if you can, or draw up
+  to 3 then pass); reshuffle the discard pile; cards dealt (7 or 8 each); a starting 8
+  counts as a normal card; 2s make the next player draw 2 and miss a turn; stacking 2s;
+  jacks skip; aces reverse (a skip with two players); queen of spades makes the next player
+  draw 5 and miss a turn.
+- **Left out:** calling "last card" (table talk).
+
 ## 2026-10-08: Building blocks added for crazy eights
 
 General parts of the game format, added because crazy eights needed them.

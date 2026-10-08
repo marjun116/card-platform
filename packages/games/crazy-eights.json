@@ -1,0 +1,206 @@
+{
+  "$schema": "../engine/game-file.schema.json",
+  "meta": {
+    "name": "Crazy Eights",
+    "players": [2, 10],
+    "description": "Match the top card by suit or rank. Eights are wild. First to empty their hand wins."
+  },
+  "deck": {
+    "copies": "activePlayers.count >= 8 || activePlayers.count * (options.cards == 'standard' ? 5 : options.cards) > 40 ? 2 : 1",
+    "jokers": 0
+  },
+  "options": {
+    "targetScore": {
+      "label": "Play to",
+      "type": "choice",
+      "values": [100, 200, 500, "oneHand"],
+      "labels": { "oneHand": "One hand only" },
+      "default": 100
+    },
+    "scoring": {
+      "label": "Scoring",
+      "type": "choice",
+      "values": ["winnerCollects", "penalty"],
+      "labels": {
+        "winnerCollects": "Winner scores the cards left in other hands",
+        "penalty": "Everyone scores their own cards; lowest wins"
+      },
+      "default": "winnerCollects"
+    },
+    "drawing": {
+      "label": "When you can't play",
+      "type": "choice",
+      "values": ["untilPlayable", "one", "upToThree"],
+      "labels": {
+        "untilPlayable": "Draw until you can play",
+        "one": "Draw one card; play it if you can",
+        "upToThree": "Draw up to 3 cards, then pass"
+      },
+      "default": "untilPlayable"
+    },
+    "reshuffle": {
+      "label": "Reshuffle the discard pile when the stock runs out",
+      "type": "boolean",
+      "default": false
+    },
+    "cards": {
+      "label": "Cards dealt",
+      "type": "choice",
+      "values": ["standard", 7, 8],
+      "labels": { "standard": "7 for two players, 5 for more", "7": "7 each", "8": "8 each" },
+      "default": "standard"
+    },
+    "starterEight": {
+      "label": "If the starting card is an 8",
+      "type": "choice",
+      "values": ["reflip", "counts"],
+      "labels": {
+        "reflip": "Put it back and turn another",
+        "counts": "It counts as a normal card"
+      },
+      "default": "reflip"
+    },
+    "drawTwo": {
+      "label": "2s: the next player draws 2 and misses a turn",
+      "type": "boolean",
+      "default": false
+    },
+    "stackTwos": {
+      "label": "2s stack (play a 2 to pass the draw on)",
+      "type": "boolean",
+      "default": false
+    },
+    "jacksSkip": {
+      "label": "Jacks skip the next player",
+      "type": "boolean",
+      "default": false
+    },
+    "acesReverse": {
+      "label": "Aces reverse direction",
+      "type": "boolean",
+      "default": false
+    },
+    "queenOfSpades": {
+      "label": "Queen of spades: the next player draws 5",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "zones": {
+    "hand": { "per": "player", "visibility": "owner" },
+    "stock": { "shared": true, "visibility": "none", "countVisible": true },
+    "discard": { "shared": true, "visibility": "topCardOnly" }
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": {
+      "to": "hand",
+      "count": "options.cards == 'standard' ? (activePlayers.count == 2 ? 7 : 5) : options.cards"
+    },
+    "rest": "stock",
+    "flip": {
+      "from": "stock",
+      "to": "discard",
+      "reflipIf": "options.starterEight == 'reflip' && card.rank == '8'",
+      "set": { "state.activeSuit": "card.suit", "state.penalty": 0 }
+    },
+    "dealerRotation": "left"
+  },
+  "phases": [
+    {
+      "name": "play",
+      "order": "clockwise",
+      "until": "anyPlayer.hand.count == 0",
+      "turn": [
+        {
+          "optional": true,
+          "repeatable": true,
+          "actions": [
+            {
+              "type": "draw",
+              "from": "stock",
+              "if": "state.penalty == 0 && (options.drawing == 'untilPlayable' || (options.drawing == 'upToThree' && turn.draws < 3))"
+            }
+          ]
+        },
+        {
+          "actions": [
+            {
+              "type": "play",
+              "to": "discard",
+              "if": "(card.suit == state.activeSuit || card.rank == discard.top.rank || card.rank == '8') && (state.penalty == 0 || card.rank == '2' || stock.count == 0)",
+              "effects": [
+                {
+                  "if": "card.rank == '8' && hand.count > 0",
+                  "choose": "suit",
+                  "set": "state.activeSuit"
+                },
+                { "if": "card.rank != '8'", "set": { "state.activeSuit": "card.suit" } },
+                {
+                  "if": "options.drawTwo && !options.stackTwos && card.rank == '2'",
+                  "nextPlayer": { "draw": 2, "skip": true }
+                },
+                {
+                  "if": "options.drawTwo && options.stackTwos && card.rank == '2'",
+                  "set": { "state.penalty": "state.penalty + 2" }
+                },
+                { "if": "card.rank != '2'", "set": { "state.penalty": 0 } },
+                { "if": "options.jacksSkip && card.rank == 'J'", "skip": true },
+                {
+                  "if": "options.acesReverse && card.rank == 'A' && activePlayers.count > 2",
+                  "reverse": true
+                },
+                {
+                  "if": "options.acesReverse && card.rank == 'A' && activePlayers.count == 2",
+                  "skip": true
+                },
+                {
+                  "if": "options.queenOfSpades && card.code == 'QS'",
+                  "nextPlayer": { "draw": 5, "skip": true }
+                }
+              ]
+            },
+            {
+              "type": "draw",
+              "from": "stock",
+              "if": "options.drawing == 'one' && state.penalty == 0 && !player.hasLegalPlay",
+              "then": "mayPlayDrawnCard"
+            },
+            {
+              "type": "draw",
+              "from": "stock",
+              "count": "state.penalty",
+              "if": "state.penalty > 0",
+              "effects": [{ "set": { "state.penalty": 0 } }]
+            }
+          ]
+        }
+      ],
+      "whenEmpty": {
+        "stock": { "policy": "reshuffleDiscardExceptTop", "if": "options.reshuffle" }
+      }
+    }
+  ],
+  "scoring": {
+    "cardValue": { "8": 50, "K": 10, "Q": 10, "J": 10, "A": 1, "default": "rankNumber" },
+    "playerValues": { "handValue": "sum(player.hand, cardValue)" },
+    "perPlayer": [
+      {
+        "if": "options.scoring == 'winnerCollects' && player.hand.count == 0",
+        "add": "sum(activePlayers, handValue)"
+      },
+      {
+        "if": "options.scoring == 'winnerCollects' && everyPlayer.hand.count > 0 && handValue(player) == min(activePlayers, handValue)",
+        "add": "sum(activePlayers, handValue) - activePlayers.count * handValue(player)"
+      },
+      {
+        "if": "options.scoring == 'penalty'",
+        "add": "handValue(player)"
+      }
+    ]
+  },
+  "endCondition": {
+    "when": "options.targetScore == 'oneHand' || anyPlayer.score >= options.targetScore",
+    "winner": "options.scoring == 'penalty' ? 'lowestScore' : 'highestScore'"
+  }
+}

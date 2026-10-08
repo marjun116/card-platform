@@ -23,6 +23,8 @@ const SENSIBLE: Record<BuiltInGameName, Strategy> = {
   spades: preferring((m) => m.type === 'bid' && typeof m.value === 'number' && m.value <= 3),
   // Duck tricks with low cards, so points spread out and games last.
   hearts: preferring((m) => m.type === 'playToTrick' && /^[2-7][CDHS]/.test(m.card)),
+  // Play a card whenever possible instead of drawing.
+  'crazy-eights': preferring((m) => m.type === 'play'),
 };
 
 /**
@@ -43,11 +45,42 @@ const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> 
     },
     { leadHeartsAnytime: true, passing: 'none', targetScore: 150 },
   ],
+  'crazy-eights': [
+    {
+      drawing: 'one',
+      reshuffle: true,
+      drawTwo: true,
+      stackTwos: true,
+      jacksSkip: true,
+      acesReverse: true,
+      queenOfSpades: true,
+      targetScore: 200,
+    },
+    {
+      scoring: 'penalty',
+      drawing: 'upToThree',
+      cards: 8,
+      starterEight: 'counts',
+      drawTwo: true,
+      reshuffle: true,
+      // Random players drawing up to 3 with reshuffles build huge hands, so keep it to one.
+      targetScore: 'oneHand',
+    },
+    { cards: 7, targetScore: 200 },
+  ],
 };
 const VARIANT_GAMES = 200;
 
 const RANDOM_GAMES = 1_000;
 const SENSIBLE_GAMES = 50;
+
+/** Hands a sensible game should last on average, so it reaches its later rounds. */
+const MIN_ROUNDS: Record<BuiltInGameName, number> = {
+  spades: 5,
+  hearts: 5,
+  // The winner collects 50 per 8, so games to 100 are short.
+  'crazy-eights': 2,
+};
 
 describe.each(Object.entries(builtInGames))('%s simulation', (name, file) => {
   it(`plays ${RANDOM_GAMES} random games without a problem`, { timeout: 300_000 }, () => {
@@ -66,7 +99,7 @@ describe.each(Object.entries(builtInGames))('%s simulation', (name, file) => {
       strategy: SENSIBLE[name as BuiltInGameName],
     });
     // These games should get past the first couple of rounds.
-    expect(report.averageRounds).toBeGreaterThan(5);
+    expect(report.averageRounds).toBeGreaterThan(MIN_ROUNDS[name as BuiltInGameName]);
   });
 
   const variants = VARIANTS[name as BuiltInGameName] ?? [];

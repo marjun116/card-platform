@@ -232,6 +232,7 @@ Add games one at a time, picking each to stretch a different part of the engine.
 - [ ] Suggested order: hearts (passing), crazy eights (shedding), rummy and gin (melds), euchre (stripped deck, bowers), Oh Hell (changing hand sizes), cribbage (unusual scoring), pinochle and canasta (double decks), bridge (bidding auction, dummy hand)
 - [ ] For each game: game file, common house rule options, scenario tests, simulation test, a real playtest
   - [ ] Hearts: game file, house rules, scenario and simulation tests done; real playtest to do
+  - [ ] Crazy eights: game file, house rules, scenario and simulation tests done; real playtest to do
 - [ ] Saved variants: a table's chosen options saved as a named, shareable preset
 - [ ] Game history (results are already saved by the server; nothing shows them yet):
   - [ ] "Past games" on the home page: game, date, players, final score, and whether you won
