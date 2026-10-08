@@ -30,6 +30,8 @@ export interface TrickState {
   /** Zone the cards are played into. */
   zone: ZoneKey;
   leader: PlayerId;
+  /** 1 for the first trick of the phase, 2 for the second, … */
+  number: number;
   plays: { player: PlayerId; card: Card }[];
   winner: PlayerId | null;
 }

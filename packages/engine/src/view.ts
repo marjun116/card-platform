@@ -13,7 +13,7 @@ import {
   zoneDef,
   zoneKey,
 } from './game/state';
-import type { OptionValue } from './game/types';
+import type { GameFile, OptionValue } from './game/types';
 
 /** What a player sees of one zone. */
 export type ZoneView =
@@ -66,6 +66,8 @@ export interface PlayerView {
   log: PublicMove[];
   /** Every finished round, oldest first (public: bids, tricks and scores only). */
   history: RoundResult[];
+  /** Words for `choose` values, e.g. { "shooterMinus26": "Take 26 off my score" }. */
+  choiceLabels: Record<string, string>;
 }
 
 export interface TrickView {
@@ -123,6 +125,19 @@ function trickZones(state: GameState): string[] {
     }
   }
   return [...names];
+}
+
+/** Labels for every `choose` action's values in the game file. */
+export function choiceLabelsOf(file: GameFile): Record<string, string> {
+  const labels: Record<string, string> = {};
+  for (const phase of file.phases) {
+    for (const step of turnSteps(phase)) {
+      for (const action of step.actions) {
+        if (action.type === 'choose') Object.assign(labels, action.labels);
+      }
+    }
+  }
+  return labels;
 }
 
 function trickView(state: GameState, trick: TrickState | null, viewer: PlayerId): TrickView | null {
@@ -200,5 +215,6 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     zones,
     log: state.log.map((m) => publicMove(state, m, viewer)),
     history: state.history,
+    choiceLabels: choiceLabelsOf(state.file),
   };
 }

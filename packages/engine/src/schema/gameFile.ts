@@ -17,6 +17,18 @@ const expr = z.string().min(1).describe('An expression, e.g. "hand.count == 0"')
 const rank = z.enum(RANKS);
 const suit = z.enum(SUITS);
 const count = (min: number) => z.int().min(min);
+const cardCode = z
+  .string()
+  .min(1)
+  .describe('A card code, e.g. "QS" (queen of spades), "10H" or "2C"');
+/** Words shown instead of raw values, e.g. { "rotate": "Left, right, across, hold" }. */
+const labels = z.record(z.string(), z.string().min(1));
+/**
+ * A setting with a fixed list of values that may also be an expression giving
+ * one of them, so a house rule can change it: "direction": "options.passing".
+ */
+const settingOr = <T extends readonly [string, ...string[]]>(values: T) =>
+  z.union([z.enum(values), expr]);
 
 export const optionValueSchema = z.union([z.boolean(), z.number(), z.string()]);
 
@@ -36,6 +48,11 @@ export const deckSchema = z.strictObject({
   ranks: z.array(rank).min(1).optional(),
   suits: z.array(suit).min(1).optional(),
   jokers: count(0).max(2).optional(),
+  /** Cards taken out (every copy), e.g. the 2♦ when three play hearts. */
+  remove: z
+    .array(z.strictObject({ if: expr.optional(), cards: z.array(cardCode).min(1) }))
+    .min(1)
+    .optional(),
 });
 
 export const cardOrderSchema = z.strictObject({
@@ -47,6 +64,7 @@ export const optionSchema = z.strictObject({
   label: z.string().min(1),
   type: z.enum(['boolean', 'choice']),
   values: z.array(optionValueSchema).min(1).optional(),
+  labels: labels.optional(),
   default: optionValueSchema,
 });
 
@@ -104,6 +122,21 @@ export const playToTrickActionSchema = action('playToTrick', {
   to: name.optional(),
   followSuit: z.boolean().optional(),
   leadRestriction: z.strictObject({ cannotLead: suit, unless: expr.optional() }).optional(),
+  /**
+   * Checked in order after following suit. Each keeps (mustPlay) or removes
+   * (cannotPlay) the cards matching its expression, but is skipped if that
+   * would leave the player nothing to play.
+   */
+  restrictions: z
+    .array(
+      z.strictObject({
+        if: expr.optional(),
+        mustPlay: expr.optional(),
+        cannotPlay: expr.optional(),
+      }),
+    )
+    .min(1)
+    .optional(),
 });
 export const drawActionSchema = action('draw', {
   from: name,
@@ -112,9 +145,10 @@ export const drawActionSchema = action('draw', {
   then: z.literal('mayPlayDrawnCard').optional(),
 });
 export const discardActionSchema = action('discard', { to: name, from: name.optional() });
+export const PASS_DIRECTIONS = ['left', 'right', 'across', 'rotate', 'rotateNoHold'] as const;
 export const passActionSchema = action('pass', {
   count: count(1),
-  direction: z.enum(['left', 'right', 'across', 'rotate']),
+  direction: settingOr(PASS_DIRECTIONS),
   from: name.optional(),
 });
 export const meldActionSchema = action('meld', {
@@ -138,6 +172,12 @@ export const passBidActionSchema = action('passBid', {});
 export const declareTrumpActionSchema = action('declareTrump', {
   suits: z.array(suit).min(1).optional(),
 });
+/** Pick one of several named choices, stored in `state.<name>`. */
+export const chooseActionSchema = action('choose', {
+  values: z.array(z.string().min(1)).min(1),
+  labels: labels.optional(),
+  set: z.string(),
+});
 
 export const ACTION_TYPES = [
   'play',
@@ -151,6 +191,7 @@ export const ACTION_TYPES = [
   'bid',
   'passBid',
   'declareTrump',
+  'choose',
 ] as const;
 
 export const actionSchema = z.discriminatedUnion(
@@ -167,6 +208,7 @@ export const actionSchema = z.discriminatedUnion(
     bidActionSchema,
     passBidActionSchema,
     declareTrumpActionSchema,
+    chooseActionSchema,
   ],
   { error: `Unknown action type. Use one of: ${ACTION_TYPES.join(', ')}` },
 );
@@ -177,6 +219,7 @@ export const turnStepSchema = z.strictObject({
   repeatable: z.boolean().optional(),
 });
 
+export const LEADER_FIRST = ['leftOfDealer', 'dealer'] as const;
 export const phaseSchema = z.strictObject({
   name: z.string().min(1),
   if: expr.optional(),
@@ -186,7 +229,8 @@ export const phaseSchema = z.strictObject({
   until: expr.optional(),
   leader: z
     .strictObject({
-      first: z.enum(['leftOfDealer', 'dealer']).optional(),
+      // Or an expression giving one of these, or a seat number such as holderOf('2C').
+      first: settingOr(LEADER_FIRST).optional(),
       then: z.literal('lastTrickWinner').optional(),
     })
     .optional(),
@@ -222,10 +266,11 @@ export const scoringSchema = z.strictObject({
   cardValue: z.record(z.string(), z.union([z.number(), z.literal('rankNumber')])).optional(),
 });
 
+export const TIES = ['playOn', 'share'] as const;
 export const endConditionSchema = z.strictObject({
   when: expr,
   winner: z.enum(['highestScore', 'lowestScore', 'lastActivePlayer']),
-  ties: z.enum(['playOn', 'share']).optional(),
+  ties: settingOr(TIES).optional(),
 });
 
 export const gameFileSchema = z.strictObject({

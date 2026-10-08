@@ -4,7 +4,7 @@
  * expressions can look at the game but never change it. Values are computed
  * only when an expression reads them.
  */
-import { type Card, cardRank, cardSuit, isJoker } from '../cards/card';
+import { type Card, cardCode, cardRank, cardSuit, isJoker } from '../cards/card';
 import { ExprError } from '../errors';
 import {
   type ExprFunction,
@@ -33,7 +33,13 @@ export interface ScopeContext {
 const fn = (f: (...args: Value[]) => Value): ExprFunction => f;
 
 export function cardObject(card: Card): ExprObject {
-  return { id: card.id, suit: cardSuit(card), rank: cardRank(card), isJoker: isJoker(card) };
+  return {
+    id: card.id,
+    code: cardCode(card),
+    suit: cardSuit(card),
+    rank: cardRank(card),
+    isJoker: isJoker(card),
+  };
 }
 
 /** A pile of cards: count, top, cards and a few questions about them. */
@@ -61,6 +67,8 @@ function cardsObject(
         return fn((rank) => cards.some((c) => cardRank(c) === rank));
       case 'countRank':
         return fn((rank) => cards.filter((c) => cardRank(c) === rank).length);
+      case 'hasCard':
+        return fn((code) => cards.some((c) => cardCode(c) === code));
       default:
         return extra(name);
     }
@@ -80,6 +88,8 @@ function trickObject(trick: TrickState | null): ExprObject {
     switch (name) {
       case 'leader':
         return trick?.leader ?? null;
+      case 'number':
+        return trick?.number ?? null;
       case 'winner':
         return trick?.winner ?? null;
       case 'ledSuit': {
@@ -172,12 +182,21 @@ function teamObject(state: GameState, id: number): ExprObject {
 
 const RANK_NUMBER: Record<string, number> = { A: 1, J: 11, Q: 12, K: 13, JOKER: 0 };
 
-/** Point value of a card from scoring.cardValue (or its rank number if there's no entry). */
+/**
+ * Point value of a card from scoring.cardValue. The most specific entry wins:
+ * the card itself ("QS"), then its rank ("Q"), then its suit ("spades"), then
+ * "default"; with none of those, its rank number.
+ */
 export function cardValue(state: GameState, card: Value): number {
-  const rank = isObject(card) ? getProperty(card, 'rank') : null;
-  if (typeof rank !== 'string') throw new ExprError('cardValue needs a card');
+  const get = (name: string) => (isObject(card) ? getProperty(card, name) : null);
+  const [code, rank, suit] = [get('code'), get('rank'), get('suit')];
+  if (typeof rank !== 'string') {
+    throw new ExprError('cardValue needs a card');
+  }
   const table = state.file.scoring.cardValue ?? {};
-  const value = table[rank] ?? table.default ?? 'rankNumber';
+  const entry = (key: unknown) =>
+    typeof key === 'string' && Object.hasOwn(table, key) ? table[key] : undefined;
+  const value = entry(code) ?? entry(rank) ?? entry(suit) ?? table.default ?? 'rankNumber';
   if (typeof value === 'number') return value;
   return RANK_NUMBER[rank] ?? Number(rank);
 }
@@ -199,10 +218,29 @@ function numbersFrom(name: string, list: Value, per?: Value): number[] {
 const sum = fn((list, per) => numbersFrom('sum', list, per).reduce((a, b) => a + b, 0));
 const min = fn((list, per) => Math.min(...numbersFrom('min', list, per)));
 const max = fn((list, per) => Math.max(...numbersFrom('max', list, per)));
+/** Seat whose hand holds the card with this code ("2C"), or null if nobody's does. */
+function holderOf(state: GameState): ExprFunction {
+  return fn((code) => {
+    const holder = state.players.find(
+      (p) => p.active && (state.zones[`hand@${p.id}`] ?? []).some((c) => cardCode(c) === code),
+    );
+    return holder?.id ?? null;
+  });
+}
+
 const abs = fn((n) => {
   if (typeof n !== 'number') throw new ExprError('abs() needs a number');
   return Math.abs(n);
 });
+
+/**
+ * The same scope with `card` set, for checking many cards against one rule
+ * without rebuilding everything else each time.
+ */
+export function withCard(scope: Scope, card: Card): Scope {
+  const object = cardObject(card);
+  return { ...scope, lookup: (name) => (name === 'card' ? object : scope.lookup(name)) };
+}
 
 export function buildScope(state: GameState, ctx: ScopeContext = {}): Scope {
   const team = ctx.team ?? (ctx.player === undefined ? undefined : state.players[ctx.player]?.team);
@@ -235,6 +273,8 @@ export function buildScope(state: GameState, ctx: ScopeContext = {}): Scope {
         return max;
       case 'abs':
         return abs;
+      case 'holderOf':
+        return holderOf(state);
     }
     // Zones: shared zones by name; per-player/per-team zones mean "this player's/team's".
     const def = Object.hasOwn(state.file.zones, name) ? state.file.zones[name] : undefined;

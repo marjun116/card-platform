@@ -2,6 +2,7 @@
 import { applyMove } from '../api';
 import { type Card, isRank, isSuit, type Suit, suitedCard } from '../cards/card';
 import type { Move, PlayerId } from '../game/move';
+import { enterPhase, settle } from '../game/flow';
 import { draft, type GameState } from '../game/state';
 
 const SUIT_BY_LETTER: Record<string, Suit> = {
@@ -59,3 +60,15 @@ export const current = (state: GameState): PlayerId =>
 
 export const hand = (state: GameState, seat: PlayerId) =>
   (state.zones[`hand@${seat}`] ?? []).map((c) => c.id);
+
+/**
+ * Starts the current phase again: for tests that changed the hands with
+ * withZones and need the first player worked out from the new hands (e.g.
+ * whoever holds the 2♣).
+ */
+export function restartPhase(state: GameState): GameState {
+  const next = draft(state);
+  enterPhase(next, next.cursor.phase);
+  settle(next);
+  return next;
+}

@@ -110,7 +110,7 @@ export function TableView({
 
   const lastLog = view.log[view.log.length - 1];
   const announcement = [
-    lastLog ? describeMove(lastLog, names) : null,
+    lastLog ? describeMove(lastLog, names, view.choiceLabels) : null,
     yourTurn && !paused ? turnPrompt(controls) : null,
   ]
     .filter(Boolean)
@@ -255,7 +255,13 @@ export function TableView({
               )}
             </div>
             {/* Decisions that don't use a card from your hand go where you're already looking. */}
-            <DecisionPanel controls={controls} names={names} busy={busy} onMove={act} />
+            <DecisionPanel
+              controls={controls}
+              names={names}
+              choices={view.choiceLabels}
+              busy={busy}
+              onMove={act}
+            />
           </div>
           {view.lastTrick && view.lastTrick !== view.trick && (
             <button
@@ -287,7 +293,7 @@ export function TableView({
                 .slice(-30)
                 .reverse()
                 .map((move, i) => (
-                  <li key={view.log.length - i}>{describeMove(move, names)}</li>
+                  <li key={view.log.length - i}>{describeMove(move, names, view.choiceLabels)}</li>
                 ))}
             </ol>
           </section>

@@ -25,4 +25,10 @@ export {
   type ValidationResult,
 } from './schema/validate';
 export type { Scores } from './scoring';
-export type { PlayerView, PublicMove, TrickView, ZoneView } from './view';
+export {
+  choiceLabelsOf,
+  type PlayerView,
+  type PublicMove,
+  type TrickView,
+  type ZoneView,
+} from './view';

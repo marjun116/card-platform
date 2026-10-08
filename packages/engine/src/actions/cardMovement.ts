@@ -1,4 +1,6 @@
 import { GameFileError } from '../errors';
+import { resolveSetting } from '../game/settings';
+import { PASS_DIRECTIONS } from '../schema/gameFile';
 import type { Move, PlayerId } from '../game/move';
 import {
   type GameState,
@@ -86,16 +88,27 @@ export function applyPickUp(state: GameState, move: Move, action: PickUpPileActi
 
 // ---- pass cards to another player ----
 
+type Direction = (typeof PASS_DIRECTIONS)[number];
+
+/**
+ * Where the rotating patterns pass each round (null = hold). "across" only
+ * exists with four players.
+ */
+function rotation(direction: 'rotate' | 'rotateNoHold', players: number): (Direction | null)[] {
+  const across: (Direction | null)[] = players === 4 ? ['across'] : [];
+  return ['left', 'right', ...across, ...(direction === 'rotate' ? [null] : [])];
+}
+
 /** Who receives this player's passed cards, or null for a "hold" round. */
 export function passTarget(
   state: GameState,
   player: PlayerId,
-  direction: PassDirection,
+  setting: PassDirection,
 ): PlayerId | null {
+  const direction = resolveSetting(state, setting, PASS_DIRECTIONS, 'Pass direction');
   const active = state.players.filter((p) => p.active).length;
-  if (direction === 'rotate') {
-    const cycle: (PassDirection | null)[] =
-      active === 4 ? ['left', 'right', 'across', null] : ['left', 'right', null];
+  if (direction === 'rotate' || direction === 'rotateNoHold') {
+    const cycle = rotation(direction, active);
     const turn = cycle[(state.round - 1) % cycle.length] ?? null;
     return turn && passTarget(state, player, turn);
   }

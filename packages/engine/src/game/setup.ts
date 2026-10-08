@@ -1,7 +1,9 @@
+import type { Card } from '../cards/card';
 import { buildDeck } from '../cards/deck';
 import { applySet } from '../effects';
 import { GameFileError, SetupError } from '../errors';
-import { compile, evaluateNumber } from '../expr/evaluate';
+import { cardCode } from '../cards/card';
+import { compile, evaluateCondition, evaluateNumber } from '../expr/evaluate';
 import type { Node } from '../expr/parser';
 import { randomInt, seedRng, shuffle } from '../rng';
 import { enterPhase, settle } from './flow';
@@ -170,6 +172,16 @@ function resolveOptions(
   return resolved;
 }
 
+/** The deck minus `deck.remove` cards (every copy) whose condition holds. */
+function withoutRemoved(state: GameState, deck: Card[]): Card[] {
+  const removed = new Set(
+    (state.file.deck.remove ?? [])
+      .filter((r) => !r.if || evaluateCondition(r.if, buildScope(state)))
+      .flatMap((r) => r.cards),
+  );
+  return removed.size === 0 ? deck : deck.filter((card) => !removed.has(cardCode(card)));
+}
+
 /** Collects all cards, shuffles, deals and flips for a new round, then starts the first phase. */
 export function startRound(state: GameState): void {
   const { file } = state;
@@ -203,7 +215,7 @@ export function startRound(state: GameState): void {
     }
   }
 
-  const deck = buildDeck(file.deck);
+  const deck = withoutRemoved(state, buildDeck(file.deck));
   if (file.setup.shuffle !== false) shuffle(deck, state.rng);
 
   // Deal one card at a time, starting left of the dealer.

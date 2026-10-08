@@ -7,11 +7,13 @@ import { applyAction } from '../actions';
 import { allowsCard } from '../actions/common';
 import { runEffects, setVar } from '../effects';
 import { GameFileError, IllegalMoveError } from '../errors';
-import { evaluateCondition } from '../expr/evaluate';
+import { evaluate, evaluateCondition } from '../expr/evaluate';
+import { LEADER_FIRST } from '../schema/gameFile';
 import { scoreRound } from '../scoring';
 import { findCard } from './cards';
 import { type Candidate, candidates, currentPhase, isTrickPhase, turnSteps } from './legal';
 import type { Move, PlayerId } from './move';
+import type { PhaseDef } from './types';
 import { buildScope } from './scope';
 import { endsRoundWhenEmpty } from './zones';
 import { startRound } from './setup';
@@ -208,6 +210,7 @@ function startTrick(state: GameState, leader: PlayerId): void {
   state.trick = {
     zone: zoneKey(state, trickZoneName(state), leader),
     leader,
+    number: state.cursor.tricks + 1,
     plays: [],
     winner: null,
   };
@@ -252,11 +255,15 @@ export function enterPhase(state: GameState, index: number): void {
     return;
   }
   const phase = phases[index] as (typeof phases)[number];
-  const order = phase.leader?.first ?? phase.order ?? 'leftOfDealer';
+  const order = startingOrder(state, phase);
   const direction: 1 | -1 = order === 'counterclockwise' ? -1 : 1;
   const dealerActive = state.players[state.dealer]?.active ?? false;
   const first =
-    order === 'dealer' && dealerActive ? state.dealer : nextActive(state, state.dealer, direction);
+    typeof order === 'number'
+      ? order
+      : order === 'dealer' && dealerActive
+        ? state.dealer
+        : nextActive(state, state.dealer, direction);
 
   state.cursor = {
     phase: index,
@@ -270,6 +277,32 @@ export function enterPhase(state: GameState, index: number): void {
   };
   state.trick = null;
   if (isTrickPhase(phase)) startTrick(state, first);
+}
+
+/**
+ * Who starts the phase: `leader.first` if given (a name, or an expression
+ * giving a name or a seat, such as holderOf('2C'); null means left of the
+ * dealer), otherwise the phase's `order`.
+ */
+function startingOrder(
+  state: GameState,
+  phase: PhaseDef,
+): NonNullable<PhaseDef['order']> | PlayerId {
+  const setting = phase.leader?.first;
+  if (setting === undefined) return phase.order ?? 'leftOfDealer';
+  if ((LEADER_FIRST as readonly string[]).includes(setting)) {
+    return setting as (typeof LEADER_FIRST)[number];
+  }
+  const value = evaluate(setting, buildScope(state));
+  if (value === null) return 'leftOfDealer';
+  if (typeof value === 'number' && state.players[value]?.active) return value;
+  if (typeof value === 'string' && (LEADER_FIRST as readonly string[]).includes(value)) {
+    return value as (typeof LEADER_FIRST)[number];
+  }
+  throw new GameFileError(
+    `leader.first "${setting}" gave ${JSON.stringify(value)}; expected an active seat, ` +
+      `${LEADER_FIRST.join(' or ')}`,
+  );
 }
 
 function endPhase(state: GameState): void {

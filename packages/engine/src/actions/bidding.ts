@@ -2,7 +2,8 @@ import { SUITS } from '../cards/card';
 import { GameFileError } from '../errors';
 import type { BidValue, Move, PlayerId } from '../game/move';
 import type { GameState, PlayerState } from '../game/state';
-import type { BidAction, DeclareTrumpAction, PassBidAction } from '../game/types';
+import { setVar } from '../effects';
+import type { BidAction, ChooseAction, DeclareTrumpAction, PassBidAction } from '../game/types';
 import { type ActionResult, allowsCard } from './common';
 
 function bidValues(action: BidAction): BidValue[] {
@@ -31,6 +32,16 @@ export function declareTrumpMoves(
 ): Move[] {
   if (!allowsCard(state, player, action)) return [];
   return (action.suits ?? SUITS).map((suit) => ({ player, type: 'declareTrump', suit }));
+}
+
+export function chooseMoves(state: GameState, player: PlayerId, action: ChooseAction): Move[] {
+  if (!allowsCard(state, player, action)) return [];
+  return action.values.map((value) => ({ player, type: 'choose', value }));
+}
+
+export function applyChoose(state: GameState, move: Move, action: ChooseAction): ActionResult {
+  if (move.type === 'choose') setVar(state, action.set, move.value);
+  return {};
 }
 
 export function applyBid(state: GameState, move: Move): ActionResult {

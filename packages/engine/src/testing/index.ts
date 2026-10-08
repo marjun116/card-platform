@@ -3,5 +3,6 @@
  * Not part of the engine's main API.
  */
 export * from './helpers';
+export { draft } from '../game/state';
 export * from './simulate';
 export { randomInt, seedRng } from '../rng';

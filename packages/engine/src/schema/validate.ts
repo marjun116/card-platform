@@ -7,7 +7,7 @@
  *   phases[1] ("play").actions[0].to: zone "tricks" doesn't exist
  */
 import type { z } from 'zod';
-import { isRank, isSuit, RANKS, SUITS } from '../cards/card';
+import { isCardCode, isRank, isSuit, parseCardCode, RANKS, SUITS } from '../cards/card';
 import { ExprError } from '../errors';
 import { compile, walk } from '../expr/evaluate';
 import type { Node } from '../expr/parser';
@@ -19,7 +19,7 @@ import type {
   ScoreRuleDef,
   ZoneDef,
 } from '../game/types';
-import { gameFileSchema } from './gameFile';
+import { gameFileSchema, LEADER_FIRST, PASS_DIRECTIONS, TIES } from './gameFile';
 
 export interface ValidationIssue {
   /** Where in the file, e.g. 'phases[1] ("play").actions[0].to'. */
@@ -166,12 +166,15 @@ const PLAYER_PROPS = [
   'hasLegalPlay',
 ];
 const TEAM_PROPS = ['id', 'score', 'tricks', 'bid', 'players'];
-const CARD_PROPS = ['id', 'suit', 'rank', 'isJoker'];
+const CARD_PROPS = ['id', 'code', 'suit', 'rank', 'isJoker'];
 const ZONE_PROPS = ['count', 'top', 'cards'];
 const SUIT_FUNCTIONS = ['containsSuit', 'onlySuit', 'countSuit'];
 const RANK_FUNCTIONS = ['hasRank', 'countRank'];
-const TRICK_PROPS = ['leader', 'winner', 'ledSuit'];
-const FUNCTIONS = ['cardValue', 'sum', 'min', 'max', 'abs'];
+/** Functions taking a card code such as "QS". */
+const CODE_FUNCTIONS = ['hasCard', 'holderOf'];
+const TRICK_PROPS = ['leader', 'winner', 'ledSuit', 'number'];
+const FUNCTIONS = ['cardValue', 'sum', 'min', 'max', 'abs', 'holderOf'];
+const CODE_HINT = 'use a rank and suit letter, e.g. "QS", "10H", "2C", or JOKER';
 const QUANTIFIER_KIND: Record<string, Kind> = {
   anyPlayer: 'player',
   everyPlayer: 'player',
@@ -266,6 +269,20 @@ class Checker {
           `The default ${JSON.stringify(option.default)} isn't one of the values`,
         );
       }
+      const values = option.type === 'boolean' ? [true, false] : (option.values ?? []);
+      this.checkLabels(option.labels, values.map(String), [...path, 'labels']);
+    }
+  }
+
+  private checkLabels(
+    labels: Record<string, string> | undefined,
+    values: readonly string[],
+    path: Path,
+  ): void {
+    for (const key of Object.keys(labels ?? {})) {
+      if (!values.includes(key)) {
+        this.error([...path, key], `"${key}" isn't one of the values (${values.join(', ')})`);
+      }
     }
   }
 
@@ -291,12 +308,34 @@ class Checker {
     }
   }
 
+  /** Cards in the deck, after removals that always apply. */
   private deckSize(): number {
-    const { copies = 1, ranks = RANKS, suits = SUITS, jokers = 0 } = this.file.deck;
-    return copies * (ranks.length * suits.length + jokers);
+    const { copies = 1, ranks = RANKS, suits = SUITS, jokers = 0, remove = [] } = this.file.deck;
+    const always = new Set(remove.filter((r) => !r.if).flatMap((r) => r.cards));
+    const removed = [...always].filter((code) => this.inDeck(code)).length;
+    return copies * (ranks.length * suits.length + jokers - removed);
+  }
+
+  /** Is this suited card (by code) in the deck, before removals? */
+  private inDeck(code: string): boolean {
+    const { ranks = RANKS, suits = SUITS } = this.file.deck;
+    const card = parseCardCode(code);
+    return card !== null && ranks.includes(card.rank) && suits.includes(card.suit);
   }
 
   private checkDeck(): void {
+    (this.file.deck.remove ?? []).forEach((removal, i) => {
+      const path = ['deck', 'remove', i];
+      if (removal.if) this.checkExpr(removal.if, [...path, 'if'], NO_CONTEXT);
+      removal.cards.forEach((code, j) => {
+        if (parseCardCode(code) === null) {
+          // Jokers are left out with "jokers": 0, not removed here.
+          this.error([...path, 'cards', j], `"${code}" isn't a card (use e.g. "2D" or "10H")`);
+        } else if (!this.inDeck(code)) {
+          this.warn([...path, 'cards', j], `${code} isn't in the deck anyway`);
+        }
+      });
+    });
     const { deal, flip } = this.file.setup;
     if (typeof deal.count !== 'number') return;
     const [, max] = this.playerRange();
@@ -407,6 +446,9 @@ class Checker {
     }
     if (phase.if) this.checkExpr(phase.if, [...path, 'if'], NO_CONTEXT);
     if (phase.until) this.checkExpr(phase.until, [...path, 'until'], PLAYER);
+    if (phase.leader?.first !== undefined) {
+      this.checkSetting(phase.leader.first, LEADER_FIRST, [...path, 'leader', 'first']);
+    }
 
     const actions = [
       ...(phase.actions ?? []).map((a, i) => ({ action: a, path: [...path, 'actions', i] })),
@@ -487,6 +529,15 @@ class Checker {
             PLAYER,
           );
         }
+        action.restrictions?.forEach((r, i) => {
+          const where = [...path, 'restrictions', i];
+          if (r.if) this.checkExpr(r.if, [...where, 'if'], PLAYER);
+          if ((r.mustPlay === undefined) === (r.cannotPlay === undefined)) {
+            this.error(where, 'Give exactly one of "mustPlay" or "cannotPlay"');
+          }
+          if (r.mustPlay) this.checkExpr(r.mustPlay, [...where, 'mustPlay'], PLAYER_CARD);
+          if (r.cannotPlay) this.checkExpr(r.cannotPlay, [...where, 'cannotPlay'], PLAYER_CARD);
+        });
         break;
       case 'draw': {
         this.zone(action.from, [...path, 'from'], { per: 'any' });
@@ -505,6 +556,14 @@ class Checker {
       }
       case 'pass':
         hand(action.from);
+        this.checkSetting(action.direction, PASS_DIRECTIONS, [...path, 'direction']);
+        break;
+      case 'choose':
+        this.checkStatePath(action.set, [...path, 'set']);
+        this.checkLabels(action.labels, action.values, [...path, 'labels']);
+        if (new Set(action.values).size !== action.values.length) {
+          this.error([...path, 'values'], 'Each choice must be different');
+        }
         break;
       case 'meld':
       case 'layOff':
@@ -575,6 +634,11 @@ class Checker {
     }
   }
 
+  /** A setting that is one of `allowed`, or an expression giving one of them. */
+  private checkSetting(value: string, allowed: readonly string[], path: Path): void {
+    if (!allowed.includes(value)) this.checkExpr(value, path, NO_CONTEXT);
+  }
+
   private checkStatePath(path: string, where: Path): void {
     if (!/^state\.[A-Za-z_][A-Za-z0-9_]*$/.test(path)) {
       this.error(where, `Can only set custom values written as "state.<name>", not "${path}"`);
@@ -600,10 +664,10 @@ class Checker {
       this.checkRule(rule, ['scoring', 'perPlayer', i], PLAYER, false),
     );
     for (const key of Object.keys(cardValue)) {
-      if (!isRank(key) && key !== 'JOKER' && key !== 'default') {
+      if (!isRank(key) && !isSuit(key) && !isCardCode(key) && key !== 'default') {
         this.error(
           ['scoring', 'cardValue', key],
-          `"${key}" isn't a rank (use 2–10, J, Q, K, A, JOKER or default)`,
+          `"${key}" isn't a card ("QS"), rank ("Q"), suit ("spades"), JOKER or default`,
         );
       }
     }
@@ -619,8 +683,9 @@ class Checker {
   }
 
   private checkEnd(): void {
-    const { when, winner } = this.file.endCondition;
+    const { when, winner, ties } = this.file.endCondition;
     const ast = this.checkExpr(when, ['endCondition', 'when'], NO_CONTEXT);
+    if (ties !== undefined) this.checkSetting(ties, TIES, ['endCondition', 'ties']);
     if (winner === 'lastActivePlayer' && !this.file.elimination) {
       this.warn(
         ['endCondition', 'winner'],
@@ -702,7 +767,7 @@ class Checker {
       case 'call':
         this.kindOf(node.callee, ctx, problems);
         node.args.forEach((arg) => this.kindOf(arg, ctx, problems));
-        if (node.callee.kind === 'member')
+        if (node.callee.kind === 'member' || node.callee.kind === 'name')
           this.checkCallArgs(node.callee.name, node.args, problems);
         return 'value';
       case 'name':
@@ -773,6 +838,7 @@ class Checker {
       ...ZONE_PROPS,
       ...SUIT_FUNCTIONS,
       ...RANK_FUNCTIONS,
+      'hasCard',
       ...extra,
     ];
     const zoneResult = (p: string): Kind =>
@@ -827,6 +893,9 @@ class Checker {
       if (RANK_FUNCTIONS.includes(fn) && !isRank(arg.value) && arg.value !== 'JOKER') {
         problems.push(`"${arg.value}" isn't a rank (use 2–10, J, Q, K, A or JOKER)`);
       }
+      if (CODE_FUNCTIONS.includes(fn) && !isCardCode(arg.value)) {
+        problems.push(`"${arg.value}" isn't a card (${CODE_HINT})`);
+      }
     }
   }
 
@@ -834,7 +903,7 @@ class Checker {
   private checkComparison(node: Extract<Node, { kind: 'binary' }>, problems: string[]): void {
     if (node.op !== '==' && node.op !== '!=' && node.op !== 'in') return;
     const field = (n: Node) =>
-      n.kind === 'member' && (n.name === 'suit' || n.name === 'rank') ? n.name : null;
+      n.kind === 'member' && ['suit', 'rank', 'code'].includes(n.name) ? n.name : null;
     const literals = (n: Node): string[] =>
       n.kind === 'lit' && typeof n.value === 'string'
         ? [n.value]
@@ -854,6 +923,9 @@ class Checker {
         }
         if (kind === 'rank' && !isRank(value) && value !== 'JOKER') {
           problems.push(`"${value}" isn't a rank (use 2–10, J, Q, K, A or JOKER)`);
+        }
+        if (kind === 'code' && !isCardCode(value)) {
+          problems.push(`"${value}" isn't a card (${CODE_HINT})`);
         }
       }
     }

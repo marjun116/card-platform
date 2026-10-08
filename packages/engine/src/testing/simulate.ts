@@ -218,8 +218,12 @@ export function findHiddenCardLeak(state: GameState): string | null {
     for (const card of state.passing.flat()) hidden.set(card.id, 'cards being passed');
 
     const view = JSON.stringify({ ...viewFor(state, viewer.id), log: [], lastTrick: null });
+    // Every card id anywhere in the view, collected once ("QS.0", "10H.1", "JOKER.0").
+    const shown = new Set(
+      view.match(/(?<=")(?:10|[2-9JQKA])[CDHS]\.\d+(?=")|(?<=")JOKER\.\d+(?=")/g),
+    );
     for (const [id, where] of hidden) {
-      if (view.includes(`"${id}"`)) return `Player ${viewer.id} can see ${id} (in ${where})`;
+      if (shown.has(id)) return `Player ${viewer.id} can see ${id} (in ${where})`;
     }
   }
   return null;

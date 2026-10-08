@@ -101,6 +101,19 @@ describe('buildControls', () => {
       'Your turn: draw a card or choose a card.',
     );
     expect(turnPrompt(buildControls([{ player: p, type: 'endTurn' }]))).toBe('Your turn.');
+    const choice: Move = { player: p, type: 'choose', value: 'othersGet26' };
+    expect(turnPrompt(buildControls([choice]))).toBe('Your turn: make your choice.');
+  });
+
+  it('puts named choices in their own group in the middle of the table', () => {
+    const choices: Move[] = [
+      { player: p, type: 'choose', value: 'othersGet26' },
+      { player: p, type: 'choose', value: 'shooterMinus26' },
+    ];
+    const controls = buildControls(choices);
+    expect(controls.choices).toEqual(choices);
+    expect(controls.other).toEqual([]);
+    expect(hasDecisions(controls)).toBe(true);
   });
 
   it('knows which moves belong in the middle of the table', () => {

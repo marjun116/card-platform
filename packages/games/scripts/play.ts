@@ -12,6 +12,7 @@ import {
   applyMove,
   type Card,
   cardLabel,
+  choiceLabelsOf,
   createGame,
   type GameFile,
   type GameState,
@@ -76,6 +77,8 @@ for (const pair of args.option ?? []) {
           : raw;
 }
 
+const choiceLabels = choiceLabelsOf(file);
+
 const [minPlayers] = Array.isArray(file.meta.players) ? file.meta.players : [file.meta.players];
 const playerCount = Number(args.players ?? minPlayers);
 const you = Number(args.seat ?? 0);
@@ -86,7 +89,10 @@ const seed = args.seed ?? `game-${Date.now()}`;
 function seatName(seat: number): string {
   if (seat === you) return 'You';
   if (playerCount === 4)
-    return ['Left', 'Partner', 'Right'][(seat - you + 3) % 4] ?? `Seat ${seat}`;
+    return (
+      ['Left', file.meta.teams ? 'Partner' : 'Across', 'Right'][(seat - you + 3) % 4] ??
+      `Seat ${seat}`
+    );
   return `Seat ${seat}`;
 }
 
@@ -130,6 +136,8 @@ function describeMove(move: Move): string {
     case 'declareTrump':
     case 'chooseSuit':
       return `choose ${move.suit}`;
+    case 'choose':
+      return `choose ${choiceLabels[move.value] ?? move.value}`;
     case 'endTurn':
       return 'end your turn';
   }

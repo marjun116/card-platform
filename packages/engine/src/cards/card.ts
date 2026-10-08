@@ -59,3 +59,31 @@ export function cardLabel(card: Card): string {
   const symbol = { clubs: '♣', diamonds: '♦', hearts: '♥', spades: '♠' }[card.suit];
   return `${card.rank}${symbol}`;
 }
+
+const SUIT_BY_LETTER: Record<string, Suit> = {
+  C: 'clubs',
+  D: 'diamonds',
+  H: 'hearts',
+  S: 'spades',
+};
+
+/**
+ * Short code naming a card regardless of deck copy, as game files write it:
+ * "QS" (queen of spades), "10H", "2C", or "JOKER".
+ */
+export type CardCode = string;
+
+export function cardCode(card: Card): CardCode {
+  return isJoker(card) ? 'JOKER' : `${card.rank}${SUIT_LETTER[card.suit]}`;
+}
+
+/** The rank and suit a code names, or null if it isn't a card code. */
+export function parseCardCode(code: string): { rank: Rank; suit: Suit } | null {
+  const rank = code.slice(0, -1);
+  const suit = SUIT_BY_LETTER[code.slice(-1)];
+  return isRank(rank) && suit ? { rank, suit } : null;
+}
+
+export function isCardCode(code: string): boolean {
+  return code === 'JOKER' || parseCardCode(code) !== null;
+}

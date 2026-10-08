@@ -1,4 +1,4 @@
-import type { OptionValue } from '@card-table/engine';
+import type { OptionDef, OptionValue } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
 import { useState } from 'react';
 import { api } from '../api';
@@ -6,7 +6,9 @@ import { useLoad } from '../useLoad';
 import type { Outgoing, TableConnection } from './connection';
 import { humanize } from './zones';
 
-function optionText(value: OptionValue): string {
+function optionText(value: OptionValue, def: OptionDef | undefined): string {
+  const label = def?.labels?.[String(value)];
+  if (label) return label;
   if (value === true) return 'On';
   if (value === false) return 'Off';
   return String(value);
@@ -176,7 +178,7 @@ export function Lobby({
               {Object.entries(table.options).map(([name, value]) => (
                 <div key={name}>
                   <dt>{optionDefs?.[name]?.label ?? humanize(name)}</dt>
-                  <dd>{optionText(value)}</dd>
+                  <dd>{optionText(value, optionDefs?.[name])}</dd>
                 </div>
               ))}
             </dl>

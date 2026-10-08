@@ -477,7 +477,7 @@ describe('validate', () => {
         'setup.deal.count: Unexpected end of expression',
         'scoring.perPlayer[0].if: Unknown name "x".',
         'scoring.perPlayer[0].track.t: Unknown name "y".',
-        'scoring.cardValue.1: "1" isn\'t a rank (use 2–10, J, Q, K, A, JOKER or default)',
+        'scoring.cardValue.1: "1" isn\'t a card ("QS"), rank ("Q"), suit ("spades"), JOKER or default',
         'elimination.when: A player has no "scroe". Did you mean "score"?',
       ]);
     });

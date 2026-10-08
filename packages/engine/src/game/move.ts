@@ -19,6 +19,7 @@ export type Move =
   | { player: PlayerId; type: 'passBid' }
   | { player: PlayerId; type: 'declareTrump'; suit: Suit }
   | { player: PlayerId; type: 'chooseSuit'; suit: Suit }
+  | { player: PlayerId; type: 'choose'; value: string }
   | { player: PlayerId; type: 'lookAtHand' }
   | { player: PlayerId; type: 'endTurn' };
 
@@ -47,6 +48,8 @@ export function moveKey(move: Move): string {
     case 'declareTrump':
     case 'chooseSuit':
       return `${base}|${move.suit}`;
+    case 'choose':
+      return `${base}|${move.value}`;
     case 'passBid':
     case 'lookAtHand':
     case 'endTurn':

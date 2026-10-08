@@ -20,6 +20,8 @@ export interface Controls {
   bids: { value: BidValue; move: Move }[];
   /** Suit choices: declaring trump or picking a suit after a wild card. */
   suits: { suit: Suit; move: Move }[];
+  /** Named choices from a `choose` action, e.g. how to score shooting the moon. */
+  choices: Move[];
   /** Everything else with no card: pass the bid, look at hand, end turn. */
   other: Move[];
   /** True if there's any move at all. */
@@ -34,6 +36,7 @@ export function buildControls(moves: Move[]): Controls {
     groupCards: new Set(),
     bids: [],
     suits: [],
+    choices: [],
     other: [],
     any: moves.length > 0,
   };
@@ -60,6 +63,9 @@ export function buildControls(moves: Move[]): Controls {
       case 'declareTrump':
       case 'chooseSuit':
         controls.suits.push({ suit: move.suit, move });
+        break;
+      case 'choose':
+        controls.choices.push(move);
         break;
       case 'passBid':
       case 'lookAtHand':
@@ -123,6 +129,7 @@ export function hasDecisions(controls: Controls): boolean {
   return (
     controls.bids.length > 0 ||
     controls.suits.length > 0 ||
+    controls.choices.length > 0 ||
     controls.byPile.size > 0 ||
     controls.other.length > 0
   );
@@ -135,6 +142,7 @@ export function turnPrompt(controls: Controls): string {
   if (controls.suits.length > 0) {
     tasks.push(controls.suits[0]?.move.type === 'declareTrump' ? 'choose trump' : 'choose a suit');
   }
+  if (controls.choices.length > 0) tasks.push('make your choice');
   if (controls.byPile.size > 0) tasks.push('draw a card');
   if (controls.byCard.size > 0) tasks.push('choose a card');
   else if (controls.groups.length > 0) tasks.push('choose cards');

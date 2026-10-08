@@ -74,7 +74,10 @@ export function candidates(
     found.push({ move: { player, type: 'lookAtHand' }, step: -1, action: null });
   }
 
-  // The same move can be allowed by more than one rule; the first rule wins.
+  // The same move can be allowed by more than one rule; the first rule wins. One rule
+  // never offers the same move twice, so there's nothing to check then (passing offers
+  // hundreds of moves, so this matters).
+  if (new Set(found.flatMap((c) => (c.action ? [c.action] : []))).size <= 1) return found;
   const seen = new Set<string>();
   return found.filter((c) => {
     const key = moveKey(c.move);

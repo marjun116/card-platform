@@ -35,6 +35,8 @@ export function actionMoves(state: GameState, player: PlayerId, action: ActionDe
       return bidding.passBidMoves(state, player, action);
     case 'declareTrump':
       return bidding.declareTrumpMoves(state, player, action);
+    case 'choose':
+      return bidding.chooseMoves(state, player, action);
   }
 }
 
@@ -60,5 +62,7 @@ export function applyAction(state: GameState, move: Move, action: ActionDef): Ac
     case 'passBid':
     case 'declareTrump':
       return bidding.applyBid(state, move);
+    case 'choose':
+      return bidding.applyChoose(state, move, action);
   }
 }

@@ -8,19 +8,20 @@
  */
 import type { Move } from '@card-table/engine';
 import { isRed } from './cards';
-import { bidLabel, moveLabel, type SeatNames } from './describe';
+import { bidLabel, type ChoiceLabels, moveLabel, type SeatNames } from './describe';
 import { type Controls, groupHint, hasDecisions, movesForSelection } from './moves';
 
 interface ButtonProps {
   names: SeatNames;
+  choices?: ChoiceLabels;
   busy: boolean;
   onMove: (move: Move) => void;
 }
 
 function moveButton(
   move: Move,
-  { names, busy, onMove }: ButtonProps,
-  label = moveLabel(move, names),
+  { names, choices, busy, onMove }: ButtonProps,
+  label = moveLabel(move, names, choices),
   className?: string,
 ) {
   return (
@@ -57,6 +58,13 @@ export function DecisionPanel({ controls, ...props }: ButtonProps & { controls: 
             // The symbol is coloured, and the suit's name is always written out too.
             moveButton(move, props, undefined, `suit-button ${isRed(suit) ? 'red' : 'black'}`),
           )}
+        </fieldset>
+      )}
+
+      {controls.choices.length > 0 && (
+        <fieldset className="choice-grid">
+          <legend>Your choice</legend>
+          {controls.choices.map((move) => moveButton(move, props))}
         </fieldset>
       )}
 

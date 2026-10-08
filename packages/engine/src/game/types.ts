@@ -56,5 +56,7 @@ export type PickUpPileAction = Action<'pickUpPile'>;
 export type BidAction = Action<'bid'>;
 export type PassBidAction = Action<'passBid'>;
 export type DeclareTrumpAction = Action<'declareTrump'>;
+export type ChooseAction = Action<'choose'>;
+export type PlayRestriction = NonNullable<PlayToTrickAction['restrictions']>[number];
 export type PassDirection = PassAction['direction'];
 export type BidValues = BidAction['values'];

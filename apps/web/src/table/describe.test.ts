@@ -37,6 +37,15 @@ describe('words for moves', () => {
     expect(describeMove({ player: 2, type: 'endTurn' }, names)).toBe('You ended your turn');
   });
 
+  it("uses the game file's words for named choices", () => {
+    const choices = { shooterMinus26: 'Take 26 off my score' };
+    const minus = { player: 0, type: 'choose', value: 'shooterMinus26' } as const;
+    const plus = { player: 0, type: 'choose', value: 'othersGet26' } as const;
+    expect(moveLabel(minus, names, choices)).toBe('Take 26 off my score');
+    expect(moveLabel(plus, names, choices)).toBe('Others get26');
+    expect(describeMove(minus, names, choices)).toBe('Ana chose: Take 26 off my score');
+  });
+
   it('labels bids', () => {
     expect(bidLabel(4)).toBe('4');
     expect(bidLabel('nil')).toBe('Nil');

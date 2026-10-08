@@ -30,8 +30,15 @@ function pileText(name: string): string {
   return `the ${humanize(name).toLowerCase()}`;
 }
 
+/** Words for a `choose` value: the game file's label if it has one. */
+export type ChoiceLabels = Record<string, string>;
+
+function choiceText(value: string, choices: ChoiceLabels): string {
+  return Object.hasOwn(choices, value) ? (choices[value] as string) : humanize(value);
+}
+
 /** Label for a button that makes this move, e.g. "Play Q♠" or "Draw from the stock". */
-export function moveLabel(move: Move, names: SeatNames): string {
+export function moveLabel(move: Move, names: SeatNames, choices: ChoiceLabels = {}): string {
   switch (move.type) {
     case 'playToTrick':
       return `Play ${cardText(move.card, false)}`;
@@ -61,6 +68,8 @@ export function moveLabel(move: Move, names: SeatNames): string {
       return `${SUIT_SYMBOL[move.suit]} ${suitName(move.suit)} are trump`;
     case 'chooseSuit':
       return `${SUIT_SYMBOL[move.suit]} ${suitName(move.suit)}`;
+    case 'choose':
+      return choiceText(move.value, choices);
     case 'lookAtHand':
       return 'Look at your cards';
     case 'endTurn':
@@ -69,7 +78,11 @@ export function moveLabel(move: Move, names: SeatNames): string {
 }
 
 /** A log line, e.g. "Raj played 9 of hearts". Uses spoken card names so it reads well aloud. */
-export function describeMove(move: PublicMove, names: SeatNames): string {
+export function describeMove(
+  move: PublicMove,
+  names: SeatNames,
+  choices: ChoiceLabels = {},
+): string {
   const who = names(move.player);
   const their = who === 'You' ? 'your' : 'their';
   if ('hidden' in move) {
@@ -102,6 +115,8 @@ export function describeMove(move: PublicMove, names: SeatNames): string {
       return `${who} made ${move.suit} trump`;
     case 'chooseSuit':
       return `${who} chose ${move.suit}`;
+    case 'choose':
+      return `${who} chose: ${choiceText(move.value, choices)}`;
     case 'lookAtHand':
       return `${who} looked at ${their} cards`;
     case 'endTurn':

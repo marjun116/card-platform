@@ -34,6 +34,7 @@ Inside `phases`, each phase lists the **actions** players may take on their turn
 - **Card movement:** `draw`, `discard`, `play`, `pass`, `meld`, `layOff`, `pickUpPile`
 - **Trick-taking:** `playToTrick` with `followSuit` rules, `resolveTrick`, `breakSuit` (e.g. spades broken)
 - **Bidding:** `bid` with allowed values, `passBid`, `declareTrump`
+- **Choices:** `choose` (pick one of several named options, e.g. how to score shooting the moon)
 - **Turn control:** `nextPlayer`, `winnerLeads`, `skip`, `reverse`
 
 Actions can carry **conditions** (when the move is legal) and **effects** (what happens after). Conditions use a small expression language with fixed operators, such as `hand.count == 0` or `card.rank in ["J", "Q", "K"]`. There are no loops or arbitrary code, so a custom game can't hang or break the server.

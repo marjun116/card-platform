@@ -43,7 +43,7 @@ function OptionField({
       >
         {values.map((v, i) => (
           <option key={String(v)} value={i}>
-            {String(v)}
+            {def.labels?.[String(v)] ?? String(v)}
           </option>
         ))}
       </select>

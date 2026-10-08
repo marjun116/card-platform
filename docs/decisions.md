@@ -424,3 +424,38 @@ Agreed now, built later (see the Phase 5 checklist):
 - Running one app on its own (`pnpm --filter @card-table/server dev`) still uses pnpm's
   script runner and may still ask that question; answering either way is harmless there.
 
+
+## 2026-10-08: House rules for every built-in game (Phase 5)
+
+- Every built-in game includes its **common house rules and variants as options** chosen when
+  a table is created. Every option **defaults to the standard game**, so a table that changes
+  nothing plays the base rules.
+
+## 2026-10-08: Building blocks added for hearts
+
+General parts of the game format, added because hearts needed them; none mention hearts.
+
+- **Play restrictions** (`restrictions` on `playToTrick`): a list of
+  `{ "if", "mustPlay" | "cannotPlay" }`, checked in order after following suit. Each keeps
+  (or removes) the cards its expression matches, but is skipped if that would leave nothing
+  to play. So "can't lead hearts unless you only have hearts" is just `cannotPlay` hearts.
+  Spades still uses the older `leadRestriction`, which works the same way for leads.
+- **Card codes**: a card is written as rank + suit letter, `"QS"`, `"10H"`, `"2C"` (every
+  copy in multi-deck games). Used by `card.code`, `pile.hasCard('QS')`, `holderOf('2C')` (the
+  seat whose hand holds it, or null), `deck.remove` and `cardValue` keys.
+- **`cardValue` keys** can be a card (`"QS"`), rank (`"Q"`), suit (`"hearts"`), `JOKER` or
+  `default`; the most specific entry wins, in that order.
+- **`deck.remove`**: `[{ "if": "activePlayers.count == 3", "cards": ["2D"] }]` takes cards out
+  (every copy) when the condition holds; no `if` means always.
+- **`trick.number`**: 1 for the first trick of the phase, 2 for the second, and so on.
+- **Settings house rules can change**: pass `direction`, `leader.first` and
+  `endCondition.ties` take their usual fixed values or an expression giving one, e.g.
+  `"direction": "options.passing"`. `leader.first` may also give a seat number
+  (`holderOf('2C')`); null means left of the dealer.
+- **`rotateNoHold`** pass direction: left, right, across (four players) or left, right.
+- **`choose` action**: `{ "type": "choose", "values": [...], "labels": {...}, "set":
+  "state.x" }` lets a player pick one named choice; the pick is stored in `state.x`. The web
+  app shows choices as buttons in the middle of the table, using the labels, which reach the
+  client as `view.choiceLabels`. Euchre's "go alone" can use this too.
+- **Option `labels`**: words for option values, shown when creating a table and in the
+  lobby, e.g. `"rotate": "Left, right, across, hold"`.
