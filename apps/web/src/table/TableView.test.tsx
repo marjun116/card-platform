@@ -185,4 +185,25 @@ describe('TableView', () => {
     fireEvent.keyDown(chip, { key: 'Escape' });
     expect(chip.getAttribute('aria-expanded')).toBe('false');
   });
+
+  it('keeps the space under the hand, and puts focus back on the card after Clear', () => {
+    const state = playUntil(
+      createGame(spades, {}, 4, 'view-clear'),
+      (s) => (s.trick?.plays.length ?? 0) === 1,
+    );
+    show(state, state.cursor.current);
+    const bar = screen.getByRole('group', { name: 'Moves with your cards' });
+    expect(bar.childElementCount).toBe(0);
+
+    const card = hand()
+      .getAllByRole('button')
+      .find((c) => c.getAttribute('aria-disabled') === 'false') as HTMLElement;
+    fireEvent.click(card);
+    // The same row now holds the buttons; nothing was added around it.
+    expect(screen.getByRole('group', { name: 'Moves with your cards' })).toBe(bar);
+    fireEvent.click(screen.getByRole('button', { name: 'Clear selection' }));
+    expect(bar.childElementCount).toBe(0);
+    expect(document.activeElement).toBe(card);
+    expect(card.getAttribute('aria-pressed')).toBe('false');
+  });
 });

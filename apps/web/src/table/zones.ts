@@ -141,7 +141,7 @@ export function trickLayout(
     });
   // Start small and grow the ring until no two cards overlap.
   let rx = shape === 'tall' ? 1.0 : 1.3;
-  let ry = shape === 'tall' ? 1.5 : 1.2;
+  let ry = shape === 'tall' ? 1.5 : 1.1;
   while (cardsOverlap(ring(rx, ry))) {
     rx *= 1.05;
     ry *= 1.05;

@@ -88,6 +88,7 @@ export function Hand({
         return (
           <button
             key={card.id}
+            data-card={card.id}
             ref={(el) => {
               buttons.current[i] = el;
             }}

@@ -82,23 +82,24 @@ export function HandActions({
 }) {
   const forSelection = movesForSelection(controls, selected);
   const hints = groupHint(controls);
-  if (!hints && forSelection.length === 0 && selected.length === 0) return null;
+  const hint =
+    hints && forSelection.length === 0
+      ? `${hints
+          .map(
+            ({ type, sizes }) =>
+              `Choose ${sizes.join(' or ')} cards to ${type === 'pass' ? 'pass' : 'meld'}`,
+          )
+          .join('; ')}${selected.length > 0 ? ` (${selected.length} chosen)` : ''}.`
+      : null;
+  const empty = !hint && forSelection.length === 0 && selected.length === 0;
 
+  // Always rendered at the same height, even when empty, so selecting or clearing
+  // cards never moves anything else on the screen (which made the page jump).
   return (
     <div className="action-bar" role="group" aria-label="Moves with your cards">
-      {hints && forSelection.length === 0 && (
-        <p className="hint">
-          {hints
-            .map(
-              ({ type, sizes }) =>
-                `Choose ${sizes.join(' or ')} cards to ${type === 'pass' ? 'pass' : 'meld'}`,
-            )
-            .join('; ')}
-          {selected.length > 0 && ` (${selected.length} chosen)`}.
-        </p>
-      )}
-      {(forSelection.length > 0 || selected.length > 0) && (
-        <div className="action-row">
+      {!empty && (
+        <div className="action-row fade-in" key={selected.join(',')}>
+          {hint && <span className="hint">{hint}</span>}
           {forSelection.map((move) => moveButton(move, props, undefined, 'primary'))}
           {selected.length > 0 && (
             <button type="button" className="link-button" onClick={onClear}>
