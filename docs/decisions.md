@@ -431,6 +431,27 @@ Agreed now, built later (see the Phase 5 checklist):
   a table is created. Every option **defaults to the standard game**, so a table that changes
   nothing plays the base rules.
 
+## 2026-10-08: Hearts
+
+- **Players:** 3, 4 or 5. With 3 players the 2♦ is removed (17 cards each); with 5 the 2♦
+  and 2♠ (10 each). Six players is left out for now: sources disagree on which four cards
+  to remove.
+- **Standard rules:** pass 3 cards (left, right, across, hold; with 3 or 5 players: left,
+  right, hold). The 2♣ leads the first trick. No hearts or Q♠ on the first trick unless your
+  hand holds nothing else. Hearts can't be led until broken (unless you hold only hearts);
+  the Q♠ doesn't break hearts. Hearts 1 point each, Q♠ 13. Taking all 26 is shooting the
+  moon: 0 for the shooter, 26 for everyone else. Play to 100; lowest score wins; a tie for
+  lowest plays another hand.
+- **House rules (options):** play to 50/75/100/150; moon scoring (others +26, shooter −26,
+  or the shooter chooses); J♦ worth −10; points allowed on the first trick; Q♠ breaks
+  hearts; hearts may be led any time; passing pattern (standard, no hold round, always
+  left, no passing); first lead by the player left of the dealer (any card); tied players
+  share the win.
+- With the J♦ rule, shooting the moon still means taking all 26 heart and Q♠ points; the
+  J♦'s −10 is scored separately.
+- **Left out for now:** landing on exactly 100 resets your score; partnership hearts;
+  shooting the sun; Black Maria.
+
 ## 2026-10-08: Building blocks added for hearts
 
 General parts of the game format, added because hearts needed them; none mention hearts.
@@ -459,3 +480,5 @@ General parts of the game format, added because hearts needed them; none mention
   client as `view.choiceLabels`. Euchre's "go alone" can use this too.
 - **Option `labels`**: words for option values, shown when creating a table and in the
   lobby, e.g. `"rotate": "Left, right, across, hold"`.
+- **Simulation**: built-in games can list house-rule sets in `simulation.test.ts`
+  (`VARIANTS`); each set plays 200 extra random games, so options are tested too.

@@ -1,0 +1,184 @@
+{
+  "$schema": "../engine/game-file.schema.json",
+  "meta": {
+    "name": "Hearts",
+    "players": [3, 5],
+    "description": "Avoid hearts and the queen of spades. Lowest score wins."
+  },
+  "deck": {
+    "copies": 1,
+    "jokers": 0,
+    "remove": [
+      { "if": "activePlayers.count == 3", "cards": ["2D"] },
+      { "if": "activePlayers.count == 5", "cards": ["2D", "2S"] }
+    ]
+  },
+  "cardOrder": {
+    "ranks": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"]
+  },
+  "options": {
+    "targetScore": {
+      "label": "Play to",
+      "type": "choice",
+      "values": [50, 75, 100, 150],
+      "default": 100
+    },
+    "moon": {
+      "label": "Shooting the moon",
+      "type": "choice",
+      "values": ["othersGet26", "shooterMinus26", "shooterChooses"],
+      "labels": {
+        "othersGet26": "Everyone else gets 26",
+        "shooterMinus26": "The shooter takes 26 off",
+        "shooterChooses": "The shooter chooses"
+      },
+      "default": "othersGet26"
+    },
+    "jackOfDiamonds": {
+      "label": "Jack of diamonds is worth -10",
+      "type": "boolean",
+      "default": false
+    },
+    "pointsOnFirstTrick": {
+      "label": "Allow points on the first trick",
+      "type": "boolean",
+      "default": false
+    },
+    "queenBreaksHearts": {
+      "label": "Queen of spades breaks hearts",
+      "type": "boolean",
+      "default": false
+    },
+    "leadHeartsAnytime": {
+      "label": "Hearts may be led any time",
+      "type": "boolean",
+      "default": false
+    },
+    "passing": {
+      "label": "Passing",
+      "type": "choice",
+      "values": ["rotate", "rotateNoHold", "left", "none"],
+      "labels": {
+        "rotate": "Left, right, across, hold",
+        "rotateNoHold": "Left, right, across (no hold)",
+        "left": "Always left",
+        "none": "No passing"
+      },
+      "default": "rotate"
+    },
+    "firstLead": {
+      "label": "First lead",
+      "type": "choice",
+      "values": ["twoOfClubs", "leftOfDealer"],
+      "labels": {
+        "twoOfClubs": "2 of clubs leads",
+        "leftOfDealer": "Left of the dealer leads any card"
+      },
+      "default": "twoOfClubs"
+    },
+    "shareTies": {
+      "label": "Tied winners share the win",
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "zones": {
+    "hand": { "per": "player", "visibility": "owner" },
+    "trick": { "shared": true, "visibility": "all" },
+    "won": { "per": "player", "visibility": "none", "countVisible": true }
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": {
+      "to": "hand",
+      "count": "activePlayers.count == 3 ? 17 : activePlayers.count == 5 ? 10 : 13"
+    },
+    "dealerRotation": "left"
+  },
+  "phases": [
+    {
+      "name": "passing",
+      "if": "options.passing != 'none'",
+      "rounds": 1,
+      "actions": [{ "type": "pass", "count": 3, "direction": "options.passing" }]
+    },
+    {
+      "name": "play",
+      "leader": {
+        "first": "options.firstLead == 'twoOfClubs' ? holderOf('2C') : 'leftOfDealer'",
+        "then": "lastTrickWinner"
+      },
+      "actions": [
+        {
+          "type": "playToTrick",
+          "followSuit": true,
+          "restrictions": [
+            {
+              "if": "options.firstLead == 'twoOfClubs' && trick.number == 1 && trick.count == 0",
+              "mustPlay": "card.code == '2C'"
+            },
+            {
+              "if": "!options.leadHeartsAnytime && trick.count == 0 && !state.heartsBroken",
+              "cannotPlay": "card.suit == 'hearts'"
+            },
+            {
+              "if": "!options.pointsOnFirstTrick && trick.number == 1",
+              "cannotPlay": "card.suit == 'hearts' || card.code == 'QS'"
+            }
+          ]
+        }
+      ],
+      "afterTrick": [
+        { "resolveTrick": "highestLed" },
+        { "moveTrick": "won", "of": "winner" },
+        {
+          "set": "state.heartsBroken",
+          "if": "trick.containsSuit('hearts') || (options.queenBreaksHearts && trick.hasCard('QS'))"
+        }
+      ]
+    },
+    {
+      "name": "moon",
+      "if": "options.moon == 'shooterChooses' && sum(anyPlayer.won, cardValue) == 26",
+      "rounds": 1,
+      "actions": [
+        {
+          "type": "choose",
+          "if": "sum(player.won, cardValue) == 26",
+          "values": ["othersGet26", "shooterMinus26"],
+          "labels": {
+            "othersGet26": "Give everyone else 26",
+            "shooterMinus26": "Take 26 off my score"
+          },
+          "set": "state.moonChoice"
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "cardValue": { "hearts": 1, "QS": 13, "default": 0 },
+    "perPlayer": [
+      {
+        "if": "sum(everyPlayer.won, cardValue) < 26",
+        "add": "sum(player.won, cardValue)"
+      },
+      {
+        "if": "anyPlayer.id != player.id && sum(anyPlayer.won, cardValue) == 26 && (options.moon == 'shooterChooses' ? state.moonChoice : options.moon) == 'othersGet26'",
+        "add": 26
+      },
+      {
+        "if": "sum(player.won, cardValue) == 26 && (options.moon == 'shooterChooses' ? state.moonChoice : options.moon) == 'shooterMinus26'",
+        "add": -26
+      },
+      {
+        "if": "options.jackOfDiamonds && player.won.hasCard('JD')",
+        "add": -10
+      }
+    ]
+  },
+  "endCondition": {
+    "when": "anyPlayer.score >= options.targetScore",
+    "winner": "lowestScore",
+    "ties": "options.shareTies ? 'share' : 'playOn'"
+  }
+}
