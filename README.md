@@ -53,8 +53,12 @@ pnpm dev
 ```
 
 This starts the server on <http://127.0.0.1:3000> and the website on
-<http://localhost:5173>. The website forwards `/api/*` requests and table WebSockets to the
-server. Stop both with Ctrl+C.
+<http://localhost:5173>, with each line of output labelled `server` or `web`. The website
+forwards `/api/*` requests and table WebSockets to the server. Stop both with Ctrl+C.
+
+`pnpm dev` runs `dev.ts`, which starts both apps directly with Node. (Going through pnpm's
+usual script runner on Windows left hidden Command Prompt windows asking "Terminate batch job
+(Y/N)?" after Ctrl+C, and answering could close the terminal.)
 
 ## Test and check
 

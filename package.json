@@ -7,7 +7,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "dev": "pnpm --parallel --filter @card-table/server --filter @card-table/web dev",
+    "dev": "node dev.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit && pnpm -r typecheck",
     "test": "vitest run",

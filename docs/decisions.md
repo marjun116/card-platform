@@ -411,3 +411,16 @@ Agreed now, built later (see the Phase 5 checklist):
   link, and opening it in the same browser turns the guest into an account, keeping their
   name, seats and tables. Signed-in accounts keep Sign out.
 - House-rule values in the lobby read "On" and "Off".
+
+## 2026-10-07: `pnpm dev` on Windows
+
+- `pnpm dev` runs `dev.ts` (Node runs TypeScript directly since version 23.6), which starts
+  the server (`tsx watch`) and the website (`vite`) with Node itself and labels their output.
+- Why: pnpm runs package scripts through Command Prompt on Windows, and `tsx` and `vite`
+  start through `.cmd` files. On Ctrl+C, pnpm exited first while those batch files were still
+  asking "Terminate batch job (Y/N)?" in the same terminal, and answering could close it.
+  With no batch files involved, Ctrl+C stops both apps (each shuts down cleanly) and exits
+  without errors.
+- Running one app on its own (`pnpm --filter @card-table/server dev`) still uses pnpm's
+  script runner and may still ask that question; answering either way is harmless there.
+
