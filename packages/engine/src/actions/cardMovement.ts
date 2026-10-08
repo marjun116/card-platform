@@ -11,7 +11,7 @@ import {
   zoneInstances,
   zoneKey,
 } from '../game/state';
-import { canDraw, drawCards } from '../game/zones';
+import { canDraw, cardCount, drawCards } from '../game/zones';
 import type {
   DiscardAction,
   DrawAction,
@@ -66,8 +66,9 @@ export function applyDraw(state: GameState, move: Move, action: DrawAction): Act
     state,
     zoneKey(state, action.from, move.player),
     zoneKey(state, action.to ?? 'hand', move.player),
-    action.count ?? 1,
+    cardCount(state, action.count ?? 1, { player: move.player }),
   );
+  state.cursor.draws += drawn.length;
   return { drawn };
 }
 

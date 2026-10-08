@@ -19,7 +19,7 @@ import type {
   ScoreRuleDef,
   ZoneDef,
 } from '../game/types';
-import { gameFileSchema, LEADER_FIRST, PASS_DIRECTIONS, TIES } from './gameFile';
+import { gameFileSchema, LEADER_FIRST, PASS_DIRECTIONS, TIES, WINNERS } from './gameFile';
 
 export interface ValidationIssue {
   /** Where in the file, e.g. 'phases[1] ("play").actions[0].to'. */
@@ -152,6 +152,7 @@ type Kind =
   | 'options'
   | 'state'
   | 'activePlayers'
+  | 'turn'
   | 'value';
 
 const PLAYER_PROPS = [
@@ -189,6 +190,7 @@ const RESERVED = new Set([
   'options',
   'round',
   'activePlayers',
+  'turn',
   ...FUNCTIONS,
   ...Object.keys(QUANTIFIER_KIND),
   'true',
@@ -308,9 +310,10 @@ class Checker {
     }
   }
 
-  /** Cards in the deck, after removals that always apply. */
-  private deckSize(): number {
+  /** Cards in the deck, after removals that always apply; null if it depends on the table. */
+  private deckSize(): number | null {
     const { copies = 1, ranks = RANKS, suits = SUITS, jokers = 0, remove = [] } = this.file.deck;
+    if (typeof copies !== 'number') return null;
     const always = new Set(remove.filter((r) => !r.if).flatMap((r) => r.cards));
     const removed = [...always].filter((code) => this.inDeck(code)).length;
     return copies * (ranks.length * suits.length + jokers - removed);
@@ -324,6 +327,8 @@ class Checker {
   }
 
   private checkDeck(): void {
+    const { copies } = this.file.deck;
+    if (typeof copies === 'string') this.checkExpr(copies, ['deck', 'copies'], NO_CONTEXT);
     (this.file.deck.remove ?? []).forEach((removal, i) => {
       const path = ['deck', 'remove', i];
       if (removal.if) this.checkExpr(removal.if, [...path, 'if'], NO_CONTEXT);
@@ -341,7 +346,7 @@ class Checker {
     const [, max] = this.playerRange();
     const needed = deal.count * max + (flip ? 1 : 0);
     const size = this.deckSize();
-    if (needed > size) {
+    if (size !== null && needed > size) {
       this.error(
         ['setup', 'deal', 'count'],
         `The deck has ${size} cards, but dealing ${deal.count} to ${max} players` +
@@ -417,6 +422,7 @@ class Checker {
     for (const [key, value] of Object.entries(flip.set ?? {})) {
       this.checkSetEntry(key, value, ['setup', 'flip', 'set', key], CARD);
     }
+    if (flip.reflipIf) this.checkExpr(flip.reflipIf, ['setup', 'flip', 'reflipIf'], CARD);
   }
 
   // ---- phases and actions ----
@@ -461,7 +467,8 @@ class Checker {
     const isTrick = actions.some(({ action }) => action.type === 'playToTrick');
     // A reshuffle limit also ends the round once the reshuffles are used up.
     const endsRound = Object.values(phase.whenEmpty ?? {}).some(
-      (policy) => policy === 'endRound' || typeof policy === 'object',
+      (policy) =>
+        policy === 'endRound' || (typeof policy === 'object' && policy.limit !== undefined),
     );
     if (isTrick) {
       const after = phase.afterTrick ?? [];
@@ -549,6 +556,9 @@ class Checker {
         if (action.then && !phaseActions.some((a) => a.type === 'play')) {
           this.error([...path, 'then'], '"mayPlayDrawnCard" needs a play action in the same phase');
         }
+        if (typeof action.count === 'string') {
+          this.checkExpr(action.count, [...path, 'count'], PLAYER);
+        }
         if (action.then && (action.count ?? 1) !== 1) {
           this.error([...path, 'then'], '"mayPlayDrawnCard" only works when drawing one card');
         }
@@ -631,6 +641,7 @@ class Checker {
       const { draw, from, skip } = effect.nextPlayer;
       if (!draw && !skip) this.error([...path, 'nextPlayer'], 'Needs "draw" and/or "skip"');
       if (draw) this.zone(from ?? 'stock', [...path, 'nextPlayer', 'from'], { per: 'any' });
+      if (typeof draw === 'string') this.checkExpr(draw, [...path, 'nextPlayer', 'draw'], ctx);
     }
   }
 
@@ -657,8 +668,27 @@ class Checker {
 
   // ---- scoring and end ----
 
+  private playerValueNames(): string[] {
+    return Object.keys(this.file.scoring.playerValues ?? {});
+  }
+
   private checkScoring(): void {
-    const { perTeam = [], perPlayer = [], cardValue = {} } = this.file.scoring;
+    const { perTeam = [], perPlayer = [], cardValue = {}, playerValues = {} } = this.file.scoring;
+    const valueNames = this.playerValueNames();
+    for (const [name, source] of Object.entries(playerValues)) {
+      const path = ['scoring', 'playerValues', name];
+      if (RESERVED.has(name) || Object.hasOwn(this.file.zones, name)) {
+        this.error(path, `"${name}" is already the name of something else`);
+      }
+      const ast = this.checkExpr(source, path, PLAYER);
+      // A value using another value could go round in circles, so it isn't allowed.
+      let usesValue = false;
+      if (ast)
+        walk(ast, (node) => {
+          if (node.kind === 'name' && valueNames.includes(node.name)) usesValue = true;
+        });
+      if (usesValue) this.error(path, "A player value can't use another player value");
+    }
     perTeam.forEach((rule, i) => this.checkRule(rule, ['scoring', 'perTeam', i], TEAM, true));
     perPlayer.forEach((rule, i) =>
       this.checkRule(rule, ['scoring', 'perPlayer', i], PLAYER, false),
@@ -686,6 +716,7 @@ class Checker {
     const { when, winner, ties } = this.file.endCondition;
     const ast = this.checkExpr(when, ['endCondition', 'when'], NO_CONTEXT);
     if (ties !== undefined) this.checkSetting(ties, TIES, ['endCondition', 'ties']);
+    this.checkSetting(winner, WINNERS, ['endCondition', 'winner']);
     if (winner === 'lastActivePlayer' && !this.file.elimination) {
       this.warn(
         ['endCondition', 'winner'],
@@ -799,10 +830,12 @@ class Checker {
         return 'options';
       case 'activePlayers':
         return 'activePlayers';
+      case 'turn':
+        return 'turn';
       case 'round':
         return 'value';
     }
-    if (FUNCTIONS.includes(name)) return 'value';
+    if (FUNCTIONS.includes(name) || this.playerValueNames().includes(name)) return 'value';
     const zone = this.file.zones[name];
     if (zone) {
       if (zone.per === 'player' && !ctx.player)
@@ -821,7 +854,9 @@ class Checker {
       'options',
       'round',
       'activePlayers',
+      'turn',
       ...FUNCTIONS,
+      ...this.playerValueNames(),
       ...Object.keys(QUANTIFIER_KIND),
     ];
     problems.push(`Unknown name "${name}".${suggest(name, known)}`);
@@ -869,6 +904,8 @@ class Checker {
         return check('A list', ['count'], () => 'value');
       case 'activePlayers':
         return check('activePlayers', ['count'], () => 'value');
+      case 'turn':
+        return check('turn', ['draws'], () => 'value');
       case 'options': {
         const options = Object.keys(this.file.options ?? {});
         if (!options.includes(prop)) {

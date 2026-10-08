@@ -44,7 +44,8 @@ export const metaSchema = z.strictObject({
 });
 
 export const deckSchema = z.strictObject({
-  copies: count(1).max(6).optional(),
+  /** A number, or an expression such as "activePlayers.count >= 8 ? 2 : 1". */
+  copies: z.union([count(1).max(6), expr]).optional(),
   ranks: z.array(rank).min(1).optional(),
   suits: z.array(suit).min(1).optional(),
   jokers: count(0).max(2).optional(),
@@ -88,6 +89,8 @@ export const setupSchema = z.strictObject({
       to: name,
       triggerEffects: z.boolean().optional(),
       set: z.record(z.string(), setValue).optional(),
+      /** Put the card back in the stock (at a random spot) and turn another while this holds. */
+      reflipIf: expr.optional(),
     })
     .optional(),
   dealerRotation: z.enum(['left', 'right', 'none']).optional(),
@@ -102,7 +105,7 @@ export const effectSchema = z.strictObject({
   of: z.enum(['winner', 'winnerTeam']).optional(),
   nextPlayer: z
     .strictObject({
-      draw: count(1).optional(),
+      draw: z.union([count(1), expr]).optional(),
       from: name.optional(),
       skip: z.boolean().optional(),
     })
@@ -141,7 +144,7 @@ export const playToTrickActionSchema = action('playToTrick', {
 export const drawActionSchema = action('draw', {
   from: name,
   to: name.optional(),
-  count: count(1).optional(),
+  count: z.union([count(1), expr]).optional(),
   then: z.literal('mayPlayDrawnCard').optional(),
 });
 export const discardActionSchema = action('discard', { to: name, from: name.optional() });
@@ -244,9 +247,11 @@ export const phaseSchema = z.strictObject({
         z.enum(['reshuffleDiscardExceptTop', 'endRound']),
         // Reshuffle at most `limit` times per round; when it runs out after that, the
         // round ends. `limit` may be an expression; "unlimited" or null means no limit.
+        // With no limit the round never ends this way. `if` switches the rule on and off.
         z.strictObject({
           policy: z.literal('reshuffleDiscardExceptTop'),
-          limit: z.union([count(0), expr]),
+          limit: z.union([count(0), expr]).optional(),
+          if: expr.optional(),
         }),
       ]),
     )
@@ -264,12 +269,19 @@ export const scoringSchema = z.strictObject({
   perTeam: z.array(scoreRuleSchema).optional(),
   perPlayer: z.array(scoreRuleSchema).optional(),
   cardValue: z.record(z.string(), z.union([z.number(), z.literal('rankNumber')])).optional(),
+  /**
+   * Named values worked out for a player, used as functions:
+   * { "handValue": "sum(player.hand, cardValue)" } gives handValue(player) and
+   * sum(activePlayers, handValue).
+   */
+  playerValues: z.record(name, expr).optional(),
 });
 
 export const TIES = ['playOn', 'share'] as const;
+export const WINNERS = ['highestScore', 'lowestScore', 'lastActivePlayer'] as const;
 export const endConditionSchema = z.strictObject({
   when: expr,
-  winner: z.enum(['highestScore', 'lowestScore', 'lastActivePlayer']),
+  winner: settingOr(WINNERS),
   ties: settingOr(TIES).optional(),
 });
 

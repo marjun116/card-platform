@@ -66,22 +66,29 @@
       "type": "object",
       "properties": {
         "copies": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 6
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 6
+            },
+            {
+              "$ref": "#/$defs/__schema2"
+            }
+          ]
         },
         "ranks": {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema2"
+            "$ref": "#/$defs/__schema3"
           }
         },
         "suits": {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema3"
+            "$ref": "#/$defs/__schema4"
           }
         },
         "jokers": {
@@ -93,7 +100,7 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema4"
+            "$ref": "#/$defs/__schema5"
           }
         }
       },
@@ -106,13 +113,13 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema2"
+            "$ref": "#/$defs/__schema3"
           }
         },
         "trump": {
           "anyOf": [
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             },
             {
               "type": "string",
@@ -224,7 +231,7 @@
                   "maximum": 9007199254740991
                 },
                 {
-                  "$ref": "#/$defs/__schema5"
+                  "$ref": "#/$defs/__schema2"
                 }
               ]
             }
@@ -258,6 +265,9 @@
               "additionalProperties": {
                 "$ref": "#/$defs/__schema10"
               }
+            },
+            "reflipIf": {
+              "$ref": "#/$defs/__schema2"
             }
           },
           "required": [
@@ -318,6 +328,15 @@
               }
             ]
           }
+        },
+        "playerValues": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/__schema7"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema2"
+          }
         }
       },
       "additionalProperties": false
@@ -326,7 +345,7 @@
       "type": "object",
       "properties": {
         "when": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         }
       },
       "required": [
@@ -338,14 +357,21 @@
       "type": "object",
       "properties": {
         "when": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         },
         "winner": {
-          "type": "string",
-          "enum": [
-            "highestScore",
-            "lowestScore",
-            "lastActivePlayer"
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "highestScore",
+                "lowestScore",
+                "lastActivePlayer"
+              ]
+            },
+            {
+              "$ref": "#/$defs/__schema2"
+            }
           ]
         },
         "ties": {
@@ -358,7 +384,7 @@
               ]
             },
             {
-              "$ref": "#/$defs/__schema5"
+              "$ref": "#/$defs/__schema2"
             }
           ]
         }
@@ -395,6 +421,11 @@
     },
     "__schema2": {
       "type": "string",
+      "minLength": 1,
+      "description": "An expression, e.g. \"hand.count == 0\""
+    },
+    "__schema3": {
+      "type": "string",
       "enum": [
         "2",
         "3",
@@ -411,7 +442,7 @@
         "A"
       ]
     },
-    "__schema3": {
+    "__schema4": {
       "type": "string",
       "enum": [
         "clubs",
@@ -420,11 +451,11 @@
         "spades"
       ]
     },
-    "__schema4": {
+    "__schema5": {
       "type": "object",
       "properties": {
         "if": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         },
         "cards": {
           "minItems": 1,
@@ -438,11 +469,6 @@
         "cards"
       ],
       "additionalProperties": false
-    },
-    "__schema5": {
-      "type": "string",
-      "minLength": 1,
-      "description": "An expression, e.g. \"hand.count == 0\""
     },
     "__schema6": {
       "type": "string",
@@ -473,7 +499,7 @@
     "__schema10": {
       "anyOf": [
         {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         },
         {
           "type": "number"
@@ -491,7 +517,7 @@
           "minLength": 1
         },
         "if": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         },
         "order": {
           "type": "string",
@@ -513,7 +539,7 @@
           "maximum": 9007199254740991
         },
         "until": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         },
         "leader": {
           "type": "object",
@@ -528,7 +554,7 @@
                   ]
                 },
                 {
-                  "$ref": "#/$defs/__schema5"
+                  "$ref": "#/$defs/__schema2"
                 }
               ]
             },
@@ -588,14 +614,16 @@
                         "maximum": 9007199254740991
                       },
                       {
-                        "$ref": "#/$defs/__schema5"
+                        "$ref": "#/$defs/__schema2"
                       }
                     ]
+                  },
+                  "if": {
+                    "$ref": "#/$defs/__schema2"
                   }
                 },
                 "required": [
-                  "policy",
-                  "limit"
+                  "policy"
                 ],
                 "additionalProperties": false
               }
@@ -659,10 +687,10 @@
               "type": "object",
               "properties": {
                 "cannotLead": {
-                  "$ref": "#/$defs/__schema3"
+                  "$ref": "#/$defs/__schema4"
                 },
                 "unless": {
-                  "$ref": "#/$defs/__schema5"
+                  "$ref": "#/$defs/__schema2"
                 }
               },
               "required": [
@@ -703,9 +731,16 @@
               "$ref": "#/$defs/__schema7"
             },
             "count": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9007199254740991
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "$ref": "#/$defs/__schema2"
+                }
+              ]
             },
             "then": {
               "type": "string",
@@ -775,7 +810,7 @@
                   ]
                 },
                 {
-                  "$ref": "#/$defs/__schema5"
+                  "$ref": "#/$defs/__schema2"
                 }
               ]
             },
@@ -974,7 +1009,7 @@
               "minItems": 1,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema3"
+                "$ref": "#/$defs/__schema4"
               }
             }
           },
@@ -1020,7 +1055,7 @@
       ]
     },
     "__schema13": {
-      "$ref": "#/$defs/__schema5"
+      "$ref": "#/$defs/__schema2"
     },
     "__schema14": {
       "type": "array",
@@ -1032,7 +1067,7 @@
       "type": "object",
       "properties": {
         "if": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         },
         "set": {
           "anyOf": [
@@ -1075,9 +1110,16 @@
           "type": "object",
           "properties": {
             "draw": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 9007199254740991
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "$ref": "#/$defs/__schema2"
+                }
+              ]
             },
             "from": {
               "$ref": "#/$defs/__schema7"
@@ -1098,7 +1140,7 @@
           "type": "boolean"
         },
         "breakSuit": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         }
       },
       "additionalProperties": false
@@ -1107,13 +1149,13 @@
       "type": "object",
       "properties": {
         "if": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         },
         "mustPlay": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         },
         "cannotPlay": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         }
       },
       "additionalProperties": false
@@ -1161,12 +1203,12 @@
       "type": "object",
       "properties": {
         "if": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema2"
         },
         "add": {
           "anyOf": [
             {
-              "$ref": "#/$defs/__schema5"
+              "$ref": "#/$defs/__schema2"
             },
             {
               "type": "number"
@@ -1181,7 +1223,7 @@
           "additionalProperties": {
             "anyOf": [
               {
-                "$ref": "#/$defs/__schema5"
+                "$ref": "#/$defs/__schema2"
               },
               {
                 "type": "number"

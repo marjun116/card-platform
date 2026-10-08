@@ -1,8 +1,7 @@
-import type { Card } from '../cards/card';
+import { type Card, cardCode } from '../cards/card';
 import { buildDeck } from '../cards/deck';
 import { applySet } from '../effects';
 import { GameFileError, SetupError } from '../errors';
-import { cardCode } from '../cards/card';
 import { compile, evaluateCondition, evaluateNumber } from '../expr/evaluate';
 import type { Node } from '../expr/parser';
 import { randomInt, seedRng, shuffle } from '../rng';
@@ -66,6 +65,7 @@ export function startGame(
       tricks: 0,
       passesInARow: 0,
       skipNext: 0,
+      draws: 0,
     },
     trick: null,
     lastTrick: null,
@@ -215,7 +215,14 @@ export function startRound(state: GameState): void {
     }
   }
 
-  const deck = withoutRemoved(state, buildDeck(file.deck));
+  const copies = file.deck.copies;
+  const deck = withoutRemoved(
+    state,
+    buildDeck({
+      ...file.deck,
+      copies: typeof copies === 'string' ? evaluateNumber(copies, buildScope(state)) : copies,
+    }),
+  );
   if (file.setup.shuffle !== false) shuffle(deck, state.rng);
 
   // Deal one card at a time, starting left of the dealer.
@@ -240,8 +247,16 @@ export function startRound(state: GameState): void {
     if (flip.triggerEffects) {
       throw new GameFileError('setup.flip with "triggerEffects": true isn\'t supported yet');
     }
-    const card = zoneCards(state, zoneKey(state, flip.from, null)).pop();
+    const source = zoneCards(state, zoneKey(state, flip.from, null));
+    let card = source.pop();
     if (!card) throw new GameFileError(`No card left in "${flip.from}" to flip`);
+    // Bury a card that mustn't start the pile somewhere below the top and turn the next one.
+    // If every card would be buried, the last one turned stays.
+    for (let tries = source.length; tries > 0 && flip.reflipIf; tries--) {
+      if (!evaluateCondition(flip.reflipIf, buildScope(state, { card }))) break;
+      source.splice(randomInt(state.rng, source.length), 0, card);
+      card = source.pop() ?? card;
+    }
     zoneCards(state, zoneKey(state, flip.to, null)).push(card);
     if (flip.set) applySet(state, flip.set, { card });
   }

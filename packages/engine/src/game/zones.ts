@@ -1,15 +1,30 @@
 import type { Card } from '../cards/card';
 import { ExprError } from '../errors';
-import { evaluate } from '../expr/evaluate';
+import { evaluate, evaluateCondition, evaluateNumber } from '../expr/evaluate';
+import { GameFileError } from '../errors';
 import { shuffle } from '../rng';
 import type { ZoneKey } from './move';
-import { buildScope } from './scope';
+import { buildScope, type ScopeContext } from './scope';
 import { type GameState, parseZoneKey, zoneCards } from './state';
 import type { PhaseDef, WhenEmptyPolicy } from './types';
 
+/** The phase's rule for this zone running out, if there is one and its `if` holds. */
 function policyFor(state: GameState, key: ZoneKey): WhenEmptyPolicy | undefined {
   const phase: PhaseDef | undefined = state.file.phases[state.cursor.phase];
-  return phase?.whenEmpty?.[parseZoneKey(key).name];
+  const policy = phase?.whenEmpty?.[parseZoneKey(key).name];
+  if (typeof policy === 'object' && policy.if && !evaluateCondition(policy.if, buildScope(state))) {
+    return undefined;
+  }
+  return policy;
+}
+
+/** A card count that may be an expression ("state.penalty"): a whole number, 0 or more. */
+export function cardCount(state: GameState, count: number | string, ctx: ScopeContext): number {
+  const n = typeof count === 'number' ? count : evaluateNumber(count, buildScope(state, ctx));
+  if (!Number.isInteger(n) || n < 0) {
+    throw new GameFileError(`A number of cards must be a whole number, 0 or more (got ${n})`);
+  }
+  return n;
 }
 
 /**
@@ -20,6 +35,7 @@ export function reshufflesLeft(state: GameState, key: ZoneKey): number {
   const policy = policyFor(state, key);
   if (policy === 'reshuffleDiscardExceptTop') return Infinity;
   if (typeof policy !== 'object') return 0;
+  if (policy.limit === undefined) return Infinity;
   const limit =
     typeof policy.limit === 'number' ? policy.limit : evaluate(policy.limit, buildScope(state));
   if (limit === null || limit === 'unlimited') return Infinity;
@@ -47,7 +63,8 @@ export function canDraw(state: GameState, key: ZoneKey): boolean {
  */
 export function endsRoundWhenEmpty(state: GameState, key: ZoneKey): boolean {
   const policy = policyFor(state, key);
-  const ending = policy === 'endRound' || typeof policy === 'object';
+  const ending =
+    policy === 'endRound' || (typeof policy === 'object' && policy.limit !== undefined);
   return ending && zoneCards(state, key).length === 0 && !canRefill(state, key);
 }
 

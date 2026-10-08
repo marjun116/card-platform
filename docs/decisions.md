@@ -482,3 +482,24 @@ General parts of the game format, added because hearts needed them; none mention
   lobby, e.g. `"rotate": "Left, right, across, hold"`.
 - **Simulation**: built-in games can list house-rule sets in `simulation.test.ts`
   (`VARIANTS`); each set plays 200 extra random games, so options are tested too.
+
+## 2026-10-08: Building blocks added for crazy eights
+
+General parts of the game format, added because crazy eights needed them.
+
+- **`deck.copies`** can be an expression, e.g. `"activePlayers.count >= 8 ? 2 : 1"`.
+- **`setup.flip.reflipIf`**: while the turned card matches, it's put back in the stock at a
+  random spot below the top (seeded) and the next card is turned. If every card would be put
+  back, the last one turned stays.
+- **`scoring.playerValues`**: named values worked out per player, used as functions:
+  `{ "handValue": "sum(player.hand, cardValue)" }` gives `handValue(player)`. `sum`, `min`
+  and `max` also accept `activePlayers`, e.g. `sum(activePlayers, handValue)`. A player value
+  can't use another one (it could go round in circles).
+- **Draw counts** (`draw.count`, `nextPlayer.draw`) can be expressions, e.g. `"state.penalty"`.
+- **`turn.draws`**: cards the current player has drawn this turn.
+- **`whenEmpty` rules take an `if`**, so a house rule can switch reshuffling on. A reshuffle
+  rule with no `limit` never ends the round (the player just can't draw once both piles are
+  used up); with a `limit`, the round ends once it's used up, as before.
+- **`endCondition.winner`** can be an expression, like `ties`.
+- **Expressions:** comparing `null` with `<`, `>` and so on is an error, so a custom value that
+  may not be set yet needs a starting value (`setup.flip.set` here sets `state.penalty` to 0).

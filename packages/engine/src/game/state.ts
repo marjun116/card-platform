@@ -53,6 +53,8 @@ export interface Cursor {
   passesInARow: number;
   /** Upcoming players to skip (from `skip` effects). */
   skipNext: number;
+  /** Cards the current player has drawn this turn (`turn.draws`). */
+  draws: number;
 }
 
 /**

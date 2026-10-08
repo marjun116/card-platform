@@ -112,6 +112,7 @@ function endTurn(state: GameState): void {
   const cursor = state.cursor;
   cursor.turns[cursor.current] = (cursor.turns[cursor.current] ?? 0) + 1;
   cursor.step = 0;
+  cursor.draws = 0;
   const phase = currentPhase(state);
 
   if (isTrickPhase(phase)) {
@@ -274,6 +275,7 @@ export function enterPhase(state: GameState, index: number): void {
     tricks: 0,
     passesInARow: 0,
     skipNext: 0,
+    draws: 0,
   };
   state.trick = null;
   if (isTrickPhase(phase)) startTrick(state, first);

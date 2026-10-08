@@ -7,6 +7,7 @@
 import { type Card, cardCode, cardRank, cardSuit, isJoker } from '../cards/card';
 import { ExprError } from '../errors';
 import {
+  evaluateNumber,
   type ExprFunction,
   type ExprObject,
   getProperty,
@@ -203,9 +204,12 @@ export function cardValue(state: GameState, card: Value): number {
 
 function numbersFrom(name: string, list: Value, per?: Value): number[] {
   if (!isList(list)) {
-    // Zones and tricks can be passed directly: sum(player.hand, cardValue)
-    const cards = isObject(list) ? (getProperty(list, 'cards') ?? null) : null;
-    if (isList(cards)) return numbersFrom(name, cards, per);
+    // Zones, tricks and activePlayers can be passed directly: sum(player.hand, cardValue),
+    // sum(activePlayers, handValue).
+    const items = isObject(list)
+      ? (getProperty(list, 'cards') ?? getProperty(list, 'players') ?? null)
+      : null;
+    if (isList(items)) return numbersFrom(name, items, per);
     throw new ExprError(`${name}() needs a list`);
   }
   return list.map((item) => {
@@ -218,6 +222,18 @@ function numbersFrom(name: string, list: Value, per?: Value): number[] {
 const sum = fn((list, per) => numbersFrom('sum', list, per).reduce((a, b) => a + b, 0));
 const min = fn((list, per) => Math.min(...numbersFrom('min', list, per)));
 const max = fn((list, per) => Math.max(...numbersFrom('max', list, per)));
+/**
+ * A player value from scoring.playerValues as a function of a player:
+ * handValue(player) evaluates "sum(player.hand, cardValue)" for that player.
+ */
+function playerValue(state: GameState, name: string, expr: string): ExprFunction {
+  return fn((player) => {
+    const id = isObject(player) ? getProperty(player, 'id') : null;
+    if (typeof id !== 'number') throw new ExprError(`${name}() needs a player`);
+    return evaluateNumber(expr, buildScope(state, { player: id }));
+  });
+}
+
 /** Seat whose hand holds the card with this code ("2C"), or null if nobody's does. */
 function holderOf(state: GameState): ExprFunction {
   return fn((code) => {
@@ -261,8 +277,17 @@ export function buildScope(state: GameState, ctx: ScopeContext = {}): Scope {
         return { ...state.options };
       case 'round':
         return state.round;
-      case 'activePlayers':
-        return { count: state.players.filter((p) => p.active).length };
+      case 'activePlayers': {
+        const active = state.players.filter((p) => p.active);
+        return lookupObject((prop) => {
+          if (prop === 'count') return active.length;
+          // Not readable in game files; lets sum/min/max go over the players.
+          if (prop === 'players') return active.map((p) => playerObject(state, p.id));
+          return undefined;
+        });
+      }
+      case 'turn':
+        return { draws: state.cursor.draws };
       case 'cardValue':
         return fn((card) => cardValue(state, card));
       case 'sum':
@@ -275,6 +300,10 @@ export function buildScope(state: GameState, ctx: ScopeContext = {}): Scope {
         return abs;
       case 'holderOf':
         return holderOf(state);
+    }
+    const values = state.file.scoring.playerValues;
+    if (values && Object.hasOwn(values, name)) {
+      return playerValue(state, name, values[name] as string);
     }
     // Zones: shared zones by name; per-player/per-team zones mean "this player's/team's".
     const def = Object.hasOwn(state.file.zones, name) ? state.file.zones[name] : undefined;

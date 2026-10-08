@@ -19,7 +19,7 @@ import {
   zoneKey,
 } from './game/state';
 import type { EffectDef } from './game/types';
-import { drawCards } from './game/zones';
+import { cardCount, drawCards } from './game/zones';
 
 /**
  * Runs effects in order. Returns true if one of them is waiting for a
@@ -136,7 +136,7 @@ function nextPlayerEffect(
       state,
       zoneKey(state, effect.from ?? 'stock', target),
       zoneKey(state, 'hand', target),
-      effect.draw,
+      cardCount(state, effect.draw, ctx),
     );
   }
   if (effect.skip) state.cursor.skipNext++;

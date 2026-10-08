@@ -2,7 +2,7 @@ import { evaluateCondition, evaluateNumber } from './expr/evaluate';
 import { buildScope, type ScopeContext } from './game/scope';
 import type { PlayerId } from './game/move';
 import { resolveSetting } from './game/settings';
-import { TIES } from './schema/gameFile';
+import { TIES, WINNERS } from './schema/gameFile';
 import type { GameState, PlayerState, TeamState } from './game/state';
 import type { ScoreRuleDef } from './game/types';
 
@@ -83,7 +83,7 @@ function applyRule(
 
 /** Winning seats, or null if the game should continue (a tie under "playOn"). */
 function findWinners(state: GameState): PlayerId[] | null {
-  const { winner } = state.file.endCondition;
+  const winner = resolveSetting(state, state.file.endCondition.winner, WINNERS, 'Winner');
   const ties = resolveSetting(state, state.file.endCondition.ties ?? 'playOn', TIES, 'Ties');
   const shareOrNull = (seats: PlayerId[]) =>
     seats.length > 1 && ties === 'playOn' ? null : seats.sort((a, b) => a - b);
