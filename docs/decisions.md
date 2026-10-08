@@ -382,3 +382,24 @@ Agreed now, built later (see the Phase 5 checklist):
   AI-written.
 - Custom games (Phase 6): the AI's plain-English summary becomes the rulebook, saved with
   each game version and shown in the same viewer.
+
+## 2026-10-07: One header, phone menus, no jumping
+
+- **One header during a game.** The table's bar (game, round, phase, buttons) moved into the
+  site header, saving a row. While a game is on screen, the header's Home, Games and About
+  links and Sign out step aside ("Card Table" still links home); they're on every other page.
+  Pages fill the header through a slot (`apps/web/src/headerSlot.ts`).
+- **Phone menus.** On phones the game header is one line: name, round ("R3"), phase, a
+  **Scores** button and a **⋯** menu with the occasional actions: Pause/Resume and End game
+  (host only), and Every round. On other pages the phone header is "Card Table" and a
+  **☰ Menu** with Home, Games, About, who is signed in and Sign out. Wide screens keep
+  everything visible. The menus are our own (`components/Menu.tsx`): arrow keys, Esc, and
+  tapping outside all work.
+- **Nothing jumps when selecting cards.** The row under the hand (buttons for selected
+  cards, hints such as "Choose 3 cards to pass") always keeps one row's height, even when
+  empty, so selecting or clearing never changes the page height; its contents fade in.
+  After "Clear selection", keyboard focus goes back to the card that was selected.
+- **The trick sits a little below the middle of the table** (the bottom, where your seat
+  would be, is empty), and on short laptop screens (under 760px tall) its cards are drawn at
+  62px, so it stays clear of the players at the top.
+

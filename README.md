@@ -230,6 +230,8 @@ localhost: the server only accepts table connections from the `PUBLIC_URL` site.
 How to play:
 
 - The line above your hand says what to do ("Your turn: choose your bid.").
+- On phones, scores open with the **Scores** button, and host controls and the round history
+  are in the **⋯** menu next to it.
 - Decisions that don't use a card from your hand (bids, choosing a suit or trump, drawing,
   passing, ending your turn) appear as buttons in the middle of the table.
 - Your legal cards are raised and outlined; the others are greyed and can't be used.
