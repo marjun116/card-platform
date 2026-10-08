@@ -203,7 +203,6 @@ Build the screens people actually see. The table view should be generic: it draw
 - [x] Works on phones and tablets as well as desktop
 - [x] Accessible: keyboard play, readable card labels for screen readers, colorblind-safe suits
 - [x] Card artwork: an original or openly licensed card set
-- [ ] A test deployment online (e.g. Render, Railway or Fly.io) so family can play from home
 
 ```text
 Read CLAUDE.md and docs/game-format.md. Build apps/web with React and Vite,
@@ -223,7 +222,7 @@ Show me rough layouts for the table screen on desktop and phone before
 building them.
 ```
 
-**Done when:** you and three family members can play spades together on your own devices from start to finish.
+**Done when:** you and three family members can play spades together on your own devices, on your home network, from start to finish. (Playing from different homes needs the test deployment, which moved to the start of Phase 6.)
 
 ## Phase 5: More built-in games, house rules and bots
 
@@ -275,6 +274,7 @@ only offered for built-in games, never custom ones.
 
 This is the feature that sets the platform apart. The AI turns typed rules into a game file, asks about every gap, and the validator guarantees that whatever it produces is safe to run.
 
+- [ ] Test deployment online first (e.g. Render, Railway or Fly.io), before any AI feature is reachable, so family can play from home. Moved here from Phase 4.
 - [ ] Test set first: collect 15–20 real house-rule write-ups from family and friends, typed as they'd naturally type them
 - [ ] Rules entry screen: paste or type rules, game name, player count
 - [ ] Translation pipeline using Claude through the Anthropic API: rules text in, game file out, checked by the validator, with validator errors fed back for a retry
