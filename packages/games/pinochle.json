@@ -1,0 +1,390 @@
+{
+  "$schema": "../engine/game-file.schema.json",
+  "meta": {
+    "name": "Pinochle",
+    "players": 4,
+    "teams": [
+      [0, 2],
+      [1, 3]
+    ],
+    "description": "Partners bid to name trump, score their meld, then take aces, tens and kings in tricks. First team to 150 wins."
+  },
+  "deck": {
+    "copies": 2,
+    "ranks": ["9", "10", "J", "Q", "K", "A"],
+    "jokers": 0
+  },
+  "cardOrder": {
+    "ranks": ["9", "J", "Q", "K", "10", "A"],
+    "trump": "declared"
+  },
+  "options": {
+    "passing": {
+      "label": "Passing: the bidder's partner passes 4 cards to the bidder, who passes 4 back",
+      "type": "boolean",
+      "default": true
+    },
+    "classic": {
+      "label": "Classic scoring: aces 11, tens 10, kings 4, queens 3, jacks 2, last trick 10; meld, bids and the target ×10",
+      "type": "boolean",
+      "default": false
+    },
+    "targetScore": {
+      "label": "Play to (×10 with classic scoring)",
+      "type": "choice",
+      "values": [150, 100, 200],
+      "default": 150
+    },
+    "minBid": {
+      "label": "Lowest bid (×10 with classic scoring)",
+      "type": "choice",
+      "values": [20, 25, 50],
+      "default": 20
+    },
+    "dealerMustBid": {
+      "label": "The dealer must bid when everyone else passes (otherwise the hand is dealt again)",
+      "type": "boolean",
+      "default": true
+    },
+    "throwIn": {
+      "label": "The bidder may throw in the hand before play, losing only the bid",
+      "type": "boolean",
+      "default": false
+    },
+    "mustBeat": {
+      "label": "You must beat the cards in the trick when you can",
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "zones": {
+    "hand": {
+      "per": "player",
+      "visibility": "owner"
+    },
+    "trick": {
+      "shared": true,
+      "visibility": "all"
+    },
+    "won": {
+      "per": "team",
+      "visibility": "none",
+      "countVisible": true
+    }
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": {
+      "to": "hand",
+      "count": 12
+    },
+    "dealerRotation": "left"
+  },
+  "phases": [
+    {
+      "name": "auction",
+      "order": "leftOfDealer",
+      "until": "(state.bidder != null && sum(activePlayers, passedOut) == 3) || sum(activePlayers, passedOut) == 4",
+      "actions": [
+        {
+          "type": "bid",
+          "values": {
+            "range": [20, 60]
+          },
+          "if": "!options.classic && player.bid != 'pass' && bid >= options.minBid && (state.highBid == null || bid > state.highBid)",
+          "effects": [
+            {
+              "set": {
+                "state.highBid": "player.bid"
+              }
+            },
+            {
+              "set": {
+                "state.bidder": "player.id"
+              }
+            },
+            {
+              "set": {
+                "state.bidTeam": "player.team"
+              }
+            }
+          ]
+        },
+        {
+          "type": "bid",
+          "values": [
+            200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320, 330, 340, 350, 360,
+            370, 380, 390, 400, 410, 420, 430, 440, 450, 460, 470, 480, 490, 500, 510, 520, 530,
+            540, 550, 560, 570, 580, 590, 600
+          ],
+          "if": "options.classic && player.bid != 'pass' && bid >= options.minBid * 10 && (state.highBid == null || bid > state.highBid)",
+          "effects": [
+            {
+              "set": {
+                "state.highBid": "player.bid"
+              }
+            },
+            {
+              "set": {
+                "state.bidder": "player.id"
+              }
+            },
+            {
+              "set": {
+                "state.bidTeam": "player.team"
+              }
+            }
+          ]
+        },
+        {
+          "type": "passBid",
+          "if": "player.bid != 'pass' && !(options.dealerMustBid && player.isDealer && state.bidder == null)"
+        }
+      ]
+    },
+    {
+      "name": "trump",
+      "if": "state.bidder != null",
+      "order": "leftOfDealer",
+      "until": "state.trump != null",
+      "actions": [
+        {
+          "type": "declareTrump",
+          "if": "player.id == state.bidder"
+        }
+      ]
+    },
+    {
+      "name": "passToBidder",
+      "if": "options.passing && state.bidder != null",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "actions": [
+        {
+          "type": "pass",
+          "count": 4,
+          "direction": "across",
+          "if": "player.team == state.bidTeam && player.id != state.bidder"
+        }
+      ]
+    },
+    {
+      "name": "passBack",
+      "if": "options.passing && state.bidder != null",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "actions": [
+        {
+          "type": "pass",
+          "count": 4,
+          "direction": "across",
+          "if": "player.id == state.bidder"
+        }
+      ]
+    },
+    {
+      "name": "meld",
+      "if": "state.bidder != null",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "actions": [
+        {
+          "type": "choose",
+          "values": ["showMeld"],
+          "labels": {
+            "showMeld": "Show my meld"
+          },
+          "set": "state.melded",
+          "effects": [
+            {
+              "if": "runs(player) == 1",
+              "score": "15 * (options.classic ? 10 : 1)",
+              "label": "Run",
+              "into": "meld"
+            },
+            {
+              "if": "runs(player) == 2",
+              "score": "150 * (options.classic ? 10 : 1)",
+              "label": "Double run",
+              "into": "meld"
+            },
+            {
+              "score": "4 * (royalPairs(player) - runs(player)) * (options.classic ? 10 : 1)",
+              "label": "Royal marriage",
+              "into": "meld"
+            },
+            {
+              "score": "2 * marriages(player) * (options.classic ? 10 : 1)",
+              "label": "Marriage",
+              "into": "meld"
+            },
+            {
+              "score": "player.hand.countCard('9', state.trump) * (options.classic ? 10 : 1)",
+              "label": "Dix",
+              "into": "meld"
+            },
+            {
+              "if": "acesAround(player) == 1",
+              "score": "10 * (options.classic ? 10 : 1)",
+              "label": "Aces around",
+              "into": "meld"
+            },
+            {
+              "if": "acesAround(player) == 2",
+              "score": "100 * (options.classic ? 10 : 1)",
+              "label": "Double aces around",
+              "into": "meld"
+            },
+            {
+              "if": "kingsAround(player) == 1",
+              "score": "8 * (options.classic ? 10 : 1)",
+              "label": "Kings around",
+              "into": "meld"
+            },
+            {
+              "if": "kingsAround(player) == 2",
+              "score": "80 * (options.classic ? 10 : 1)",
+              "label": "Double kings around",
+              "into": "meld"
+            },
+            {
+              "if": "queensAround(player) == 1",
+              "score": "6 * (options.classic ? 10 : 1)",
+              "label": "Queens around",
+              "into": "meld"
+            },
+            {
+              "if": "queensAround(player) == 2",
+              "score": "60 * (options.classic ? 10 : 1)",
+              "label": "Double queens around",
+              "into": "meld"
+            },
+            {
+              "if": "jacksAround(player) == 1",
+              "score": "4 * (options.classic ? 10 : 1)",
+              "label": "Jacks around",
+              "into": "meld"
+            },
+            {
+              "if": "jacksAround(player) == 2",
+              "score": "40 * (options.classic ? 10 : 1)",
+              "label": "Double jacks around",
+              "into": "meld"
+            },
+            {
+              "if": "pinochles(player) == 1",
+              "score": "4 * (options.classic ? 10 : 1)",
+              "label": "Pinochle",
+              "into": "meld"
+            },
+            {
+              "if": "pinochles(player) == 2",
+              "score": "30 * (options.classic ? 10 : 1)",
+              "label": "Double pinochle",
+              "into": "meld"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "throwIn",
+      "if": "options.throwIn && state.bidder != null",
+      "order": "leftOfDealer",
+      "until": "state.decision != null",
+      "actions": [
+        {
+          "type": "choose",
+          "values": ["play", "throwIn"],
+          "labels": {
+            "play": "Play the hand",
+            "throwIn": "Throw in the hand"
+          },
+          "set": "state.decision",
+          "if": "player.id == state.bidder"
+        }
+      ]
+    },
+    {
+      "name": "play",
+      "if": "state.bidder != null && state.decision != 'throwIn'",
+      "leader": {
+        "first": "state.bidder",
+        "then": "lastTrickWinner"
+      },
+      "repeat": 12,
+      "actions": [
+        {
+          "type": "playToTrick",
+          "followSuit": true,
+          "restrictions": [
+            {
+              "if": "trick.count > 0 && !hand.containsSuit(trick.ledSuit)",
+              "mustPlay": "card.suit == state.trump"
+            },
+            {
+              "if": "options.mustBeat && trick.count > 0",
+              "mustPlay": "trick.isBeatenBy(card)"
+            }
+          ]
+        }
+      ],
+      "afterTrick": [
+        {
+          "resolveTrick": "highestTrumpElseHighestLed"
+        },
+        {
+          "moveTrick": "won",
+          "of": "winnerTeam"
+        },
+        {
+          "if": "trick.number == 12",
+          "set": {
+            "state.lastTrick": "trick.winner"
+          }
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "cardValue": {
+      "A": 11,
+      "10": 10,
+      "K": 4,
+      "Q": 3,
+      "J": 2,
+      "9": 0
+    },
+    "playerValues": {
+      "passedOut": "player.bid == 'pass' ? 1 : 0",
+      "runs": "min([player.hand.countCard('A', state.trump), player.hand.countCard('10', state.trump), player.hand.countCard('K', state.trump), player.hand.countCard('Q', state.trump), player.hand.countCard('J', state.trump)])",
+      "royalPairs": "min([player.hand.countCard('K', state.trump), player.hand.countCard('Q', state.trump)])",
+      "marriages": "(state.trump == 'clubs' ? 0 : min([player.hand.countCard('K', 'clubs'), player.hand.countCard('Q', 'clubs')])) + (state.trump == 'diamonds' ? 0 : min([player.hand.countCard('K', 'diamonds'), player.hand.countCard('Q', 'diamonds')])) + (state.trump == 'hearts' ? 0 : min([player.hand.countCard('K', 'hearts'), player.hand.countCard('Q', 'hearts')])) + (state.trump == 'spades' ? 0 : min([player.hand.countCard('K', 'spades'), player.hand.countCard('Q', 'spades')]))",
+      "acesAround": "min([player.hand.countCard('A', 'clubs'), player.hand.countCard('A', 'diamonds'), player.hand.countCard('A', 'hearts'), player.hand.countCard('A', 'spades')])",
+      "kingsAround": "min([player.hand.countCard('K', 'clubs'), player.hand.countCard('K', 'diamonds'), player.hand.countCard('K', 'hearts'), player.hand.countCard('K', 'spades')])",
+      "queensAround": "min([player.hand.countCard('Q', 'clubs'), player.hand.countCard('Q', 'diamonds'), player.hand.countCard('Q', 'hearts'), player.hand.countCard('Q', 'spades')])",
+      "jacksAround": "min([player.hand.countCard('J', 'clubs'), player.hand.countCard('J', 'diamonds'), player.hand.countCard('J', 'hearts'), player.hand.countCard('J', 'spades')])",
+      "pinochles": "min([player.hand.countCard('QS'), player.hand.countCard('JD')])",
+      "cardPoints": "options.classic ? sum(team.won, cardValue) + (state.lastTrick != null && state.lastTrick % 2 == player.team ? 10 : 0) : team.won.countRank('A') + team.won.countRank('10') + team.won.countRank('K') + (state.lastTrick != null && state.lastTrick % 2 == player.team ? 1 : 0)"
+    },
+    "perPlayer": [
+      {
+        "if": "player.id == state.bidder && team.tricks > 0 && team.meld + cardPoints(player) >= state.highBid",
+        "add": "team.meld + cardPoints(player)"
+      },
+      {
+        "if": "player.id == state.bidder && !(team.tricks > 0 && team.meld + cardPoints(player) >= state.highBid)",
+        "add": "-state.highBid"
+      },
+      {
+        "if": "state.bidder != null && player.id == (state.bidder + 1) % 4 && (team.tricks > 0 || state.decision == 'throwIn')",
+        "add": "team.meld + cardPoints(player)"
+      }
+    ]
+  },
+  "endCondition": {
+    "when": "anyTeam.score >= options.targetScore * (options.classic ? 10 : 1)",
+    "winner": "highestScore",
+    "priority": "team.id == state.bidTeam && team.score >= options.targetScore * (options.classic ? 10 : 1)"
+  }
+}

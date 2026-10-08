@@ -64,11 +64,31 @@ const keepMelds: Strategy = (moves, state, pick) => {
 const mostlyKeepMelds: Strategy = (moves, state, pick) =>
   pick(3) === 0 ? randomStrategy(moves, state, pick) : keepMelds(moves, state, pick);
 
+/**
+ * In an auction, only pass or make the lowest bid on offer. Random bids are
+ * mostly far too high: every hand is set and scores fall for ever.
+ */
+const lowBidding =
+  (choose: Strategy): Strategy =>
+  (moves, state, pick) => {
+    const bids = moves.flatMap((m) => (m.type === 'bid' && typeof m.value === 'number' ? [m] : []));
+    if (bids.length === 0) return choose(moves, state, pick);
+    const lowest = bids.reduce((a, b) => ((a.value as number) <= (b.value as number) ? a : b));
+    const options = [lowest, ...moves.filter((m) => m.type === 'passBid')];
+    return options[pick(options.length)] as Move;
+  };
+
 /** How each game is played randomly, where plain random moves wouldn't do. */
 const RANDOM: Partial<Record<BuiltInGameName, Strategy>> = {
   rummy: arranging(randomStrategy),
   // Random discards almost never get deadwood down to 10, so every hand would be a draw.
   'gin-rummy': arranging(mostlyKeepMelds),
+  // Throwing in costs the bid, so random players do it only now and then.
+  pinochle: lowBidding((moves, state, pick) =>
+    moves.some((m) => m.type === 'choose' && m.value === 'throwIn') && pick(4) > 0
+      ? (moves.find((m) => m.type === 'choose' && m.value === 'play') as Move)
+      : randomStrategy(moves, state, pick),
+  ),
 };
 
 /**
@@ -97,6 +117,16 @@ const SENSIBLE: Record<BuiltInGameName, Strategy> = {
   'oh-hell': preferring((m) => m.type === 'bid' && typeof m.value === 'number' && m.value <= 1),
   // Keep fives and ten-cards for fifteens, so hands score and games reach 121 sooner.
   cribbage: preferring((m) => m.type === 'discard' && !/^(5|10|J|Q|K)[CDHS]/.test(m.card)),
+  // Only the first player to speak bids (the minimum), so bids are usually made.
+  pinochle: (moves, state, pick) => {
+    const pass = moves.find((m) => m.type === 'passBid');
+    if (pass && state.vars.bidder != null) return pass;
+    return lowBidding(randomStrategy)(
+      moves.filter((m) => m.type !== 'passBid'),
+      state,
+      pick,
+    );
+  },
 };
 
 /**
@@ -175,6 +205,11 @@ const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> 
     { sequence: 'down', maxCards: 'max', scoring: 'penalty', blindBids: true },
     { sequence: 'up', maxCards: 13 },
   ],
+  pinochle: [
+    { passing: false, mustBeat: false, throwIn: true, dealerMustBid: false },
+    { classic: true, targetScore: 100, minBid: 25 },
+    { minBid: 25, targetScore: 200 },
+  ],
   cribbage: [
     { fiveCard: true, targetScore: 61 },
     { cribFourFlush: true, handFlushFive: true, hisHeels: false },
@@ -199,6 +234,7 @@ const MIN_ROUNDS: Record<BuiltInGameName, number> = {
   'oh-hell': 10,
   // About 8 hands to reach 121 with two players, fewer with three or four.
   cribbage: 5,
+  pinochle: 4,
 };
 
 /**

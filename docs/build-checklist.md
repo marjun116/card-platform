@@ -238,6 +238,7 @@ Add games one at a time, picking each to stretch a different part of the engine.
   - [ ] Euchre: game file, house rules, scenario and simulation tests done; real playtest to do
   - [ ] Oh Hell: game file, house rules, scenario and simulation tests done; real playtest to do
   - [ ] Cribbage: game file, house rules, scenario and simulation tests done; real playtest to do
+  - [ ] Pinochle: game file, house rules, scenario and simulation tests done; real playtest to do
 - [ ] Saved variants: a table's chosen options saved as a named, shareable preset
 - [ ] Game history (results are already saved by the server; nothing shows them yet):
   - [ ] "Past games" on the home page: game, date, players, final score, and whether you won

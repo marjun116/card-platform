@@ -5,6 +5,7 @@ import euchreJson from '../euchre.json';
 import ginRummyJson from '../gin-rummy.json';
 import heartsJson from '../hearts.json';
 import ohHellJson from '../oh-hell.json';
+import pinochleJson from '../pinochle.json';
 import rummyJson from '../rummy.json';
 import spadesJson from '../spades.json';
 
@@ -25,6 +26,7 @@ export const builtInGames = {
   euchre: load('euchre', euchreJson),
   'oh-hell': load('oh-hell', ohHellJson),
   cribbage: load('cribbage', cribbageJson),
+  pinochle: load('pinochle', pinochleJson),
 } as const satisfies Record<string, GameFile>;
 
 export type BuiltInGameName = keyof typeof builtInGames;
