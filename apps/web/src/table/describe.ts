@@ -149,7 +149,8 @@ export function teamName(team: { id: number; players: number[] }, names: SeatNam
  * won), showing only what the game has, and the same in full for screen readers.
  */
 export function seatStats(
-  player: { bid: BidValue | null; tricks: number; active: boolean } | undefined,
+  player:
+    { bid: BidValue | null; tricks: number; active: boolean; sittingOut?: boolean } | undefined,
   handCount: number | null,
   showTricks: boolean,
 ): { short: string | null; spoken: string } {
@@ -167,6 +168,10 @@ export function seatStats(
   if (player && !player.active) {
     short.push('Out');
     spoken.push('out');
+  }
+  if (player?.sittingOut) {
+    short.push('Sits out');
+    spoken.push('sitting out this hand');
   }
   return { short: short.length > 0 ? short.join(' · ') : null, spoken: spoken.join(', ') };
 }

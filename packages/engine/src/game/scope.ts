@@ -4,7 +4,7 @@
  * expressions can look at the game but never change it. Values are computed
  * only when an expression reads them.
  */
-import { type Card, cardCode, cardRank, cardSuit, isJoker } from '../cards/card';
+import { type Card, cardCode, cardRank, cardSuit, isJoker, type Suit } from '../cards/card';
 import { ExprError } from '../errors';
 import {
   evaluateNumber,
@@ -21,7 +21,7 @@ import {
 import { hasLegalPlay } from './legal';
 import { deadwood, hasPureRunOnTable } from './arrangement';
 import type { PlayerId, ZoneKey } from './move';
-import { type GameState, type TrickState, teamZoneKey } from './state';
+import { type GameState, suitOf, type TrickState, teamZoneKey } from './state';
 
 export interface ScopeContext {
   /** The player the expression is about (acting player, or the one being scored). */
@@ -30,6 +30,8 @@ export interface ScopeContext {
   team?: number;
   /** The card being considered (when checking a card's legality or running its effects). */
   card?: Card;
+  /** The suit being considered (a declareTrump action's `if`). */
+  suit?: Suit;
   /** The meld being considered (a meld action's `if`). */
   meld?: { kind: string; size: number; isPure: boolean; usesWild: boolean };
 }
@@ -86,7 +88,7 @@ function zoneObject(state: GameState, key: ZoneKey): ExprObject {
   return cardsObject(state.zones[key] ?? []);
 }
 
-function trickObject(trick: TrickState | null): ExprObject {
+function trickObject(state: GameState, trick: TrickState | null): ExprObject {
   const cards = trick?.plays.map((p) => p.card) ?? [];
   return cardsObject(cards, (name) => {
     switch (name) {
@@ -97,8 +99,9 @@ function trickObject(trick: TrickState | null): ExprObject {
       case 'winner':
         return trick?.winner ?? null;
       case 'ledSuit': {
+        // The suit the first card counts as (a left bower leads trump).
         const first = cards.find((c) => !isJoker(c));
-        return first ? cardSuit(first) : null;
+        return first ? suitOf(state)(first) : null;
       }
       default:
         return undefined;
@@ -158,6 +161,7 @@ export const PLAYER_PROPERTIES = [
   'hasLegalPlay',
   'deadwood',
   'hasPureRun',
+  'sittingOut',
 ];
 
 function playerObject(state: GameState, id: PlayerId): ExprObject {
@@ -187,6 +191,8 @@ function playerObject(state: GameState, id: PlayerId): ExprObject {
         return deadwood(state, id);
       case 'hasPureRun':
         return hasPureRunOnTable(state, id);
+      case 'sittingOut':
+        return player.sittingOut;
     }
     if (trackNames(state).has(name)) return player.tracks[name] ?? 0;
     const zone = ownedZone(state, 'player', id, name);
@@ -311,8 +317,10 @@ export function buildScope(state: GameState, ctx: ScopeContext = {}): Scope {
         return ctx.card ? cardObject(ctx.card) : undefined;
       case 'meld':
         return ctx.meld ? { ...ctx.meld } : undefined;
+      case 'suit':
+        return ctx.suit;
       case 'trick':
-        return trickObject(state.trick);
+        return trickObject(state, state.trick);
       case 'state':
         return openObject(state.vars);
       case 'options':

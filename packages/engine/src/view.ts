@@ -46,6 +46,8 @@ export interface PlayerView {
     tricks: number;
     tracks: Record<string, number>;
     hasLookedAtHand: boolean;
+    /** Out of play this round (a lone player's partner). */
+    sittingOut: boolean;
   }[];
   teams: {
     id: number;
@@ -208,6 +210,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
       tricks: p.tricks,
       tracks: { ...p.tracks },
       hasLookedAtHand: p.hasLookedAtHand,
+      sittingOut: p.sittingOut,
     })),
     teams: state.teams.map((t) => ({ ...t, players: [...t.players], tracks: { ...t.tracks } })),
     vars: { ...state.vars },

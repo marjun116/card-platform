@@ -3,6 +3,8 @@ import { GameFileError } from '../errors';
 import type { BidValue, Move, PlayerId } from '../game/move';
 import type { GameState, PlayerState } from '../game/state';
 import { setVar } from '../effects';
+import { evaluateCondition } from '../expr/evaluate';
+import { buildScope } from '../game/scope';
 import type { BidAction, ChooseAction, DeclareTrumpAction, PassBidAction } from '../game/types';
 import { type ActionResult, allowsCard } from './common';
 
@@ -25,13 +27,18 @@ export function passBidMoves(state: GameState, player: PlayerId, action: PassBid
   return allowsCard(state, player, action) ? [{ player, type: 'passBid' }] : [];
 }
 
+/** One move per suit the action's `if` allows; the `if` can read the `suit` in question. */
 export function declareTrumpMoves(
   state: GameState,
   player: PlayerId,
   action: DeclareTrumpAction,
 ): Move[] {
-  if (!allowsCard(state, player, action)) return [];
-  return (action.suits ?? SUITS).map((suit) => ({ player, type: 'declareTrump', suit }));
+  const condition = action.if;
+  return (action.suits ?? SUITS)
+    .filter(
+      (suit) => !condition || evaluateCondition(condition, buildScope(state, { player, suit })),
+    )
+    .map((suit) => ({ player, type: 'declareTrump', suit }));
 }
 
 export function chooseMoves(state: GameState, player: PlayerId, action: ChooseAction): Move[] {

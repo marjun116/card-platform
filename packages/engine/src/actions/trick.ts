@@ -3,7 +3,7 @@ import { ledSuit } from '../cards/order';
 import { evaluateCondition } from '../expr/evaluate';
 import type { Move, PlayerId } from '../game/move';
 import { buildScope, withCard } from '../game/scope';
-import { type GameState, takeCard, zoneCards, zoneKey } from '../game/state';
+import { type GameState, suitOf, takeCard, zoneCards, zoneKey } from '../game/state';
 import type { PlayRestriction, PlayToTrickAction } from '../game/types';
 import type { Card } from '../cards/card';
 import { type ActionResult, cardsAllowed } from './common';
@@ -29,8 +29,13 @@ export function playToTrickMoves(
       if (allowed.length > 0) cards = allowed;
     }
   } else if (action.followSuit !== false) {
-    const led = ledSuit(trick.plays.map((p) => p.card));
-    const following = cards.filter((card) => cardSuit(card) === led);
+    // With bowers the left bower follows trump, not its printed suit.
+    const suit = suitOf(state);
+    const led = ledSuit(
+      trick.plays.map((p) => p.card),
+      suit,
+    );
+    const following = cards.filter((card) => suit(card) === led);
     if (led && following.length > 0) cards = following;
   }
 

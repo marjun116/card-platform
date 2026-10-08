@@ -136,6 +136,9 @@
         },
         "wild": {
           "$ref": "#/$defs/__schema2"
+        },
+        "bowers": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -1266,6 +1269,9 @@
         },
         "layOutMelds": {
           "$ref": "#/$defs/__schema7"
+        },
+        "sitOut": {
+          "$ref": "#/$defs/__schema2"
         }
       },
       "additionalProperties": false

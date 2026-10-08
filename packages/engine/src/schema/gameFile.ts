@@ -61,6 +61,11 @@ export const cardOrderSchema = z.strictObject({
   trump: z.union([suit, z.literal('declared')]).optional(),
   /** Which cards are wild in melds, e.g. "card.isJoker || card.rank == state.cutRank". */
   wild: expr.optional(),
+  /**
+   * Euchre's bowers: the jack of trump ranks highest, and the other jack of the
+   * same colour ranks second and counts as a trump.
+   */
+  bowers: z.boolean().optional(),
 });
 
 export const ACES = ['low', 'high', 'both'] as const;
@@ -141,6 +146,8 @@ export const effectSchema = z.strictObject({
   breakSuit: suit.optional(),
   /** Moves the player's valid groups from their hand to this meld zone. */
   layOutMelds: name.optional(),
+  /** The seat (an expression) sits out until the round ends, e.g. "(player.id + 2) % 4". */
+  sitOut: expr.optional(),
 });
 
 const common = { if: expr.optional(), effects: z.array(effectSchema).optional() };

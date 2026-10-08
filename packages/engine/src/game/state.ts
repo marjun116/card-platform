@@ -1,4 +1,5 @@
 import type { Card, CardId, Suit } from '../cards/card';
+import { effectiveSuit } from '../cards/order';
 import { GameFileError } from '../errors';
 import type { RngState } from '../rng';
 import type { BidValue, Move, PlayerId, ZoneKey } from './move';
@@ -20,6 +21,8 @@ export interface PlayerState {
   vars: Record<string, VarValue>;
   /** How the player has grouped their hand (card ids; cards no longer held are ignored). */
   groups: CardId[][];
+  /** Out of play for this round only (a lone player's partner): no turns, no cards played. */
+  sittingOut: boolean;
 }
 
 export interface TeamState {
@@ -215,14 +218,33 @@ export function activePlayerIds(state: GameState): PlayerId[] {
   return state.players.filter((p) => p.active).map((p) => p.id);
 }
 
-/** The next active player from `from` in the given direction (never `from` itself unless alone). */
+/** Takes turns this round: still in the game, and not sitting this round out. */
+export function isPlaying(player: PlayerState | undefined): boolean {
+  return player !== undefined && player.active && !player.sittingOut;
+}
+
+export function playingCount(state: GameState): number {
+  return state.players.filter(isPlaying).length;
+}
+
+/**
+ * The next player taking turns from `from` in the given direction (never
+ * `from` itself unless alone). Players sitting this round out are passed over.
+ */
 export function nextActive(state: GameState, from: PlayerId, direction: 1 | -1 = 1): PlayerId {
   const n = state.players.length;
   for (let step = 1; step <= n; step++) {
     const seat = (((from + direction * step) % n) + n) % n;
-    if ((state.players[seat] as PlayerState).active) return seat;
+    if (isPlaying(state.players[seat])) return seat;
   }
   return from;
+}
+
+/** The suit each card counts as in this game right now (bowers change a jack's suit). */
+export function suitOf(state: GameState): (card: Card) => Suit | null {
+  const trump = trumpSuit(state);
+  const bowers = state.file.cardOrder?.bowers === true;
+  return (card) => effectiveSuit(card, trump, bowers);
 }
 
 export function trumpSuit(state: GameState): Suit | null {

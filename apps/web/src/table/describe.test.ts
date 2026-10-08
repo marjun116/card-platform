@@ -98,4 +98,11 @@ describe('seatStats', () => {
     expect(seatStats({ ...player, bid: 'blindNil' }, 1, true).short).toBe('Blind nil · W1');
     expect(seatStats({ ...player, active: false }, 0, false).short).toBe('B3 · Out');
   });
+
+  it('says when a player sits this hand out (a lone player’s partner)', () => {
+    expect(seatStats({ ...player, bid: null, sittingOut: true }, 5, true)).toEqual({
+      short: 'W1 · Sits out',
+      spoken: 'won 1, 5 cards, sitting out this hand',
+    });
+  });
 });

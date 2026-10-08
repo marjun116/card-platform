@@ -626,3 +626,19 @@ General parts of the game format, added because rummy and gin needed them.
 - **Simulating rummy and gin**: purely random players never arrange their hands, so nobody
   would go out. Their random games use random legal moves, except that they meld, lay off or
   go out whenever they can and arrange their hand after each draw.
+
+## 2026-10-08: Building blocks added for euchre
+
+- **`cardOrder.bowers`**: the jack of trump ranks highest and the other jack of the same
+  colour second; that jack counts as trump everywhere a suit matters (following suit, the led
+  suit, `trick.ledSuit`, the trick's winner). `card.suit` in expressions is still the suit
+  printed on the card. Five Hundred, Bid Euchre and Pepper use the same rule.
+- **A `declareTrump` action's `if` can read `suit`**, the suit being considered, so the second
+  round can offer "any suit but the one turned down": `"suit != upcard.top.suit"`.
+- **`sitOut` effect**: `{ "sitOut": "(player.id + 2) % 4" }` takes that seat out of play until
+  the round ends (a lone player's partner). It takes no turns, tricks complete with one card
+  fewer, and the lead passes it by; its team still scores and it's back next round. The view
+  shows `sittingOut` per player, and the table shows "Sitting out" on that seat.
+- Euchre's dealer exchange is an ordinary phase (`"order": "dealer"`) whose actions are only
+  for the dealer; when the dealer sits out (their partner went alone, or defends alone), nobody
+  takes the upcard.

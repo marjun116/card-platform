@@ -52,6 +52,7 @@ export function Seat({
     player?.bid != null ? `Bid ${bidLabel(player.bid).toLowerCase()}` : null,
     showTricks && player ? `Won ${player.tricks}` : null,
     player && !player.active ? 'Out' : null,
+    player?.sittingOut ? 'Sitting out' : null,
   ].filter(Boolean);
 
   // Which way the popup opens, so it stays on the table.

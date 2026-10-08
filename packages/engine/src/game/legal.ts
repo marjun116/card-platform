@@ -4,7 +4,7 @@ import { actionMoves, allowsCard } from '../actions';
 import { type Move, moveKey, type PlayerId } from './move';
 import { findCard } from './cards';
 import { autoArrangeAllowed } from './arrangement';
-import type { GameState } from './state';
+import { type GameState, isPlaying } from './state';
 import type { ActionDef, PhaseDef, TurnStepDef } from './types';
 
 /** A legal move plus where it came from, so applyMove knows which rule it follows. */
@@ -43,7 +43,7 @@ export function candidates(
   player: PlayerId,
   opts: CandidateOptions = {},
 ): Candidate[] {
-  if (state.status === 'over' || !state.players[player]?.active) return [];
+  if (state.status === 'over' || !isPlaying(state.players[player])) return [];
   const found: Candidate[] = [];
 
   if (state.pending) {

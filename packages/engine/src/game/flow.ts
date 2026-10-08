@@ -21,8 +21,10 @@ import { startRound } from './setup';
 import {
   type AfterAction,
   type GameState,
+  isPlaying,
   nextActive,
   type PlayerState,
+  playingCount,
   zoneCards,
   zoneInstances,
   zoneKey,
@@ -126,15 +128,14 @@ function endTurn(state: GameState): void {
   const phase = currentPhase(state);
 
   if (isTrickPhase(phase)) {
-    const active = state.players.filter((p) => p.active).length;
-    if (state.trick && state.trick.plays.length >= active) completeTrick(state);
+    if (state.trick && state.trick.plays.length >= playingCount(state)) completeTrick(state);
     else cursor.current = nextActive(state, cursor.current, cursor.direction);
     return;
   }
 
   if (phase.rounds !== undefined) {
     const done = state.players.every(
-      (p) => !p.active || (cursor.turns[p.id] ?? 0) >= (phase.rounds as number),
+      (p) => !isPlaying(p) || (cursor.turns[p.id] ?? 0) >= (phase.rounds as number),
     );
     if (done) {
       endPhase(state);
@@ -182,7 +183,7 @@ export function settle(state: GameState): void {
     // anything still ends the phase.
     if (options.length === 1 && options[0]?.move.type === 'endTurn') {
       cursor.passesInARow++;
-      if (cursor.passesInARow >= state.players.filter((p) => p.active).length) {
+      if (cursor.passesInARow >= playingCount(state)) {
         endPhase(state);
         continue;
       }
@@ -200,7 +201,7 @@ export function settle(state: GameState): void {
       throw new GameFileError(`Player ${cursor.current} has no card to play to the trick`);
     }
     cursor.passesInARow++;
-    if (cursor.passesInARow >= state.players.filter((p) => p.active).length) {
+    if (cursor.passesInARow >= playingCount(state)) {
       endPhase(state);
       continue;
     }
@@ -283,7 +284,7 @@ export function enterPhase(state: GameState, index: number): void {
   const phase = phases[index] as (typeof phases)[number];
   const order = startingOrder(state, phase);
   const direction: 1 | -1 = order === 'counterclockwise' ? -1 : 1;
-  const dealerActive = state.players[state.dealer]?.active ?? false;
+  const dealerActive = isPlaying(state.players[state.dealer]);
   const first =
     typeof order === 'number'
       ? order
@@ -322,7 +323,7 @@ function startingOrder(
   }
   const value = evaluate(setting, buildScope(state));
   if (value === null) return 'leftOfDealer';
-  if (typeof value === 'number' && state.players[value]?.active) return value;
+  if (typeof value === 'number' && isPlaying(state.players[value])) return value;
   if (typeof value === 'string' && (LEADER_FIRST as readonly string[]).includes(value)) {
     return value as (typeof LEADER_FIRST)[number];
   }
@@ -348,6 +349,8 @@ function endRound(state: GameState): void {
     throw new GameFileError("A round ended without any moves; check the phases' end conditions");
   }
   const over = scoreRound(state);
+  // Everyone is back for the next round (the deal passes over nobody who sat out).
+  for (const player of state.players) player.sittingOut = false;
   if (over) return;
   if (state.round >= MAX_ROUNDS) {
     throw new GameFileError(`The game didn't end after ${MAX_ROUNDS} rounds`);

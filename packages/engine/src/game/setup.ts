@@ -49,6 +49,7 @@ export function startGame(
       hasLookedAtHand: true,
       vars: {},
       groups: [],
+      sittingOut: false,
     })),
     teams,
     zones: {},
@@ -193,6 +194,7 @@ export function startRound(state: GameState): void {
     player.hasLookedAtHand = !state.lookRequired;
     player.vars = {};
     player.groups = [];
+    player.sittingOut = false;
   }
   for (const team of state.teams) team.tricks = 0;
   state.vars = {};

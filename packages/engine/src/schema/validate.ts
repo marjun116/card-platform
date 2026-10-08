@@ -135,6 +135,8 @@ interface ExprContext {
   card: boolean;
   /** A meld action's `if`, in a game with meld rules: `meld` is the group being melded. */
   meld?: boolean;
+  /** A declareTrump action's `if`: `suit` is the suit being considered. */
+  suit?: boolean;
 }
 
 const NO_CONTEXT: ExprContext = { player: false, team: false, card: false };
@@ -186,6 +188,7 @@ const RESERVED = new Set([
   'activePlayers',
   'turn',
   'meld',
+  'suit',
   ...FUNCTIONS,
   ...Object.keys(QUANTIFIER_KIND),
   'true',
@@ -544,7 +547,12 @@ class Checker {
 
   private checkAction(action: ActionDef, path: Path, phase: PhaseDef): void {
     const ctx = CARD_ACTIONS.has(action.type) ? PLAYER_CARD : PLAYER;
-    const ifCtx = action.type === 'meld' && this.file.meldRules ? { ...PLAYER, meld: true } : ctx;
+    const ifCtx =
+      action.type === 'meld' && this.file.meldRules
+        ? { ...PLAYER, meld: true }
+        : action.type === 'declareTrump'
+          ? { ...PLAYER, suit: true }
+          : ctx;
     // A one-card draw's effects can see the card drawn.
     const effectCtx = action.type === 'draw' ? PLAYER_CARD : ctx;
     if (action.if) this.checkExpr(action.if, [...path, 'if'], ifCtx);
@@ -648,6 +656,7 @@ class Checker {
       effect.winnerLeads && 'winnerLeads',
       effect.breakSuit && 'breakSuit',
       effect.layOutMelds && 'layOutMelds',
+      effect.sitOut !== undefined && 'sitOut',
     ].filter((v): v is string => typeof v === 'string');
     if (verbs.length === 0) this.error(path, "This effect doesn't do anything");
     if (verbs.length > 1) {
@@ -660,6 +669,7 @@ class Checker {
       this.error(path, `${verbs[0] ?? 'This'} only works in a trick phase's "afterTrick"`);
     }
     if (effect.moveTrick) this.zone(effect.moveTrick, [...path, 'moveTrick'], { per: 'any' });
+    if (effect.sitOut !== undefined) this.checkExpr(effect.sitOut, [...path, 'sitOut'], ctx);
     if (effect.layOutMelds) {
       this.zone(effect.layOutMelds, [...path, 'layOutMelds'], { per: 'player', melds: true });
       if (!ctx.player) {
@@ -897,6 +907,8 @@ class Checker {
         return 'turn';
       case 'meld':
         return ctx.meld ? 'meld' : unavailable('only a meld action\'s "if" has a meld');
+      case 'suit':
+        return ctx.suit ? 'value' : unavailable('only a declareTrump action\'s "if" has a suit');
       case 'round':
         return 'value';
     }

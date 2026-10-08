@@ -61,6 +61,7 @@ export function runEffects(
     if (effect.skip) state.cursor.skipNext++;
     if (effect.reverse) state.cursor.direction = state.cursor.direction === 1 ? -1 : 1;
     if (effect.breakSuit) state.vars[`${effect.breakSuit}Broken`] = true;
+    if (effect.sitOut !== undefined) sitOut(state, effect.sitOut, ctx);
     if (effect.layOutMelds) {
       if (ctx.player === undefined) {
         throw new GameFileError('"layOutMelds" can only be used in an action\'s effects');
@@ -70,6 +71,15 @@ export function runEffects(
     // winnerLeads: the trick winner leading the next trick is already the default.
   }
   return false;
+}
+
+/** Takes a seat out of play until the round ends (a lone player's partner). */
+function sitOut(state: GameState, seat: string, ctx: ScopeContext): void {
+  const value = evaluate(seat, buildScope(state, ctx));
+  const player = typeof value === 'number' ? state.players[value] : undefined;
+  if (!player)
+    throw new GameFileError(`sitOut "${seat}" gave ${JSON.stringify(value)}, not a seat`);
+  player.sittingOut = true;
 }
 
 /** Sets custom values from a `set` (in effects or setup.flip). */
@@ -124,6 +134,7 @@ function resolveTrick(state: GameState, rule: NonNullable<EffectDef['resolveTric
     rule,
     trumpSuit(state),
     ranks,
+    state.file.cardOrder?.bowers === true,
   );
   const winner = (trick.plays[index] as { player: number }).player;
   trick.winner = winner;
