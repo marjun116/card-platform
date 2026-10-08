@@ -232,6 +232,10 @@ Add games one at a time, picking each to stretch a different part of the engine.
 - [ ] Suggested order: hearts (passing), crazy eights (shedding), rummy and gin (melds), euchre (stripped deck, bowers), Oh Hell (changing hand sizes), cribbage (unusual scoring), pinochle and canasta (double decks), bridge (bidding auction, dummy hand)
 - [ ] For each game: game file, common house rule options, scenario tests, simulation test, a real playtest
 - [ ] Saved variants: a table's chosen options saved as a named, shareable preset
+- [ ] Game history (results are already saved by the server; nothing shows them yet):
+  - [ ] "Past games" on the home page: game, date, players, final score, and whether you won
+  - [ ] A past game's page: final scores and every round
+  - [ ] Simple stats per game: games played and won
 - [ ] Rulebook for each game, readable at any time (plan agreed 2026-10-07, see
       `docs/decisions.md`):
   - [ ] Written rules for each built-in game (starting with spades): object, setup,
@@ -275,6 +279,7 @@ only offered for built-in games, never custom ones.
 This is the feature that sets the platform apart. The AI turns typed rules into a game file, asks about every gap, and the validator guarantees that whatever it produces is safe to run.
 
 - [ ] Test deployment online first (e.g. Render, Railway or Fly.io), before any AI feature is reachable, so family can play from home. Moved here from Phase 4.
+  - [ ] Real sign-in emails: an email service key (Resend) and, ideally, your own sending domain, so people can sign in to their account on any device
 - [ ] Test set first: collect 15–20 real house-rule write-ups from family and friends, typed as they'd naturally type them
 - [ ] Rules entry screen: paste or type rules, game name, player count
 - [ ] Translation pipeline using Claude through the Anthropic API: rules text in, game file out, checked by the validator, with validator errors fed back for a retry
@@ -352,6 +357,7 @@ Harden the platform for strangers, not just family. Several items here involve l
 - [ ] Production hosting with database backups, error monitoring and uptime alerts
 - [ ] Load test: many simultaneous tables without slowdowns
 - [ ] Security review: auth, WebSocket messages, hidden-information leaks, rate limits, the AI pipeline
+- [ ] Optional: "Sign in with Google" alongside email links (sessions were built so it can be added without other changes)
 - [ ] Moderation basics: report a user, block a user, content filter on game names and chat
 - [ ] Privacy policy and terms of service (have a lawyer review; extra rules apply if under-13s could sign up)
 - [ ] Trademark check on the platform name and on game names (avoid branded games)
