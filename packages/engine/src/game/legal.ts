@@ -1,5 +1,6 @@
 import { SUITS } from '../cards/card';
 import { ExprError } from '../errors';
+import { ACTION_TYPES } from '../schema/gameFile';
 import { actionMoves, allowsCard } from '../actions';
 import { type Move, moveKey, type PlayerId } from './move';
 import { findCard } from './cards';
@@ -104,6 +105,14 @@ function pendingCandidates(
 ): Candidate[] {
   const pending = state.pending;
   if (!pending) return [];
+  if (pending.kind === 'ask') {
+    if (opts.only) return [];
+    return pending.values.map((value) => ({
+      move: { player, type: 'choose', value },
+      step: -1,
+      action: null,
+    }));
+  }
   if (pending.kind === 'chooseSuit') {
     if (opts.only) return [];
     return SUITS.map((suit) => ({
@@ -165,6 +174,26 @@ export function getLegalMoves(state: GameState, player: PlayerId): Move[] {
 export function findCandidate(state: GameState, move: Move): Candidate | null {
   const key = moveKey(move);
   return stableCandidates(state, move.player).find((c) => moveKey(c.move) === key) ?? null;
+}
+
+let checkingMoves = false;
+
+/**
+ * For `player.hasMove('pickUpPile')`: could this player make a move of this
+ * type right now (turn order aside)? A move's own condition can't ask this.
+ */
+export function hasMove(state: GameState, player: PlayerId, type: string): boolean {
+  if (!(ACTION_TYPES as readonly string[]).includes(type)) {
+    throw new ExprError(`player.hasMove(): "${type}" isn't a kind of move`);
+  }
+  if (checkingMoves) throw new ExprError("A move's condition cannot itself use player.hasMove");
+  checkingMoves = true;
+  try {
+    const only = [type as ActionDef['type']];
+    return candidates(state, player, { only, ignoreTurn: true }).length > 0;
+  } finally {
+    checkingMoves = false;
+  }
 }
 
 let checkingLegalPlay = false;

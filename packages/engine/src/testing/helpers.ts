@@ -78,3 +78,29 @@ export function restartPhase(state: GameState): GameState {
   settle(next);
   return next;
 }
+
+/**
+ * Returns a copy with these cards on top of the zone (`zone`, e.g. "stock"),
+ * the first listed on the very top, so they're drawn first. A card that's
+ * somewhere else trades places with the zone's bottom card, so every zone
+ * keeps its size.
+ */
+export function onTop(state: GameState, zone: string, specs: string[]): GameState {
+  const next = draft(state);
+  const pile = next.zones[zone];
+  if (!pile) throw new Error(`onTop: no zone "${zone}"`);
+  for (const spec of [...specs].reverse()) {
+    const wanted = id(spec);
+    if (!pile.some((c) => c.id === wanted)) {
+      const holder = Object.values(next.zones).find((cards) => cards.some((c) => c.id === wanted));
+      const bottom = pile.shift();
+      if (!holder || !bottom) throw new Error(`onTop: can't find ${spec}, or "${zone}" is empty`);
+      const at = holder.findIndex((c) => c.id === wanted);
+      pile.unshift(holder[at] as Card);
+      holder[at] = bottom;
+    }
+    const index = pile.findIndex((c) => c.id === wanted);
+    pile.push(...pile.splice(index, 1));
+  }
+  return next;
+}

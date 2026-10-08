@@ -11,7 +11,17 @@ export type Move =
   | { player: PlayerId; type: 'playToTrick'; card: CardId }
   | { player: PlayerId; type: 'discard'; card: CardId; to: string }
   | { player: PlayerId; type: 'draw'; from: string }
-  | { player: PlayerId; type: 'pickUpPile'; from: string }
+  /**
+   * Take a whole pile. With `meldTop` rules, its top card goes into a new meld
+   * with these `cards` from your hand, or onto your `meld`.
+   */
+  | {
+      player: PlayerId;
+      type: 'pickUpPile';
+      from: string;
+      cards?: CardId[];
+      meld?: { zone: ZoneKey; index: number };
+    }
   | { player: PlayerId; type: 'pass'; cards: CardId[] }
   | { player: PlayerId; type: 'meld'; cards: CardId[] }
   | { player: PlayerId; type: 'layOff'; card: CardId; meld: { zone: ZoneKey; index: number } }
@@ -20,7 +30,8 @@ export type Move =
   | { player: PlayerId; type: 'declareTrump'; suit: Suit }
   | { player: PlayerId; type: 'chooseSuit'; suit: Suit }
   | { player: PlayerId; type: 'choose'; value: string }
-  | { player: PlayerId; type: 'showHand'; card: CardId; to: string }
+  /** Go out: every card in valid groups, discarding `card` (or nothing, when that's allowed). */
+  | { player: PlayerId; type: 'showHand'; card: CardId | null; to: string }
   /** Group the cards in your hand (free; any time). Not listed in legal moves. */
   | { player: PlayerId; type: 'arrange'; groups: CardId[][] }
   /** "Sort into melds": the engine groups your hand for you (free; any time). */
@@ -40,8 +51,11 @@ export function moveKey(move: Move): string {
     case 'playToTrick':
       return `${base}|${move.card}`;
     case 'draw':
-    case 'pickUpPile':
       return `${base}|${move.from}`;
+    case 'pickUpPile':
+      return `${base}|${move.from}|${[...(move.cards ?? [])].sort().join(',')}|${
+        move.meld ? `${move.meld.zone}#${move.meld.index}` : ''
+      }`;
     case 'pass':
     case 'meld':
       // Card lists are sets: the order a player picks them in doesn't matter.

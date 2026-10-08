@@ -13,7 +13,9 @@ import type { TableStatus } from '../store/types';
 const cardId = z.string().min(1).max(16);
 const zoneName = z.string().min(1).max(40);
 const suit = z.enum(['clubs', 'diamonds', 'hearts', 'spades']);
-const cardList = z.array(cardId).min(1).max(60);
+// Multi-deck games (canasta: 108 cards) can have big hands.
+const cardList = z.array(cardId).min(1).max(400);
+const meldRef = z.strictObject({ zone: zoneName, index: z.number().int().min(0).max(100) });
 
 /**
  * A move as the client sends it. `player` is optional and always ignored:
@@ -25,14 +27,20 @@ export const moveSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...player, type: z.literal('playToTrick'), card: cardId }),
   z.strictObject({ ...player, type: z.literal('discard'), card: cardId, to: zoneName }),
   z.strictObject({ ...player, type: z.literal('draw'), from: zoneName }),
-  z.strictObject({ ...player, type: z.literal('pickUpPile'), from: zoneName }),
+  z.strictObject({
+    ...player,
+    type: z.literal('pickUpPile'),
+    from: zoneName,
+    cards: cardList.optional(),
+    meld: meldRef.optional(),
+  }),
   z.strictObject({ ...player, type: z.literal('pass'), cards: cardList }),
   z.strictObject({ ...player, type: z.literal('meld'), cards: cardList }),
   z.strictObject({
     ...player,
     type: z.literal('layOff'),
     card: cardId,
-    meld: z.strictObject({ zone: zoneName, index: z.number().int().min(0).max(100) }),
+    meld: meldRef,
   }),
   z.strictObject({
     ...player,
@@ -43,11 +51,16 @@ export const moveSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...player, type: z.literal('declareTrump'), suit }),
   z.strictObject({ ...player, type: z.literal('chooseSuit'), suit }),
   z.strictObject({ ...player, type: z.literal('choose'), value: z.string().min(1).max(40) }),
-  z.strictObject({ ...player, type: z.literal('showHand'), card: cardId, to: zoneName }),
+  z.strictObject({
+    ...player,
+    type: z.literal('showHand'),
+    card: cardId.nullable(),
+    to: zoneName,
+  }),
   z.strictObject({
     ...player,
     type: z.literal('arrange'),
-    groups: z.array(z.array(cardId).max(60)).max(60),
+    groups: z.array(z.array(cardId).max(400)).max(100),
   }),
   z.strictObject({ ...player, type: z.literal('sortHand') }),
   z.strictObject({ ...player, type: z.literal('lookAtHand') }),

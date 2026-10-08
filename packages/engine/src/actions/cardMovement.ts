@@ -13,14 +13,16 @@ import {
 } from '../game/state';
 import { canDraw, cardCount, drawCards } from '../game/zones';
 import { evaluateCondition } from '../expr/evaluate';
-import { buildScope } from '../game/scope';
+import { buildScope, withCard } from '../game/scope';
 import {
-  canShowHandWithout,
   checkedGroups,
+  goingOutWays,
   fitsMeld,
-  groupUsesWild,
+  meldContext,
   meldRulesOf,
 } from '../game/arrangement';
+import { canAddToMeld, groupInfo } from './arrange';
+import { type Card, cardCode } from '../cards/card';
 import type {
   DiscardAction,
   DrawAction,
@@ -80,6 +82,7 @@ export function applyDraw(state: GameState, move: Move, action: DrawAction): Act
     cardCount(state, action.count ?? 1, { player: move.player }),
   );
   state.cursor.draws += drawn.length;
+  if ((action.to ?? 'hand') === 'hand') layDownBonusCards(state, move.player, true);
   // Effects of a one-card draw can refer to the card drawn as `card`.
   return drawn.length === 1 ? { drawn, card: drawn[0] } : { drawn };
 }
@@ -87,16 +90,115 @@ export function applyDraw(state: GameState, move: Move, action: DrawAction): Act
 // ---- pick up a whole pile ----
 
 export function pickUpMoves(state: GameState, player: PlayerId, action: PickUpPileAction): Move[] {
-  if (zoneCards(state, zoneKey(state, action.from, player)).length === 0) return [];
+  const pile = zoneCards(state, zoneKey(state, action.from, player));
+  if (pile.length === 0) return [];
+  if (action.meldTop) return meldTopMoves(state, player, action, pile[pile.length - 1] as Card);
   if (!allowsCard(state, player, action)) return [];
   return [{ player, type: 'pickUpPile', from: action.from }];
 }
 
+/**
+ * Ways to take a pile by melding its top card: a new meld with cards from the
+ * hand, or the top card added to one of the player's own melds. The action's
+ * `if` sees the top card as `card` and the meld as `meld` (with `isNew`).
+ */
+function meldTopMoves(
+  state: GameState,
+  player: PlayerId,
+  action: PickUpPileAction,
+  top: Card,
+): Move[] {
+  const rules = meldRulesOf(state);
+  const meldTop = action.meldTop;
+  if (!rules || !meldTop) return [];
+  const allowed = (cards: Card[], isNew: boolean, using: Card[]) => {
+    const info = groupInfo(cards, rules);
+    if (!info) return false;
+    if (!action.if) return true;
+    const meld = { ...meldContext(state, rules, cards, info, false), isNew };
+    const ctx = { player, card: top, meld, using: new Set(using.map((c) => c.id)) };
+    return evaluateCondition(action.if, buildScope(state, ctx));
+  };
+  const moves: Move[] = [];
+  const seen = new Set<string>();
+  // New melds: identical cards (two decks) make the same meld, so offer it once.
+  for (const cards of combinations(handOf(state, player), meldTop.cards ?? rules.minSize - 1)) {
+    const key = cards
+      .map((c) => cardCode(c))
+      .sort()
+      .join(',');
+    if (seen.has(key) || !allowed([top, ...cards], true, cards)) continue;
+    seen.add(key);
+    moves.push({ player, type: 'pickUpPile', from: action.from, cards: cards.map((c) => c.id) });
+  }
+  const zone = zoneKey(state, meldTop.to, player);
+  meldsIn(state, zone).forEach((meld, index) => {
+    if (canAddToMeld(meld, top, rules) && allowed([...meld, top], false, [])) {
+      moves.push({ player, type: 'pickUpPile', from: action.from, meld: { zone, index } });
+    }
+  });
+  return moves;
+}
+
 export function applyPickUp(state: GameState, move: Move, action: PickUpPileAction): ActionResult {
+  if (move.type !== 'pickUpPile') return {};
   const pile = zoneCards(state, zoneKey(state, action.from, move.player));
+  const top = action.meldTop ? pile.pop() : undefined;
   const drawn = pile.splice(0, pile.length);
   zoneCards(state, zoneKey(state, action.to ?? 'hand', move.player)).push(...drawn);
-  return { drawn };
+  let formed: Card[] | null = null;
+  if (action.meldTop && top) {
+    const zone = zoneKey(state, action.meldTop.to, move.player);
+    const hand = zoneKey(state, 'hand', move.player);
+    if (move.meld) {
+      formed = meldsIn(state, move.meld.zone)[move.meld.index] ?? null;
+      if (!formed) throw new GameFileError(`No meld ${move.meld.index} in ${move.meld.zone}`);
+      formed.push(top);
+    } else {
+      formed = [top, ...(move.cards ?? []).map((id) => takeCard(state, hand, id))];
+      meldsIn(state, zone).push(formed);
+    }
+    sortMeld(formed, rankOrder(state));
+  }
+  // Bonus cards taken with the pile are laid down, but not replaced.
+  if ((action.to ?? 'hand') === 'hand') layDownBonusCards(state, move.player, false);
+  if (!top) return { drawn };
+  const rules = meldRulesOf(state);
+  const info = formed && rules ? groupInfo(formed, rules) : null;
+  const meld =
+    formed && rules && info
+      ? { ...meldContext(state, rules, formed, info, false), isNew: !move.meld }
+      : undefined;
+  return meld ? { drawn, card: top, meld } : { drawn, card: top };
+}
+
+/**
+ * Lays down the bonus cards (`bonusCards`, such as red 3s) in the player's
+ * hand, replacing each from `replaceFrom` when `replace` is true (and laying
+ * down any bonus card that brings).
+ */
+export function layDownBonusCards(state: GameState, player: PlayerId, replace: boolean): void {
+  const bonus = state.file.bonusCards;
+  if (!bonus) return;
+  const hand = handOf(state, player);
+  const target = zoneCards(state, zoneKey(state, bonus.to, player));
+  for (let guard = 0; guard < 100; guard++) {
+    const scope = buildScope(state, { player });
+    const found = hand.filter((card) => evaluateCondition(bonus.if, withCard(scope, card)));
+    if (found.length === 0) return;
+    for (const card of found) {
+      hand.splice(hand.indexOf(card), 1);
+      target.push(card);
+    }
+    if (!replace || !bonus.replaceFrom) return;
+    const drawn = drawCards(
+      state,
+      zoneKey(state, bonus.replaceFrom, player),
+      zoneKey(state, 'hand', player),
+      found.length,
+    );
+    if (drawn.length === 0) return;
+  }
 }
 
 // ---- pass cards to another player ----
@@ -170,14 +272,10 @@ export function meldMoves(state: GameState, player: PlayerId, action: MeldAction
 /** With meld rules, a player melds one of the valid groups they've arranged. */
 function groupMeldMoves(state: GameState, player: PlayerId, action: MeldAction): Move[] {
   const moves: Move[] = [];
+  const rules = meldRulesOf(state);
   for (const { cards, info } of checkedGroups(state, player)) {
-    if (!info) continue;
-    const meld = {
-      kind: info.kind,
-      size: cards.length,
-      isPure: info.pure,
-      usesWild: groupUsesWild(state, cards),
-    };
+    if (!info || !rules) continue;
+    const meld = meldContext(state, rules, cards, info, false);
     if (action.if && !evaluateCondition(action.if, buildScope(state, { player, meld }))) continue;
     moves.push({ player, type: 'meld', cards: cards.map((c) => c.id).sort() });
   }
@@ -197,7 +295,8 @@ export function layOffMoves(state: GameState, player: PlayerId, action: LayOffAc
   const moves: Move[] = [];
   const hand = handOf(state, player, action.from).filter(cardsAllowed(state, player, action));
   const rules = meldRulesOf(state);
-  for (const zone of zoneInstances(state, action.to)) {
+  const zones = action.own ? [zoneKey(state, action.to, player)] : zoneInstances(state, action.to);
+  for (const zone of zones) {
     meldsIn(state, zone).forEach((meld, index) => {
       for (const card of hand) {
         const fits = rules ? fitsMeld(rules, meld, card) : canLayOff(meld, card, rankOrder(state));
@@ -223,15 +322,29 @@ export function applyLayOff(state: GameState, move: Move, action: LayOffAction):
 // ---- go out by showing your hand ----
 
 /** Discards that leave every other card in a valid group. */
+/**
+ * Discards that leave every other card in a valid group (judged as going
+ * out), and with `discard: "optional"` going out with no discard at all.
+ */
 export function showHandMoves(state: GameState, player: PlayerId, action: ShowHandAction): Move[] {
-  return handOf(state, player)
-    .filter(cardsAllowed(state, player, action))
-    .filter((card) => canShowHandWithout(state, player, card))
-    .map((card) => ({ player, type: 'showHand', card: card.id, to: action.to }));
+  const discard = action.discard ?? true;
+  // Whether the hand can go out is checked before the game's condition, which can be costly.
+  const ways = goingOutWays(state, player);
+  const moves: Move[] =
+    discard === false
+      ? []
+      : handOf(state, player)
+          .filter((card) => ways.discards.has(card))
+          .filter(cardsAllowed(state, player, action))
+          .map((card) => ({ player, type: 'showHand', card: card.id, to: action.to }));
+  if (discard !== true && ways.withoutDiscard && allowsCard(state, player, action)) {
+    moves.push({ player, type: 'showHand', card: null, to: action.to });
+  }
+  return moves;
 }
 
 export function applyShowHand(state: GameState, move: Move, action: ShowHandAction): ActionResult {
-  if (move.type !== 'showHand') return {};
+  if (move.type !== 'showHand' || move.card === null) return {};
   const card = takeCard(state, zoneKey(state, 'hand', move.player), move.card);
   zoneCards(state, zoneKey(state, action.to, move.player)).push(card);
   return { card };

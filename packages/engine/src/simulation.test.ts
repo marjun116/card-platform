@@ -44,6 +44,7 @@ const GAMES: Record<keyof typeof allFixtures, number> = {
   passing: 10,
   wildRummy: 20,
   counting: 30,
+  teamSets: 30,
 };
 
 describe('random play', () => {

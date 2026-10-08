@@ -57,6 +57,19 @@ export function performMove(state: GameState, candidate: Candidate, move: Move):
 
   if (move.type === 'lookAtHand') return;
 
+  // Answering another player's question: the asker's turn then goes on.
+  if (move.type === 'choose' && state.pending?.kind === 'ask') {
+    const pending = state.pending;
+    state.pending = null;
+    setVar(state, pending.target, move.value);
+    const card = pending.card === null ? undefined : (findCard(state, pending.card) ?? undefined);
+    const ctx = card ? { player: pending.asker, card } : { player: pending.asker };
+    if (!runEffects(state, pending.remaining, ctx, pending.after)) {
+      finishAction(state, pending.after);
+    }
+    return;
+  }
+
   if (move.type === 'chooseSuit') {
     const pending = state.pending;
     if (pending?.kind !== 'chooseSuit') throw new IllegalMoveError('Nothing to choose');
@@ -92,7 +105,11 @@ export function performMove(state: GameState, candidate: Candidate, move: Move):
   }
 
   const result = applyAction(state, move, action);
-  const ctx = result.card ? { player: move.player, card: result.card } : { player: move.player };
+  const ctx = {
+    player: move.player,
+    ...(result.card ? { card: result.card } : {}),
+    ...(result.meld ? { meld: result.meld } : {}),
+  };
   if (runEffects(state, action.effects ?? [], ctx, after)) return;
 
   if (action.type === 'draw' && action.then === 'mayPlayDrawnCard' && result.drawn?.length === 1) {

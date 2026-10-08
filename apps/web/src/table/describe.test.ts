@@ -120,3 +120,29 @@ describe('describeScore', () => {
     );
   });
 });
+
+describe('words for taking a pile and going out', () => {
+  it('labels and logs the new kinds of move', () => {
+    const withCards = {
+      player: 0,
+      type: 'pickUpPile' as const,
+      from: 'discard',
+      cards: ['7S.0', '7D.0'],
+    };
+    expect(moveLabel(withCards, names)).toBe('Take the discard, melding its top card with 7♠ 7♦');
+    expect(describeMove(withCards, names)).toBe(
+      'Ana took the discard, melding its top card with 7 of spades, 7 of diamonds',
+    );
+    const onto = {
+      player: 0,
+      type: 'pickUpPile' as const,
+      from: 'discard',
+      meld: { zone: 'melds@t0', index: 1 },
+    };
+    expect(moveLabel(onto, names)).toBe('Take the discard, adding its top card to meld 2');
+    expect(describeMove(onto, names)).toBe('Ana took the discard, adding its top card to a meld');
+    const out = { player: 0, type: 'showHand' as const, card: null, to: 'discard' };
+    expect(moveLabel(out, names)).toBe('Go out');
+    expect(describeMove(out, names)).toBe('Ana went out');
+  });
+});

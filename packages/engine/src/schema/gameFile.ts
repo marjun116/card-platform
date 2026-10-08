@@ -90,8 +90,18 @@ export const meldRulesSchema = z.strictObject({
   pureRunRequired: z.union([z.boolean(), expr]).optional(),
   /** Players may use "Sort into melds". Default true. */
   autoArrange: z.union([z.boolean(), expr]).optional(),
-  /** Per-player zone holding each player's melds on the table. Default "melds". */
+  /** Zone holding melds on the table, one per player or per team. Default "melds". */
   zone: name.optional(),
+  /**
+   * Sets: one card of each suit (the default), or any suits, so two decks can
+   * make a set of eight 7s.
+   */
+  sets: z.enum(['differentSuits', 'anySuits']).optional(),
+  /**
+   * A condition every meld must meet, reading `meld` (rank, naturals, wilds,
+   * size, goingOut, …), e.g. "meld.naturals >= 2 && meld.wilds <= 3".
+   */
+  allowed: expr.optional(),
 });
 
 export const optionSchema = z.strictObject({
@@ -165,6 +175,13 @@ export const effectSchema = z.strictObject({
   /** Gives each card in this shared zone back to the player who played it, into `to`. */
   returnCards: name.optional(),
   to: name.optional(),
+  /**
+   * Another player (a seat expression) answers a question with one of
+   * `values`, stored in `set` ("state.x"); the rest of the effects then run.
+   */
+  ask: expr.optional(),
+  values: z.array(z.string().min(1)).min(1).optional(),
+  labels: labels.optional(),
 });
 
 const common = { if: expr.optional(), effects: z.array(effectSchema).optional() };
@@ -214,10 +231,28 @@ export const meldActionSchema = action('meld', {
   minSize: count(1).optional(),
   from: name.optional(),
 });
-export const layOffActionSchema = action('layOff', { to: name, from: name.optional() });
+export const layOffActionSchema = action('layOff', {
+  to: name,
+  from: name.optional(),
+  /** Only onto your own melds (or your team's, for a per-team meld zone). */
+  own: z.boolean().optional(),
+});
 /** Go out by discarding one card when every other card is in a valid group. */
-export const showHandActionSchema = action('showHand', { to: name });
-export const pickUpPileActionSchema = action('pickUpPile', { from: name, to: name.optional() });
+export const showHandActionSchema = action('showHand', {
+  to: name,
+  /** Discard a last card to go out: always (true, the default), or optionally. */
+  discard: z.union([z.boolean(), z.literal('optional')]).optional(),
+});
+export const pickUpPileActionSchema = action('pickUpPile', {
+  from: name,
+  to: name.optional(),
+  /**
+   * The pile's top card must go straight into a meld in this zone: a new one
+   * with `cards` cards from your hand (default 2), or one of your own melds.
+   * The action's `if` sees the meld formed as `meld` and the top card as `card`.
+   */
+  meldTop: z.strictObject({ to: name, cards: count(1).optional() }).optional(),
+});
 export const bidActionSchema = action('bid', {
   values: z.union([
     z.strictObject({ range: z.tuple([z.int(), z.int()]) }),
@@ -300,6 +335,9 @@ export const phaseSchema = z.strictObject({
       name,
       z.union([
         z.enum(['reshuffleDiscardExceptTop', 'endRound']),
+        // End the round only when `if` holds for the player whose turn it is
+        // (say, when they can't take the discard pile instead).
+        z.strictObject({ policy: z.literal('endRound'), if: expr.optional() }),
         // Reshuffle at most `limit` times per round; when it runs out after that, the
         // round ends. `limit` may be an expression; "unlimited" or null means no limit.
         // With no limit the round never ends this way. `if` switches the rule on and off.
@@ -376,4 +414,10 @@ export const gameFileSchema = z.strictObject({
   elimination: z.strictObject({ when: expr }).optional(),
   endCondition: endConditionSchema,
   display: z.array(displaySchema).min(1).optional(),
+  /**
+   * Cards laid down as soon as they reach a hand (red 3s in canasta): moved to
+   * the player's (or team's) `to` zone and, from the deal or a draw, replaced
+   * from `replaceFrom`.
+   */
+  bonusCards: z.strictObject({ if: expr, to: name, replaceFrom: name.optional() }).optional(),
 });

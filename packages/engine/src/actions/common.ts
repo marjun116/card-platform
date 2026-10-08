@@ -4,11 +4,14 @@ import type { PlayerId } from '../game/move';
 import { buildScope, withCard } from '../game/scope';
 import type { GameState } from '../game/state';
 import type { ActionDef } from '../game/types';
+import type { MeldContext } from '../game/scope';
 
 /** What happened, for the action's effects to refer to. */
 export interface ActionResult {
   /** The card played (available to effects as `card`). */
   card?: Card;
+  /** The meld a pile's top card went into (available to effects as `meld`). */
+  meld?: MeldContext;
   /** Cards drawn. */
   drawn?: Card[];
 }

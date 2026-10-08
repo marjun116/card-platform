@@ -8,6 +8,7 @@ import {
   canAddToMeld,
   type GroupInfo,
   groupInfo,
+  meldFacts,
   type MeldRules,
   usesWild,
 } from '../actions/arrange';
@@ -16,23 +17,28 @@ import { IllegalMoveError } from '../errors';
 import { evaluate, evaluateCondition, type Scope } from '../expr/evaluate';
 import { ACES } from '../schema/gameFile';
 import type { PlayerId } from './move';
-import { buildScope, cardObject, cardValue, withCard } from './scope';
+import { buildScope, cardObject, cardValue, type MeldContext, withCard, withMeld } from './scope';
 import { resolveSetting } from './settings';
 import { type GameState, meldsIn, zoneCards, zoneKey } from './state';
 
-/** The game's meld rules, or null if players don't arrange their hands in this game. */
-export function meldRulesOf(state: GameState): MeldRules | null {
+/**
+ * The game's meld rules, or null if players don't arrange their hands in this
+ * game. `goingOut`: the melds being judged would empty the player's hand
+ * (some melds are only allowed then, such as canasta's black 3s).
+ */
+export function meldRulesOf(state: GameState, goingOut = false): MeldRules | null {
   const def = state.file.meldRules;
   if (!def) return null;
   const wild = state.file.cardOrder?.wild;
   // Whether a card is wild doesn't change while these rules are in use, so each card's
   // answer is worked out once (lay-offs check every card against every meld).
   const known = new Map<string, boolean>();
-  const scope = wild ? buildScope(state) : null;
-  return {
+  const scope = wild || def.allowed ? buildScope(state) : null;
+  const rules: MeldRules = {
     kinds: def.kinds ?? ['set', 'run'],
     minSize: def.minSize ?? 3,
     aces: resolveSetting(state, def.aces ?? 'low', ACES, 'Aces'),
+    anySuits: def.sets === 'anySuits',
     isWild: (card) => {
       if (!wild) return false;
       let answer = known.get(card.id);
@@ -42,6 +48,31 @@ export function meldRulesOf(state: GameState): MeldRules | null {
       }
       return answer;
     },
+  };
+  const allowed = def.allowed;
+  if (allowed) {
+    rules.allows = (cards, info) =>
+      evaluateCondition(
+        allowed,
+        withMeld(scope as Scope, meldContext(state, rules, cards, info, goingOut)),
+      );
+  }
+  return rules;
+}
+
+/** What a meld condition sees as `meld`. */
+export function meldContext(
+  state: GameState,
+  rules: MeldRules,
+  cards: readonly Card[],
+  info: GroupInfo,
+  goingOut: boolean,
+): MeldContext {
+  const value = valueOf(state);
+  return {
+    ...meldFacts(cards, info, rules),
+    points: cards.reduce((sum, c) => sum + value(c), 0),
+    goingOut,
   };
 }
 
@@ -79,8 +110,12 @@ export interface CheckedGroup {
   info: GroupInfo | null;
 }
 
-export function checkedGroups(state: GameState, player: PlayerId): CheckedGroup[] {
-  const rules = meldRulesOf(state);
+export function checkedGroups(
+  state: GameState,
+  player: PlayerId,
+  goingOut = false,
+): CheckedGroup[] {
+  const rules = meldRulesOf(state, goingOut);
   return heldGroups(state, player).map((cards) => ({
     cards,
     info: rules ? groupInfo(cards, rules) : null,
@@ -144,27 +179,61 @@ export function sortHand(state: GameState, player: PlayerId): void {
 }
 
 /**
- * Could the player go out by discarding this card? Every other card must be in
- * a valid group (still valid without this card), with a pure run if needed.
+ * Every way the player could go out right now: the cards they could discard
+ * (every other card being in a valid group, judged as going out), and whether
+ * they could go out with no discard. Worked out in one pass over the groups:
+ * at most one card can be outside them.
  */
-export function canShowHandWithout(state: GameState, player: PlayerId, card: Card): boolean {
-  const rules = meldRulesOf(state);
-  if (!rules) return false;
-  const rest = handOf(state, player).filter((c) => c !== card);
-  const groups = heldGroups(state, player)
-    .map((g) => g.filter((c) => c !== card))
-    .filter((g) => g.length > 0);
+export function goingOutWays(
+  state: GameState,
+  player: PlayerId,
+): { discards: Set<Card>; withoutDiscard: boolean } {
+  const none = { discards: new Set<Card>(), withoutDiscard: false };
+  const rules = meldRulesOf(state, true);
+  if (!rules) return none;
+  const hand = handOf(state, player);
+  const groups = heldGroups(state, player);
+  const grouped = new Set(groups.flat());
+  const loose = hand.filter((c) => !grouped.has(c));
+  if (loose.length > 1) return none;
   const infos = groups.map((g) => groupInfo(g, rules));
-  if (infos.some((info) => info === null)) return false;
-  if (groups.flat().length !== rest.length) return false;
-  const pure = infos.some((info) => info?.pure) || hasPureRunOnTable(state, player);
-  return !pureRunRequired(state) || pure;
+  const pureNeeded = pureRunRequired(state) && !hasPureRunOnTable(state, player);
+  const ok = (pure: boolean) => !pureNeeded || pure;
+  const allValid = infos.every((info) => info !== null);
+  const anyPure = infos.some((info) => info?.pure === true);
+
+  if (loose.length === 1) {
+    // Only the card outside the groups can go.
+    return allValid && ok(anyPure) ? { discards: new Set(loose), withoutDiscard: false } : none;
+  }
+  const discards = new Set<Card>();
+  const invalid = infos.filter((info) => info === null).length;
+  groups.forEach((group, i) => {
+    // Without this card its group must still be valid (or empty), and every other group too.
+    const othersValid = invalid - (infos[i] === null ? 1 : 0) === 0;
+    if (!othersValid) return;
+    const othersPure = infos.some((info, j) => j !== i && info?.pure === true);
+    for (const card of group) {
+      const rest = group.filter((c) => c !== card);
+      const info = rest.length === 0 ? null : groupInfo(rest, rules);
+      if (rest.length > 0 && info === null) continue;
+      if (ok(othersPure || info?.pure === true)) discards.add(card);
+    }
+  });
+  return { discards, withoutDiscard: allValid && ok(anyPure) };
 }
 
-/** Moves the player's valid groups from their hand to the table. */
+/**
+ * Moves the player's valid groups from their hand to the table. When the
+ * groups take every card in the hand, they're judged as going out.
+ */
 export function layOutMelds(state: GameState, player: PlayerId, zone: string): void {
-  const valid = checkedGroups(state, player).filter((g) => g.info !== null);
   const hand = handOf(state, player);
+  const out = checkedGroups(state, player, true);
+  const goingOut =
+    out.every((g) => g.info !== null) &&
+    out.reduce((n, g) => n + g.cards.length, 0) === hand.length;
+  const valid = (goingOut ? out : checkedGroups(state, player)).filter((g) => g.info !== null);
   const table = meldsIn(state, zoneKey(state, zone, player));
   for (const { cards } of valid) {
     table.push(cards);

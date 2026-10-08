@@ -15,12 +15,44 @@ export interface MeldRules {
   aces: AcesRule;
   /** Can this card stand in for any other? (Printed jokers always can.) */
   isWild: (card: Card) => boolean;
+  /** Sets may repeat a suit and have any number of cards (several decks). */
+  anySuits?: boolean;
+  /** The game's own condition on a meld (`meldRules.allowed`); true if it has none. */
+  allows?: (cards: readonly Card[], info: GroupInfo) => boolean;
 }
 
 export interface GroupInfo {
   kind: MeldKind;
   /** A run with every card standing for itself (no wild card filling in). */
   pure: boolean;
+}
+
+/** What a meld condition can read about a group: `meld.rank`, `meld.wilds`, … */
+export interface MeldFacts {
+  kind: MeldKind;
+  size: number;
+  isPure: boolean;
+  usesWild: boolean;
+  /** The rank of a set's natural cards (null for a run, or a set of only wild cards). */
+  rank: string | null;
+  /** Cards standing for themselves, and wild cards. */
+  naturals: number;
+  wilds: number;
+}
+
+export function meldFacts(cards: readonly Card[], info: GroupInfo, rules: MeldRules): MeldFacts {
+  const isWild = wildIn(rules);
+  const naturals = cards.filter((c) => !isWild(c));
+  const rank = info.kind === 'set' && naturals[0] ? cardRank(naturals[0]) : null;
+  return {
+    kind: info.kind,
+    size: cards.length,
+    isPure: info.pure,
+    usesWild: usesWild(cards, rules),
+    rank,
+    naturals: naturals.length,
+    wilds: cards.length - naturals.length,
+  };
 }
 
 /** Most cards in a set: one per suit. */
@@ -40,6 +72,13 @@ const wildIn = (rules: MeldRules) => (card: Card) => isJoker(card) || rules.isWi
  * itself, which keeps a run pure.
  */
 export function groupInfo(cards: readonly Card[], rules: MeldRules): GroupInfo | null {
+  const info = shapeOf(cards, rules);
+  if (info && rules.allows && !rules.allows(cards, info)) return null;
+  return info;
+}
+
+/** The meld's kind by its cards alone, before the game's own condition. */
+function shapeOf(cards: readonly Card[], rules: MeldRules): GroupInfo | null {
   if (cards.length < rules.minSize) return null;
   const isWild = wildIn(rules);
   // Cards that must stand for themselves.
@@ -49,8 +88,8 @@ export function groupInfo(cards: readonly Card[], rules: MeldRules): GroupInfo |
     const pure = cards.every((c) => !isJoker(c)) && isNaturalRun(cards, rules.aces);
     if (pure) return { kind: 'run', pure: true };
   }
-  if (rules.kinds.includes('set') && cards.length <= MAX_SET && isSet(fixed)) {
-    return { kind: 'set', pure: false };
+  if (rules.kinds.includes('set') && (rules.anySuits || cards.length <= MAX_SET)) {
+    if (isSet(fixed, rules.anySuits === true)) return { kind: 'set', pure: false };
   }
   if (rules.kinds.includes('run') && isRunWithWilds(fixed, cards.length, rules.aces)) {
     return { kind: 'run', pure: false };
@@ -58,12 +97,12 @@ export function groupInfo(cards: readonly Card[], rules: MeldRules): GroupInfo |
   return null;
 }
 
-/** Same rank, different suits. */
-function isSet(fixed: readonly Card[]): boolean {
+/** Same rank, different suits (or any suits). */
+function isSet(fixed: readonly Card[], anySuits: boolean): boolean {
   if (fixed.length === 0) return true;
   const rank = cardRank(fixed[0] as Card);
-  const suits = new Set(fixed.map(cardSuit));
-  return fixed.every((c) => cardRank(c) === rank) && suits.size === fixed.length;
+  if (!fixed.every((c) => cardRank(c) === rank)) return false;
+  return anySuits || new Set(fixed.map(cardSuit)).size === fixed.length;
 }
 
 /** Positions of these cards in a rank order, or null if not all one suit. */
@@ -97,7 +136,7 @@ function isRunWithWilds(fixed: readonly Card[], length: number, aces: AcesRule):
  * wild rank that is in its natural place doesn't count.
  */
 export function usesWild(cards: readonly Card[], rules: MeldRules): boolean {
-  return cards.some(isJoker) || groupInfo(cards, { ...rules, isWild: () => false }) === null;
+  return cards.some(isJoker) || shapeOf(cards, { ...rules, isWild: () => false }) === null;
 }
 
 /** Can this card be added to a meld already on the table? */
@@ -135,6 +174,10 @@ export function bestArrangement(
   needsPure: boolean,
 ): Arrangement {
   const total = hand.reduce((sum, c) => sum + value(c), 0);
+  // Sets of any suits (canasta): grouping by rank is quick for any size of hand.
+  if (rules.anySuits && rules.kinds.length === 1 && rules.kinds[0] === 'set') {
+    return setsByRank(hand, rules, value);
+  }
   if (hand.length > MAX_SEARCH_CARDS) return { groups: [], deadwood: total };
 
   const candidates = candidateGroups(hand, rules);
@@ -195,6 +238,50 @@ export function bestArrangement(
     groups: result.groups.map((c) => indexes(c.mask).map((i) => hand[i] as Card)),
     deadwood: result.deadwood,
   };
+}
+
+/**
+ * Sets of any suits, grouped by rank: every rank with enough natural cards is
+ * a set; then the wild cards (cheapest first) complete the most valuable
+ * smaller groups, and any left over join sets that can take them. Each step
+ * keeps to the game's own condition. A good arrangement, not always the best.
+ */
+function setsByRank(
+  hand: readonly Card[],
+  rules: MeldRules,
+  value: (card: Card) => number,
+): Arrangement {
+  const isWild = wildIn(rules);
+  const wilds = hand.filter(isWild).sort((a, b) => value(a) - value(b));
+  const byRank = new Map<string, Card[]>();
+  for (const card of hand.filter((c) => !isWild(c))) {
+    byRank.set(cardRank(card), [...(byRank.get(cardRank(card)) ?? []), card]);
+  }
+  const groups: Card[][] = [];
+  const short: Card[][] = [];
+  for (const cards of byRank.values()) {
+    if (groupInfo(cards, rules)) groups.push(cards);
+    else short.push(cards);
+  }
+  const worth = (cards: readonly Card[]) => cards.reduce((sum, c) => sum + value(c), 0);
+  // Fewest wild cards needed first, then the most points saved.
+  short.sort((a, b) => b.length - a.length || worth(b) - worth(a));
+  for (const cards of short) {
+    const need = Math.max(0, rules.minSize - cards.length);
+    if (need > wilds.length) continue;
+    const group = [...cards, ...wilds.slice(0, need)];
+    if (!groupInfo(group, rules)) continue;
+    wilds.splice(0, need);
+    groups.push(group);
+  }
+  for (const wild of [...wilds]) {
+    const target = groups.find((g) => groupInfo([...g, wild], rules));
+    if (!target) continue;
+    target.push(wild);
+    wilds.splice(wilds.indexOf(wild), 1);
+  }
+  const melded = new Set(groups.flat());
+  return { groups, deadwood: worth(hand.filter((c) => !melded.has(c))) };
 }
 
 interface Candidate {

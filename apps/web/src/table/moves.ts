@@ -6,7 +6,9 @@ import type { BidValue, Move, PlayerView, Suit } from '@card-table/engine';
 
 type CardMove = Extract<Move, { type: 'play' | 'playToTrick' | 'discard' | 'layOff' | 'showHand' }>;
 type PileMove = Extract<Move, { type: 'draw' | 'pickUpPile' }>;
-type GroupMove = Extract<Move, { type: 'pass' | 'meld' }>;
+/** Taking a pile by melding its top card with cards chosen from your hand. */
+type PileWithCards = Extract<Move, { type: 'pickUpPile' }> & { cards: string[] };
+type GroupMove = Extract<Move, { type: 'pass' | 'meld' }> | PileWithCards;
 
 export interface Controls {
   /** Moves made with one card, by card id. */
@@ -49,12 +51,24 @@ export function buildControls(moves: Move[]): Controls {
       case 'playToTrick':
       case 'discard':
       case 'layOff':
-      case 'showHand':
         push(controls.byCard, move.card, move);
         break;
+      case 'showHand':
+        // Going out with no discard needs no card: it's a button.
+        if (move.card === null) controls.other.push(move);
+        else push(controls.byCard, move.card, move);
+        break;
       case 'draw':
-      case 'pickUpPile':
         push(controls.byPile, move.from, move);
+        break;
+      case 'pickUpPile':
+        // With cards from your hand: chosen like a meld. Otherwise from the pile.
+        if (move.cards) {
+          controls.groups.push(move as PileWithCards);
+          for (const card of move.cards) controls.groupCards.add(card);
+        } else {
+          push(controls.byPile, move.from, move);
+        }
         break;
       case 'pass':
       case 'meld':
@@ -113,9 +127,11 @@ export function movesForSelection(controls: Controls, selected: readonly string[
  * The sizes of group moves on offer, for hints like "Choose 3 cards to pass".
  * Returns null when no group moves are possible.
  */
-export function groupHint(controls: Controls): { type: 'pass' | 'meld'; sizes: number[] }[] | null {
+export function groupHint(
+  controls: Controls,
+): { type: GroupMove['type']; sizes: number[] }[] | null {
   if (controls.groups.length === 0) return null;
-  const byType = new Map<'pass' | 'meld', Set<number>>();
+  const byType = new Map<GroupMove['type'], Set<number>>();
   for (const move of controls.groups) {
     const sizes = byType.get(move.type) ?? new Set();
     sizes.add(move.cards.length);

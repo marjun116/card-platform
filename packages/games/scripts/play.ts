@@ -125,8 +125,11 @@ function describeMove(move: Move): string {
     case 'lookAtHand':
       return 'look at your hand';
     case 'draw':
+      return `draw from the ${move.from}`;
     case 'pickUpPile':
-      return `${move.type === 'draw' ? 'draw from' : 'pick up'} the ${move.from}`;
+      if (move.cards) return `take the ${move.from} with ${move.cards.map(labelFromId).join(' ')}`;
+      if (move.meld) return `take the ${move.from} onto meld ${move.meld.index + 1}`;
+      return `pick up the ${move.from}`;
     case 'pass':
       return `pass ${move.cards.map(labelFromId).join(' ')}`;
     case 'meld':
@@ -139,7 +142,7 @@ function describeMove(move: Move): string {
     case 'choose':
       return `choose ${choiceLabels[move.value] ?? move.value}`;
     case 'showHand':
-      return `go out, discarding ${labelFromId(move.card)}`;
+      return move.card === null ? 'go out' : `go out, discarding ${labelFromId(move.card)}`;
     case 'arrange':
       return 'arrange your hand';
     case 'sortHand':
@@ -159,6 +162,7 @@ function handText(cards: Card[]): string {
       .map((c) => c.rank);
     return ranks.length > 0 ? `${SUIT_SYMBOL[suit]} ${ranks.join(' ')}` : '';
   })
+    .concat(cards.filter(isJoker).map(() => 'Joker'))
     .filter(Boolean)
     .join('   ');
 }
@@ -166,7 +170,7 @@ function handText(cards: Card[]): string {
 /** Sorts card moves by suit, then rank, so the list reads like the hand. */
 function byCard(a: Move, b: Move): number {
   const key = (m: Move) => {
-    if (!('card' in m)) return 1000;
+    if (!('card' in m) || m.card === null) return 1000;
     const code = m.card.split('.')[0] ?? '';
     const suit = SUITS.indexOf(SUIT_BY_LETTER[code.slice(-1)] ?? 'spades');
     return suit * 100 + rankOrder.indexOf(code.slice(0, -1) as (typeof rankOrder)[number]);
@@ -196,11 +200,14 @@ function show(view: PlayerView, legal: Move[]): void {
     console.log(`Bids:   ${bids.join(' · ')}`);
   }
   for (const item of view.display) console.log(`${item.label}: ${String(item.value)}`);
-  // Face-up shared piles (an upcard, cards played in turn).
+  // Face-up shared piles (an upcard, cards played in turn), and piles showing their top card.
   for (const [key, zone] of Object.entries(view.zones)) {
-    if (key.includes('@') || zone.kind !== 'cards' || zone.cards.length === 0) continue;
-    if (view.trickZones.includes(key)) continue;
-    console.log(`${key}: ${handText(zone.cards)}`);
+    if (key.includes('@') || view.trickZones.includes(key)) continue;
+    if (zone.kind === 'cards' && zone.cards.length > 0) {
+      console.log(`${key}: ${handText(zone.cards)}`);
+    } else if (zone.kind === 'count' && zone.top) {
+      console.log(`${key}: ${cardLabel(zone.top)} on top (${zone.count} cards)`);
+    }
   }
   if (view.trick && view.trick.plays.length > 0) {
     const plays = view.trick.plays.map(

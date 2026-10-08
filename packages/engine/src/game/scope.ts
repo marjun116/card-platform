@@ -30,11 +30,31 @@ import {
   type Scope,
   type Value,
 } from '../expr/evaluate';
-import { hasLegalPlay } from './legal';
-import { deadwood, hasPureRunOnTable } from './arrangement';
+import { hasLegalPlay, hasMove } from './legal';
+import { checkedGroups, deadwood, hasPureRunOnTable, meldRulesOf } from './arrangement';
+import { groupInfo } from '../actions/arrange';
+import type { CardId } from '../cards/card';
 import type { BidValue, PlayerId, ZoneKey } from './move';
 import { type GameState, suitOf, type TrickState, teamZoneKey, trumpSuit } from './state';
 import { trickWinnerIndex } from '../cards/order';
+
+/** What expressions see as `meld`. */
+export interface MeldContext {
+  kind: string;
+  size: number;
+  isPure: boolean;
+  usesWild: boolean;
+  /** A set's rank (null for a run, or a set of only wild cards). */
+  rank: string | null;
+  naturals: number;
+  wilds: number;
+  /** Card values added up (`scoring.cardValue`). */
+  points: number;
+  /** The melds being judged would empty the player's hand. */
+  goingOut: boolean;
+  /** Taking a pile: true for a new meld, false for adding to one already down. */
+  isNew?: boolean;
+}
 
 export interface ScopeContext {
   /** The player the expression is about (acting player, or the one being scored). */
@@ -47,8 +67,10 @@ export interface ScopeContext {
   suit?: Suit;
   /** The bid being considered (a bid action's `if`). */
   bid?: BidValue;
-  /** The meld being considered (a meld action's `if`). */
-  meld?: { kind: string; size: number; isPure: boolean; usesWild: boolean };
+  /** The meld being considered (a meld action's `if`, `meldRules.allowed`, taking a pile). */
+  meld?: MeldContext;
+  /** Cards the move is using from the player's hand, left out of `player.groups`. */
+  using?: ReadonlySet<CardId>;
 }
 
 const fn = (f: (...args: Value[]) => Value): ExprFunction => f;
@@ -117,12 +139,43 @@ function cardsObject(
 
 function zoneObject(state: GameState, key: ZoneKey): ExprObject {
   const melds = state.melds[key];
-  const ranks = rankOrder(state);
-  if (melds)
-    return cardsObject(melds.flat(), ranks, (name) =>
-      name === 'melds' ? melds.length : undefined,
-    );
-  return cardsObject(state.zones[key] ?? [], ranks);
+  if (melds) return meldsObject(state, melds);
+  return cardsObject(state.zones[key] ?? [], rankOrder(state));
+}
+
+/**
+ * Melds (on the table, or a player's valid groups): their cards, how many,
+ * and how many have at least n cards (with no wild card, for countNaturalMelds).
+ */
+function meldsObject(state: GameState, melds: readonly (readonly Card[])[]): ExprObject {
+  const atLeast = (n: Value) => {
+    if (typeof n !== 'number') throw new ExprError('countMelds() needs a number of cards');
+    return melds.filter((m) => m.length >= n);
+  };
+  return cardsObject(melds.flat(), rankOrder(state), (name) => {
+    switch (name) {
+      case 'melds':
+        return melds.length;
+      case 'countMelds':
+        return fn((n) => atLeast(n).length);
+      case 'countNaturalMelds':
+        return fn((n) => {
+          const isWild = meldRulesOf(state)?.isWild ?? (() => false);
+          return atLeast(n).filter((m) => !m.some((c) => isJoker(c) || isWild(c))).length;
+        });
+      default:
+        return undefined;
+    }
+  });
+}
+
+/** The player's valid groups, leaving out cards a move is using (and rechecking what's left). */
+function groupsObject(state: GameState, player: PlayerId, using?: ReadonlySet<CardId>): ExprObject {
+  const rules = meldRulesOf(state);
+  const groups = checkedGroups(state, player)
+    .map((g) => (using ? g.cards.filter((c) => !using.has(c.id)) : g.cards))
+    .filter((cards) => rules !== null && groupInfo(cards, rules) !== null);
+  return meldsObject(state, groups);
 }
 
 function rankOrder(state: GameState): readonly Rank[] {
@@ -234,11 +287,20 @@ export const PLAYER_PROPERTIES = [
   'deadwood',
   'hasPureRun',
   'sittingOut',
+  'groups',
+  'hasMove',
 ];
 
-function playerObject(state: GameState, id: PlayerId): ExprObject {
+function playerObject(state: GameState, id: PlayerId, using?: ReadonlySet<CardId>): ExprObject {
   const player = state.players[id];
   if (!player) throw new ExprError(`There is no player ${id}`);
+  // Answers that take work, kept for as long as this object lives (one scope, during which
+  // the game doesn't change): a rule checked card by card asks them once, not per card.
+  const memo = new Map<string, Value>();
+  const remember = (key: string, work: () => Value): Value => {
+    if (!memo.has(key)) memo.set(key, work());
+    return memo.get(key) as Value;
+  };
   return lookupObject((name) => {
     switch (name) {
       case 'id':
@@ -258,13 +320,20 @@ function playerObject(state: GameState, id: PlayerId): ExprObject {
       case 'hasLookedAtHand':
         return player.hasLookedAtHand;
       case 'hasLegalPlay':
-        return hasLegalPlay(state, id);
+        return remember('hasLegalPlay', () => hasLegalPlay(state, id));
       case 'deadwood':
-        return deadwood(state, id);
+        return remember('deadwood', () => deadwood(state, id));
       case 'hasPureRun':
         return hasPureRunOnTable(state, id);
       case 'sittingOut':
         return player.sittingOut;
+      case 'groups':
+        return remember('groups', () => groupsObject(state, id, using));
+      case 'hasMove':
+        return fn((type) => {
+          if (typeof type !== 'string') throw new ExprError('player.hasMove() needs a move type');
+          return remember(`hasMove:${type}`, () => hasMove(state, id, type));
+        });
     }
     if (trackNames(state).has(name)) return player.tracks[name] ?? 0;
     const zone = ownedZone(state, 'player', id, name);
@@ -395,6 +464,12 @@ export function withValue(scope: Scope, name: 'bid' | 'suit', value: Value): Sco
   return { ...scope, lookup: (n) => (n === name ? value : scope.lookup(n)) };
 }
 
+/** The same scope with `meld` set (checking many groups against `meldRules.allowed`). */
+export function withMeld(scope: Scope, meld: MeldContext): Scope {
+  const object = { ...meld };
+  return { ...scope, lookup: (name) => (name === 'meld' ? object : scope.lookup(name)) };
+}
+
 /**
  * The same scope with `card` set, for checking many cards against one rule
  * without rebuilding everything else each time.
@@ -404,19 +479,27 @@ export function withCard(scope: Scope, card: Card): Scope {
   return { ...scope, lookup: (name) => (name === 'card' ? object : scope.lookup(name)) };
 }
 
+/**
+ * The names an expression can use. A scope is used while the game stands
+ * still (checking one rule, or one rule card by card); build a new one after
+ * anything changes.
+ */
 export function buildScope(state: GameState, ctx: ScopeContext = {}): Scope {
   const team = ctx.team ?? (ctx.player === undefined ? undefined : state.players[ctx.player]?.team);
+  let me: ExprObject | undefined;
 
   function lookup(name: string): Value | undefined {
     switch (name) {
       case 'player':
-        return ctx.player === undefined ? undefined : playerObject(state, ctx.player);
+        if (ctx.player === undefined) return undefined;
+        me ??= playerObject(state, ctx.player, ctx.using);
+        return me;
       case 'team':
         return team === undefined ? undefined : teamObject(state, team);
       case 'card':
         return ctx.card ? cardObject(ctx.card) : undefined;
       case 'meld':
-        return ctx.meld ? { ...ctx.meld } : undefined;
+        return ctx.meld ? { ...ctx.meld, rank: ctx.meld.rank } : undefined;
       case 'suit':
         return ctx.suit;
       case 'bid':

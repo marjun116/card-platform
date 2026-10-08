@@ -8,14 +8,28 @@ import { buildScope, type ScopeContext } from './scope';
 import { type GameState, parseZoneKey, zoneCards } from './state';
 import type { PhaseDef, WhenEmptyPolicy } from './types';
 
-/** The phase's rule for this zone running out, if there is one and its `if` holds. */
+/**
+ * The phase's rule for this zone running out, if there is one and its `if`
+ * holds (for the player whose turn it is).
+ */
 function policyFor(state: GameState, key: ZoneKey): WhenEmptyPolicy | undefined {
   const phase: PhaseDef | undefined = state.file.phases[state.cursor.phase];
   const policy = phase?.whenEmpty?.[parseZoneKey(key).name];
-  if (typeof policy === 'object' && policy.if && !evaluateCondition(policy.if, buildScope(state))) {
+  if (
+    typeof policy === 'object' &&
+    policy.if &&
+    !evaluateCondition(policy.if, buildScope(state, { player: state.cursor.current }))
+  ) {
     return undefined;
   }
   return policy;
+}
+
+/** A reshuffle rule (the plain string, or the object form with a limit), or null. */
+function reshuffleRule(policy: WhenEmptyPolicy | undefined): { limit?: number | string } | null {
+  if (policy === 'reshuffleDiscardExceptTop') return {};
+  if (typeof policy === 'object' && policy.policy === 'reshuffleDiscardExceptTop') return policy;
+  return null;
 }
 
 /** A card count that may be an expression ("state.penalty"): a whole number, 0 or more. */
@@ -32,9 +46,8 @@ export function cardCount(state: GameState, count: number | string, ctx: ScopeCo
  * round: Infinity if there's no limit, 0 if it can't be refilled at all.
  */
 export function reshufflesLeft(state: GameState, key: ZoneKey): number {
-  const policy = policyFor(state, key);
-  if (policy === 'reshuffleDiscardExceptTop') return Infinity;
-  if (typeof policy !== 'object') return 0;
+  const policy = reshuffleRule(policyFor(state, key));
+  if (!policy) return 0;
   if (policy.limit === undefined) return Infinity;
   const limit =
     typeof policy.limit === 'number' ? policy.limit : evaluate(policy.limit, buildScope(state));
@@ -64,7 +77,9 @@ export function canDraw(state: GameState, key: ZoneKey): boolean {
 export function endsRoundWhenEmpty(state: GameState, key: ZoneKey): boolean {
   const policy = policyFor(state, key);
   const ending =
-    policy === 'endRound' || (typeof policy === 'object' && policy.limit !== undefined);
+    policy === 'endRound' ||
+    (typeof policy === 'object' &&
+      (policy.policy === 'endRound' || reshuffleRule(policy)?.limit !== undefined));
   return ending && zoneCards(state, key).length === 0 && !canRefill(state, key);
 }
 

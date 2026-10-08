@@ -416,6 +416,120 @@ export const counting: GameFile = {
   display: [{ label: 'Total', value: 'state.total' }],
 };
 
+/**
+ * Partners meld sets (any suits, jokers wild) onto their team's melds. Kings
+ * can only be melded when going out; the A♥ is a bonus card, laid aside and
+ * replaced. You take the discard pile by melding its top card, and may ask
+ * your partner before going out. The hand ends when someone goes out, or when
+ * the stock is empty and the player to draw can't take the pile.
+ */
+export const teamSets: GameFile = {
+  meta: {
+    name: 'Team Sets',
+    players: [2, 4],
+    teams: {
+      '4': [
+        [0, 2],
+        [1, 3],
+      ],
+    },
+  },
+  deck: { jokers: 2 },
+  cardOrder: { wild: 'card.isJoker' },
+  meldRules: {
+    kinds: ['set'],
+    minSize: 3,
+    sets: 'anySuits',
+    zone: 'melds',
+    allowed: "meld.naturals >= 2 && (meld.rank != 'K' || meld.goingOut)",
+  },
+  options: {
+    ask: { label: 'Ask partner before going out', type: 'boolean', default: false },
+  },
+  zones: {
+    hand: { per: 'player', visibility: 'owner' },
+    stock: { shared: true, visibility: 'none', countVisible: true },
+    discard: { shared: true, visibility: 'topCardOnly' },
+    melds: { per: 'team', visibility: 'all', melds: true },
+    bonus: { per: 'team', visibility: 'all' },
+  },
+  bonusCards: { if: "card.code == 'AH'", to: 'bonus', replaceFrom: 'stock' },
+  setup: {
+    shuffle: true,
+    deal: { to: 'hand', count: 7 },
+    rest: 'stock',
+    flip: { from: 'stock', to: 'discard' },
+  },
+  phases: [
+    {
+      name: 'play',
+      until: 'state.out != null',
+      whenEmpty: { stock: { policy: 'endRound', if: "!player.hasMove('pickUpPile')" } },
+      turn: [
+        {
+          actions: [
+            { type: 'draw', from: 'stock', effects: [{ set: { 'state.answer': null } }] },
+            {
+              type: 'pickUpPile',
+              from: 'discard',
+              meldTop: { to: 'melds' },
+              if: 'meld.isNew || team.melds.countMelds(3) > 0',
+              effects: [
+                { set: { 'state.answer': null } },
+                { if: 'meld.isNew', set: { 'state.newMeld': 'meld.points' } },
+              ],
+            },
+          ],
+        },
+        {
+          optional: true,
+          repeatable: true,
+          actions: [
+            { type: 'meld', to: 'melds', if: 'hand.count > meld.size' },
+            { type: 'layOff', to: 'melds', own: true, if: 'hand.count >= 2' },
+            {
+              type: 'choose',
+              values: ['ask'],
+              set: 'state.asked',
+              if: "options.ask && activePlayers.count == 4 && state.answer == null && player.hasMove('showHand')",
+              effects: [
+                {
+                  ask: '(player.id + 2) % 4',
+                  values: ['yes', 'no'],
+                  labels: { yes: 'Yes', no: 'No' },
+                  set: 'state.answer',
+                },
+              ],
+            },
+          ],
+        },
+        {
+          actions: [
+            {
+              type: 'discard',
+              to: 'discard',
+              if: "!(state.answer == 'yes' && player.hasMove('showHand'))",
+            },
+            {
+              type: 'showHand',
+              to: 'discard',
+              discard: 'optional',
+              if: "state.answer != 'no'",
+              effects: [{ layOutMelds: 'melds' }, { set: { 'state.out': 'player.id' } }],
+            },
+          ],
+        },
+      ],
+    },
+  ],
+  scoring: {
+    perTeam: [{ add: 'sum(team.melds, cardValue) + 10 * team.melds.countNaturalMelds(4)' }],
+    perPlayer: [{ add: '-sum(player.hand, cardValue)' }],
+    cardValue: { JOKER: 20, A: 15, J: 10, Q: 10, K: 10, default: 'rankNumber' },
+  },
+  endCondition: { when: 'anyTeam.score >= 100 || round >= 5', winner: 'highestScore' },
+};
+
 export const allFixtures = {
   spades,
   sevensUp,
@@ -424,4 +538,5 @@ export const allFixtures = {
   passing,
   wildRummy,
   counting,
+  teamSets,
 };

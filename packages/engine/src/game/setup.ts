@@ -1,6 +1,7 @@
 import { type Card, cardCode } from '../cards/card';
 import { buildDeck } from '../cards/deck';
 import { applySet } from '../effects';
+import { layDownBonusCards } from '../actions/cardMovement';
 import { GameFileError, SetupError } from '../errors';
 import { compile, evaluateCondition, evaluateNumber } from '../expr/evaluate';
 import type { Node } from '../expr/parser';
@@ -267,6 +268,15 @@ export function startRound(state: GameState): void {
   }
 
   if (file.setup.rest) zoneCards(state, zoneKey(state, file.setup.rest, null)).push(...deck);
+
+  // Bonus cards dealt (red 3s) are laid down and replaced, starting left of the dealer.
+  if (file.bonusCards) {
+    let bonusSeat = state.dealer;
+    for (let i = 0; i < active.length; i++) {
+      bonusSeat = nextActive(state, bonusSeat, 1);
+      layDownBonusCards(state, bonusSeat, true);
+    }
+  }
 
   const flips = file.setup.flip;
   for (const flip of Array.isArray(flips) ? flips : flips ? [flips] : []) {

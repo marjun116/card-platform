@@ -22,6 +22,7 @@ import type { EffectDef } from './game/types';
 import { cardCount, drawCards } from './game/zones';
 import { layOutMelds } from './game/arrangement';
 import { scoreNow } from './scoring';
+import { layDownBonusCards } from './actions/cardMovement';
 
 /**
  * Runs effects in order. Returns true if one of them is waiting for a
@@ -37,6 +38,27 @@ export function runEffects(
   for (let i = 0; i < effects.length; i++) {
     const effect = effects[i] as EffectDef;
     if (effect.if && !evaluateCondition(effect.if, buildScope(state, ctx))) continue;
+
+    if (effect.ask !== undefined) {
+      if (ctx.player === undefined) {
+        throw new GameFileError(`"ask" can only be used in an action's effects`);
+      }
+      const seat = evaluate(effect.ask, buildScope(state, ctx));
+      if (typeof seat !== 'number' || !state.players[seat]) {
+        throw new GameFileError(`ask "${effect.ask}" gave ${JSON.stringify(seat)}, not a seat`);
+      }
+      state.pending = {
+        kind: 'ask',
+        player: seat,
+        asker: ctx.player,
+        values: [...(effect.values ?? [])],
+        target: typeof effect.set === 'string' ? effect.set : 'state.answer',
+        remaining: effects.slice(i + 1),
+        card: ctx.card?.id ?? null,
+        after,
+      };
+      return true;
+    }
 
     if (effect.choose) {
       if (effect.choose !== 'suit' || typeof effect.set !== 'string') {
@@ -56,7 +78,7 @@ export function runEffects(
       return true;
     }
 
-    if (effect.set !== undefined) applySet(state, effect.set, ctx);
+    if (effect.set !== undefined && effect.ask === undefined) applySet(state, effect.set, ctx);
     if (effect.resolveTrick) resolveTrick(state, effect.resolveTrick);
     if (effect.moveTrick) moveTrick(state, effect.moveTrick);
     if (effect.nextPlayer) nextPlayerEffect(state, effect.nextPlayer, ctx);
@@ -196,6 +218,7 @@ function nextPlayerEffect(
       zoneKey(state, 'hand', target),
       cardCount(state, effect.draw, ctx),
     );
+    layDownBonusCards(state, target, true);
   }
   if (effect.skip) state.cursor.skipNext++;
 }

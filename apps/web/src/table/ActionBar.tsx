@@ -155,7 +155,9 @@ export function HandActions({
       ? `${hints
           .map(
             ({ type, sizes }) =>
-              `Choose ${sizes.join(' or ')} cards to ${type === 'pass' ? 'pass' : 'meld'}`,
+              `Choose ${sizes.join(' or ')} cards to ${
+                type === 'pass' ? 'pass' : type === 'meld' ? 'meld' : 'take the pile with'
+              }`,
           )
           .join('; ')}${selected.length > 0 ? ` (${selected.length} chosen)` : ''}.`
       : null;

@@ -155,3 +155,33 @@ describe('arranged hands', () => {
     expect(regroup(arrangement, ['9C.0', '9D.0'], 'ungroup')).toEqual([['3H.0', '4H.0', '5H.0']]);
   });
 });
+
+describe('buildControls: taking a pile by melding its top card, and going out', () => {
+  const take = (cards?: string[], meld?: { zone: string; index: number }): Move => ({
+    player: p,
+    type: 'pickUpPile',
+    from: 'discard',
+    ...(cards ? { cards } : {}),
+    ...(meld ? { meld } : {}),
+  });
+
+  it('chooses the hand cards for a pile take like a meld, and offers the rest at the pile', () => {
+    const withCards = take(['7S.0', '7D.0']);
+    const onto = take(undefined, { zone: 'melds@t0', index: 0 });
+    const controls = buildControls([withCards, onto]);
+    expect(controls.groups).toEqual([withCards]);
+    expect(isCardUsable(controls, '7S.0')).toBe(true);
+    expect(controls.byPile.get('discard')).toEqual([onto]);
+    expect(movesForSelection(controls, ['7D.0', '7S.0'])).toEqual([withCards]);
+    expect(groupHint(controls)).toEqual([{ type: 'pickUpPile', sizes: [2] }]);
+  });
+
+  it('makes going out with no discard a button', () => {
+    const out: Move = { player: p, type: 'showHand', card: null, to: 'discard' };
+    const discarding: Move = { player: p, type: 'showHand', card: '5D.0', to: 'discard' };
+    const controls = buildControls([out, discarding]);
+    expect(controls.other).toEqual([out]);
+    expect(controls.byCard.get('5D.0')).toEqual([discarding]);
+    expect(hasDecisions(controls)).toBe(true);
+  });
+});

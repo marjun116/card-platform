@@ -123,7 +123,21 @@ export type Pending =
       card: CardId | null;
       after: AfterAction;
     }
-  | { kind: 'mayPlayDrawnCard'; player: PlayerId; card: CardId };
+  | { kind: 'mayPlayDrawnCard'; player: PlayerId; card: CardId }
+  | {
+      /** Another player answers a question (an `ask` effect), then the turn goes on. */
+      kind: 'ask';
+      /** The player answering. */
+      player: PlayerId;
+      /** The player whose turn it is, who asked. */
+      asker: PlayerId;
+      values: string[];
+      /** "state.x" path that receives the answer. */
+      target: string;
+      remaining: EffectDef[];
+      card: CardId | null;
+      after: AfterAction;
+    };
 
 /** What happens once an action (and its effects) is done: go to a turn step, or end the turn. */
 export type AfterAction = number | 'endTurn';

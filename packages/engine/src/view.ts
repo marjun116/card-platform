@@ -70,7 +70,11 @@ export interface PlayerView {
   /** Names of the zones tricks are played into, so a client can draw them as tricks, not piles. */
   trickZones: string[];
   /** A decision the game is waiting on; `card` is shown only to the player deciding. */
-  pending: { kind: 'chooseSuit' | 'mayPlayDrawnCard'; player: PlayerId; card?: CardId } | null;
+  pending: {
+    kind: 'chooseSuit' | 'mayPlayDrawnCard' | 'ask';
+    player: PlayerId;
+    card?: CardId;
+  } | null;
   zones: Record<ZoneKey, ZoneView>;
   log: PublicMove[];
   /** Every finished round, oldest first (public: bids, tricks and scores only). */
@@ -151,13 +155,16 @@ function trickZones(state: GameState): string[] {
   return [...names];
 }
 
-/** Labels for every `choose` action's values in the game file. */
+/** Labels for every `choose` action's (and `ask` effect's) values in the game file. */
 export function choiceLabelsOf(file: GameFile): Record<string, string> {
   const labels: Record<string, string> = {};
   for (const phase of file.phases) {
     for (const step of turnSteps(phase)) {
       for (const action of step.actions) {
         if (action.type === 'choose') Object.assign(labels, action.labels);
+        for (const effect of action.effects ?? []) {
+          if (effect.ask !== undefined) Object.assign(labels, effect.labels);
+        }
       }
     }
   }

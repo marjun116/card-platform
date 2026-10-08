@@ -782,3 +782,74 @@ General parts of the game format, added because cribbage needed them; none menti
 - **Faster bid lists**: bids and suits are checked against one scope per player instead of
   building one per value; pinochle's simulation went from 374 to 132 ms a game.
 - Test helper: card specs can name a deck copy, e.g. `"AS.1"`.
+
+## 2026-10-08: Canasta
+
+- **Standard rules (classic):** two decks with four jokers (108 cards); jokers and 2s are
+  wild. 4 players in partnerships (11 cards each), or 3 (13 each) or 2 (15 each, draw 2,
+  two canastas to go out) playing alone. Red 3s are laid down at once and replaced: 100
+  each, 800 for all four, counted against a team that never melds. Draw 1 or take the whole
+  discard pile by melding its top card; meld sets of 3+ (at least 2 natural cards, at most
+  3 wild); discard. A team's first melds must reach 50 (15 below 0, 90 from 1,500, 120
+  from 3,000); the pile's top card counts, other pile cards don't. The pile is frozen for a
+  team that hasn't melded, and for everyone once a wild card is discarded (thawed when
+  taken): then taking it needs two natural cards matching the top card. A wild card or
+  black 3 on top stops anyone taking it. Canastas (7+ cards): natural 500, mixed 300. Going
+  out needs a canasta: 100, or 200 concealed (melding the whole hand in one turn); a
+  concealed go-out needn't meet the first-meld minimum. Black 3s can only be melded when
+  going out (three or four, no wild cards; kept by request: it's a classic rule). Cards
+  left in hands count against. When the stock is empty, play goes on while the player to
+  draw can take the pile (they must); otherwise the hand ends. First to 5,000.
+- **House rules (options):** play to 5,000/3,000/10,000; draw 2 (default 1); pile always
+  frozen; "May I go out?" (ask your partner first and obey; default off); going out
+  concealed needs your partner to have melded; any number of wild cards in a meld.
+- **How a turn plays here:** draw or take the pile; arrange your cards into groups (as in
+  rummy, with "Sort into melds"); the team's first melds go down together with "Lay down
+  my melds" (or with the pile's top card when taking it); after that, meld group by group
+  and add to your team's melds; then discard or go out. You may not meld or lay off your
+  last card unless you're going out (you must keep one to discard).
+- **"May I go out?"** is offered only when you could go out. "Yes" means you must; "No"
+  means you can't this turn.
+- **Starting the pile:** a wild card or red 3 turned up is covered by the next card (up to
+  four times), and the pile starts frozen.
+- **"Sort into melds"** groups by rank and spends wild cards on the most valuable short
+  groups: a good arrangement, not always the best.
+- **Simulation:** random players take the pile, meld and go out whenever they can and sort
+  after drawing (purely random players never arrange, so they'd never meld).
+
+## 2026-10-08: Building blocks added for canasta
+
+General parts of the game format, added because canasta needed them; none mention it.
+
+- **`meldRules.sets: "anySuits"`**: sets may repeat a suit and have any size (multi-deck).
+- **`meldRules.allowed`**: a condition every meld must meet, reading `meld.rank`,
+  `meld.naturals`, `meld.wilds`, `meld.size`, `meld.points`, `meld.goingOut` and so on. It
+  applies everywhere groups are judged (your arrangement, melding, laying off, taking a
+  pile). **Going-out mode:** `meld.goingOut` is true when the melds being judged would
+  empty the hand (going out), so a meld can be allowed only then (black 3s).
+- **Meld zones per team** (`"per": "team"`), and **`layOff.own`**: lay off only on your own
+  (or your team's) melds.
+- **`pickUpPile.meldTop`**: take the pile by putting its top card straight into a meld: a
+  new one with cards from your hand (2 by default), or one of your own melds. The action's
+  `if` sees the top card as `card` and the meld as `meld` (with `isNew`), and its effects
+  see the meld too. `player.groups` leaves out the hand cards the take uses. Moves look
+  like `{ type: "pickUpPile", from, cards }` or `{ …, meld: { zone, index } }`.
+- **`bonusCards`** (top level): cards laid aside as soon as they reach a hand (`to`, a player
+  or team zone) and replaced from `replaceFrom` after the deal or a draw; taken with a
+  pile, they're laid aside but not replaced.
+- **`showHand.discard: "optional"`**: going out may also be done with no discard (a move
+  with `card: null`).
+- **`ask` effect**: `{ "ask": "(player.id + 2) % 4", "values": ["yes", "no"], "labels": …,
+  "set": "state.answer" }` pauses the turn while that player answers (their legal moves are
+  `choose` moves), then the rest of the effects run and the turn goes on. The view's
+  `pending` has kind `"ask"`.
+- **`whenEmpty: { "stock": { "policy": "endRound", "if": … } }`**: the round ends only when
+  the condition holds for the player whose turn it is.
+- **Expressions:** `player.groups` (the player's valid groups, as a meld pile),
+  `player.hasMove('pickUpPile')`, and on meld piles `countMelds(n)` and
+  `countNaturalMelds(n)` (melds of at least n cards, without wild cards).
+- **Speed:** within one scope (one rule checked card by card), a player's object and its
+  costly answers (`groups`, `hasMove`, `deadwood`) are worked out once; the ways to go out
+  are found in one pass over the hand. Canasta's simulation went from 814 to 356 ms a game.
+- **Server:** moves may carry up to 400 cards (big multi-deck hands).
+- Test helper: `onTop(state, "stock", ["9H"])` puts cards on top of a pile.

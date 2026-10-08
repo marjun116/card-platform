@@ -246,6 +246,16 @@
         },
         "zone": {
           "$ref": "#/$defs/__schema8"
+        },
+        "sets": {
+          "type": "string",
+          "enum": [
+            "differentSuits",
+            "anySuits"
+          ]
+        },
+        "allowed": {
+          "$ref": "#/$defs/__schema3"
         }
       },
       "additionalProperties": false
@@ -365,13 +375,13 @@
         "perTeam": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema24"
+            "$ref": "#/$defs/__schema25"
           }
         },
         "perPlayer": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema24"
+            "$ref": "#/$defs/__schema25"
           }
         },
         "cardValue": {
@@ -403,7 +413,7 @@
         "atGameEnd": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema24"
+            "$ref": "#/$defs/__schema25"
           }
         }
       },
@@ -466,7 +476,7 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema25"
+            "$ref": "#/$defs/__schema26"
           }
         }
       },
@@ -480,8 +490,27 @@
       "minItems": 1,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema26"
+        "$ref": "#/$defs/__schema27"
       }
+    },
+    "bonusCards": {
+      "type": "object",
+      "properties": {
+        "if": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "to": {
+          "$ref": "#/$defs/__schema8"
+        },
+        "replaceFrom": {
+          "$ref": "#/$defs/__schema8"
+        }
+      },
+      "required": [
+        "if",
+        "to"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
@@ -715,7 +744,7 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema23"
+            "$ref": "#/$defs/__schema24"
           }
         },
         "afterTrick": {
@@ -737,6 +766,22 @@
                   "reshuffleDiscardExceptTop",
                   "endRound"
                 ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "policy": {
+                    "type": "string",
+                    "const": "endRound"
+                  },
+                  "if": {
+                    "$ref": "#/$defs/__schema3"
+                  }
+                },
+                "required": [
+                  "policy"
+                ],
+                "additionalProperties": false
               },
               {
                 "type": "object",
@@ -841,7 +886,7 @@
               "minItems": 1,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema19"
+                "$ref": "#/$defs/__schema20"
               }
             }
           },
@@ -984,7 +1029,7 @@
               "minItems": 1,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema20"
+                "$ref": "#/$defs/__schema21"
               }
             },
             "minSize": {
@@ -1020,6 +1065,9 @@
             },
             "from": {
               "$ref": "#/$defs/__schema8"
+            },
+            "own": {
+              "type": "boolean"
             }
           },
           "required": [
@@ -1046,6 +1094,23 @@
             },
             "to": {
               "$ref": "#/$defs/__schema8"
+            },
+            "meldTop": {
+              "type": "object",
+              "properties": {
+                "to": {
+                  "$ref": "#/$defs/__schema8"
+                },
+                "cards": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "to"
+              ],
+              "additionalProperties": false
             }
           },
           "required": [
@@ -1100,7 +1165,7 @@
                   "minItems": 1,
                   "type": "array",
                   "items": {
-                    "$ref": "#/$defs/__schema21"
+                    "$ref": "#/$defs/__schema22"
                   }
                 }
               ]
@@ -1174,7 +1239,7 @@
               "minItems": 1,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema22"
+                "$ref": "#/$defs/__schema23"
               }
             },
             "labels": {
@@ -1206,6 +1271,17 @@
             },
             "to": {
               "$ref": "#/$defs/__schema8"
+            },
+            "discard": {
+              "anyOf": [
+                {
+                  "type": "boolean"
+                },
+                {
+                  "type": "string",
+                  "const": "optional"
+                }
+              ]
             }
           },
           "required": [
@@ -1332,11 +1408,28 @@
         },
         "to": {
           "$ref": "#/$defs/__schema8"
+        },
+        "ask": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "values": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema19"
+          }
+        },
+        "labels": {
+          "$ref": "#/$defs/__schema10"
         }
       },
       "additionalProperties": false
     },
     "__schema19": {
+      "type": "string",
+      "minLength": 1
+    },
+    "__schema20": {
       "type": "object",
       "properties": {
         "if": {
@@ -1351,24 +1444,24 @@
       },
       "additionalProperties": false
     },
-    "__schema20": {
+    "__schema21": {
       "type": "string",
       "enum": [
         "set",
         "run"
       ]
     },
-    "__schema21": {
+    "__schema22": {
       "type": [
         "number",
         "string"
       ]
     },
-    "__schema22": {
+    "__schema23": {
       "type": "string",
       "minLength": 1
     },
-    "__schema23": {
+    "__schema24": {
       "type": "object",
       "properties": {
         "actions": {
@@ -1390,7 +1483,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema24": {
+    "__schema25": {
       "type": "object",
       "properties": {
         "if": {
@@ -1432,7 +1525,7 @@
       },
       "additionalProperties": false
     },
-    "__schema25": {
+    "__schema26": {
       "type": "object",
       "properties": {
         "if": {
@@ -1449,7 +1542,7 @@
       ],
       "additionalProperties": false
     },
-    "__schema26": {
+    "__schema27": {
       "type": "object",
       "properties": {
         "label": {

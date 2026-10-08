@@ -20,7 +20,15 @@ import type {
   ScoreRuleDef,
   ZoneDef,
 } from '../game/types';
-import { ACES, gameFileSchema, LEADER_FIRST, PASS_DIRECTIONS, TIES, WINNERS } from './gameFile';
+import {
+  ACES,
+  ACTION_TYPES,
+  gameFileSchema,
+  LEADER_FIRST,
+  PASS_DIRECTIONS,
+  TIES,
+  WINNERS,
+} from './gameFile';
 import { heldNames, PLAYER_PROPERTIES, playerVarNames } from '../game/scope';
 
 export interface ValidationIssue {
@@ -147,6 +155,8 @@ const PLAYER: ExprContext = { player: true, team: true, card: false };
 const PLAYER_CARD: ExprContext = { player: true, team: true, card: true };
 const TEAM: ExprContext = { player: false, team: true, card: false };
 const CARD: ExprContext = { player: false, team: false, card: true };
+/** `meldRules.allowed`: the meld being judged, no player. */
+const MELD: ExprContext = { player: false, team: false, card: false, meld: true };
 
 /** The kind of thing an expression node produces, as far as we can tell. */
 type Kind =
@@ -249,6 +259,18 @@ class Checker {
     if (this.file.elimination)
       this.checkExpr(this.file.elimination.when, ['elimination', 'when'], PLAYER);
     this.checkEnd();
+    this.checkBonusCards();
+  }
+
+  private checkBonusCards(): void {
+    const bonus = this.file.bonusCards;
+    if (!bonus) return;
+    const path = ['bonusCards'];
+    this.checkExpr(bonus.if, [...path, 'if'], PLAYER_CARD);
+    const zone = this.zone(bonus.to, [...path, 'to'], { per: 'any' });
+    if (zone && !zone.per) this.error([...path, 'to'], 'Bonus cards go to a player or team zone');
+    if (bonus.replaceFrom)
+      this.zone(bonus.replaceFrom, [...path, 'replaceFrom'], { per: 'shared' });
   }
 
   // ---- meld rules ----
@@ -268,8 +290,10 @@ class Checker {
       if (typeof value === 'string') this.checkExpr(value, [...path, key], NO_CONTEXT);
     }
     if (rules.zone !== undefined) {
-      this.zone(rules.zone, [...path, 'zone'], { per: 'player', melds: true });
+      const zone = this.zone(rules.zone, [...path, 'zone'], { per: 'any', melds: true });
+      if (zone && !zone.per) this.error([...path, 'zone'], 'Melds belong to a player or a team');
     }
+    if (rules.allowed) this.checkExpr(rules.allowed, [...path, 'allowed'], MELD);
   }
 
   // ---- meta, options, zones, deck ----
@@ -532,7 +556,9 @@ class Checker {
     // A reshuffle limit also ends the round once the reshuffles are used up.
     const endsRound = Object.values(phase.whenEmpty ?? {}).some(
       (policy) =>
-        policy === 'endRound' || (typeof policy === 'object' && policy.limit !== undefined),
+        policy === 'endRound' ||
+        (typeof policy === 'object' &&
+          (policy.policy === 'endRound' || ('limit' in policy && policy.limit !== undefined))),
     );
     if (isTrick) {
       const after = phase.afterTrick ?? [];
@@ -568,28 +594,36 @@ class Checker {
 
     for (const [zone, policy] of Object.entries(phase.whenEmpty ?? {})) {
       this.zone(zone, [...path, 'whenEmpty', zone], { per: 'any' });
-      const reshuffles = policy !== 'endRound';
+      const reshuffles =
+        policy === 'reshuffleDiscardExceptTop' ||
+        (typeof policy === 'object' && policy.policy === 'reshuffleDiscardExceptTop');
       if (reshuffles && !this.file.zones.discard) {
         this.error([...path, 'whenEmpty', zone], 'Reshuffling needs a zone called "discard"');
       }
-      if (typeof policy === 'object' && typeof policy.limit === 'string') {
+      if (typeof policy === 'object' && 'limit' in policy && typeof policy.limit === 'string') {
         this.checkExpr(policy.limit, [...path, 'whenEmpty', zone, 'limit'], NO_CONTEXT);
+      }
+      // A condition is checked for the player whose turn it is.
+      if (typeof policy === 'object' && policy.if) {
+        this.checkExpr(policy.if, [...path, 'whenEmpty', zone, 'if'], PLAYER);
       }
     }
   }
 
   private checkAction(action: ActionDef, path: Path, phase: PhaseDef): void {
-    const ctx = CARD_ACTIONS.has(action.type) ? PLAYER_CARD : PLAYER;
+    // Taking a pile by melding its top card: the top card is `card`, the meld `meld`.
+    const meldTop = action.type === 'pickUpPile' && action.meldTop !== undefined;
+    const ctx = CARD_ACTIONS.has(action.type) || meldTop ? PLAYER_CARD : PLAYER;
     const ifCtx =
-      action.type === 'meld' && this.file.meldRules
-        ? { ...PLAYER, meld: true }
+      (action.type === 'meld' && this.file.meldRules) || meldTop
+        ? { ...ctx, meld: true }
         : action.type === 'declareTrump'
           ? { ...PLAYER, suit: true }
           : action.type === 'bid'
             ? { ...PLAYER, bid: true }
             : ctx;
-    // A one-card draw's effects can see the card drawn.
-    const effectCtx = action.type === 'draw' ? PLAYER_CARD : ctx;
+    // A one-card draw's effects can see the card drawn; a pile take's the meld it made.
+    const effectCtx = meldTop ? ifCtx : action.type === 'draw' ? PLAYER_CARD : ctx;
     if (action.if) this.checkExpr(action.if, [...path, 'if'], ifCtx);
     action.effects?.forEach((e, i) =>
       this.checkEffect(e, [...path, 'effects', i], effectCtx, false),
@@ -666,6 +700,12 @@ class Checker {
       case 'pickUpPile':
         this.zone(action.from, [...path, 'from'], { per: 'any' });
         this.zone(action.to ?? 'hand', [...path, 'to'], { per: 'player' });
+        if (action.meldTop) {
+          this.zone(action.meldTop.to, [...path, 'meldTop', 'to'], { per: 'any', melds: true });
+          if (!this.file.meldRules) {
+            this.error([...path, 'meldTop'], '"meldTop" needs "meldRules" (what counts as a meld)');
+          }
+        }
         break;
       case 'bid':
         if (!Array.isArray(action.values)) {
@@ -683,7 +723,13 @@ class Checker {
     if (effect.if) this.checkExpr(effect.if, [...path, 'if'], ctx);
 
     const verbs = [
-      effect.choose ? 'choose' : effect.set !== undefined ? 'set' : null,
+      effect.choose
+        ? 'choose'
+        : effect.ask !== undefined
+          ? 'ask'
+          : effect.set !== undefined
+            ? 'set'
+            : null,
       effect.resolveTrick && 'resolveTrick',
       effect.moveTrick && 'moveTrick',
       effect.nextPlayer && 'nextPlayer',
@@ -731,7 +777,7 @@ class Checker {
     if (effect.moveTrick) this.zone(effect.moveTrick, [...path, 'moveTrick'], { per: 'any' });
     if (effect.sitOut !== undefined) this.checkExpr(effect.sitOut, [...path, 'sitOut'], ctx);
     if (effect.layOutMelds) {
-      this.zone(effect.layOutMelds, [...path, 'layOutMelds'], { per: 'player', melds: true });
+      this.zone(effect.layOutMelds, [...path, 'layOutMelds'], { per: 'any', melds: true });
       if (!ctx.player) {
         this.error(path, "layOutMelds needs a player: use it in an action's effects");
       }
@@ -748,12 +794,27 @@ class Checker {
       }
       if (!ctx.player)
         this.error([...path, 'choose'], "Only a player can choose: use it in an action's effects");
+    } else if (effect.ask !== undefined) {
+      // An ask's "set" is where the answer goes; it's checked with the ask.
     } else if (typeof effect.set === 'string') {
       this.checkStatePath(effect.set, [...path, 'set'], ctx);
     } else if (effect.set) {
       for (const [key, value] of Object.entries(effect.set)) {
         this.checkSetEntry(key, value, [...path, 'set', key], ctx);
       }
+    }
+
+    if (effect.ask !== undefined) {
+      this.checkExpr(effect.ask, [...path, 'ask'], ctx);
+      if (!ctx.player)
+        this.error(path, "ask needs a player who asks: use it in an action's effects");
+      if (!effect.values) this.error(path, 'ask needs "values": the answers to choose from');
+      if (typeof effect.set !== 'string' || !effect.set.startsWith('state.')) {
+        this.error([...path, 'set'], 'ask needs "set": "state.<name>" to store the answer');
+      }
+      this.checkLabels(effect.labels, effect.values ?? [], [...path, 'labels']);
+    } else if (effect.values || effect.labels) {
+      this.error(path, '"values" and "labels" only go with ask');
     }
 
     if (effect.nextPlayer) {
@@ -1079,7 +1140,7 @@ class Checker {
         const zones = this.zoneNames('player');
         const vars = [...playerVarNames({ file: this.file })];
         return check('A player', [...PLAYER_PROPS, ...zones, ...this.tracks, ...vars], (p) =>
-          zones.includes(p) ? this.zoneKind(p) : 'value',
+          p === 'groups' ? 'meldZone' : zones.includes(p) ? this.zoneKind(p) : 'value',
         );
       }
       case 'team': {
@@ -1092,7 +1153,11 @@ class Checker {
       case 'zone':
         return check('A zone', zoneProps([]), zoneResult);
       case 'meldZone':
-        return check('A meld zone', zoneProps(['melds']), zoneResult);
+        return check(
+          'A meld zone',
+          zoneProps(['melds', 'countMelds', 'countNaturalMelds']),
+          zoneResult,
+        );
       case 'trick':
         return check('The trick', zoneProps(TRICK_PROPS), zoneResult);
       case 'card':
@@ -1104,7 +1169,22 @@ class Checker {
       case 'turn':
         return check('turn', ['draws'], () => 'value');
       case 'meld':
-        return check('A meld', ['kind', 'size', 'isPure', 'usesWild'], () => 'value');
+        return check(
+          'A meld',
+          [
+            'kind',
+            'size',
+            'isPure',
+            'usesWild',
+            'rank',
+            'naturals',
+            'wilds',
+            'points',
+            'goingOut',
+            'isNew',
+          ],
+          () => 'value',
+        );
       case 'options': {
         const options = Object.keys(this.file.options ?? {});
         if (!options.includes(prop)) {
@@ -1121,6 +1201,16 @@ class Checker {
   }
 
   private checkCallArgs(fn: string, args: Node[], problems: string[]): void {
+    if (fn === 'hasMove') {
+      for (const arg of args) {
+        if (arg.kind === 'lit' && !(ACTION_TYPES as readonly unknown[]).includes(arg.value)) {
+          problems.push(
+            `"${String(arg.value)}" isn't a kind of move (use ${ACTION_TYPES.join(', ')})`,
+          );
+        }
+      }
+      return;
+    }
     // hasCard('J', suit) takes a rank and a suit instead of a card code.
     if ((fn === 'hasCard' || fn === 'countCard') && args.length === 2) {
       fn = 'hasRank';

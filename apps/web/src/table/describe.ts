@@ -55,6 +55,14 @@ export function moveLabel(move: Move, names: SeatNames, choices: ChoiceLabels = 
     case 'draw':
       return `Draw from ${pileText(move.from)}`;
     case 'pickUpPile':
+      if (move.cards) {
+        return `Take ${pileText(move.from)}, melding its top card with ${move.cards
+          .map((c) => cardText(c, false))
+          .join(' ')}`;
+      }
+      if (move.meld) {
+        return `Take ${pileText(move.from)}, adding its top card to meld ${move.meld.index + 1}`;
+      }
       return `Pick up ${pileText(move.from)}`;
     case 'pass':
       return `Pass ${move.cards.length} card${move.cards.length === 1 ? '' : 's'}`;
@@ -71,7 +79,7 @@ export function moveLabel(move: Move, names: SeatNames, choices: ChoiceLabels = 
     case 'choose':
       return choiceText(move.value, choices);
     case 'showHand':
-      return `Go out, discarding ${cardText(move.card, false)}`;
+      return move.card === null ? 'Go out' : `Go out, discarding ${cardText(move.card, false)}`;
     case 'arrange':
       return 'Arrange your cards';
     case 'sortHand':
@@ -109,6 +117,14 @@ export function describeMove(
     case 'draw':
       return `${who} drew from ${pileText(move.from)}`;
     case 'pickUpPile':
+      if (move.cards) {
+        return `${who} took ${pileText(move.from)}, melding its top card with ${move.cards
+          .map(card)
+          .join(', ')}`;
+      }
+      if (move.meld) {
+        return `${who} took ${pileText(move.from)}, adding its top card to a meld`;
+      }
       return `${who} picked up ${pileText(move.from)}`;
     case 'pass':
       return `${who} passed ${move.cards.map(card).join(', ')}`;
@@ -125,7 +141,9 @@ export function describeMove(
     case 'choose':
       return `${who} chose: ${choiceText(move.value, choices)}`;
     case 'showHand':
-      return `${who} went out, discarding ${card(move.card)}`;
+      return move.card === null
+        ? `${who} went out`
+        : `${who} went out, discarding ${card(move.card)}`;
     case 'arrange':
       return `${who} arranged ${their} cards`;
     case 'sortHand':
