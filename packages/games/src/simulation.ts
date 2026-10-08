@@ -91,6 +91,8 @@ const SENSIBLE: Record<BuiltInGameName, Strategy> = {
   // Keep melds together and throw away the costliest loose card.
   rummy: arranging(keepMelds),
   'gin-rummy': arranging(keepMelds),
+  // Mostly play with a partner, so more hands are ordinary partnership hands.
+  euchre: preferring((m) => m.type === 'choose' && m.value === 'withPartner'),
 };
 
 /**
@@ -160,6 +162,10 @@ const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> 
     { oklahoma: true, bonuses: false, bigGin: 50 },
     { ginBonus: 20, undercutBonus: 20, targetScore: 250 },
   ],
+  euchre: [
+    { stickTheDealer: true, euchreLoner4: true, targetScore: 5 },
+    { defendAlone: true, canadianLoner: true, loneMarch: 5, targetScore: 11 },
+  ],
 };
 const VARIANT_GAMES = 200;
 
@@ -174,6 +180,7 @@ const MIN_ROUNDS: Record<BuiltInGameName, number> = {
   'crazy-eights': 2,
   rummy: 2,
   'gin-rummy': 2,
+  euchre: 5,
 };
 
 /**

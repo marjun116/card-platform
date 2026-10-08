@@ -1,0 +1,232 @@
+{
+  "$schema": "../engine/game-file.schema.json",
+  "meta": {
+    "name": "Euchre",
+    "players": 4,
+    "teams": [
+      [0, 2],
+      [1, 3]
+    ],
+    "description": "Partners make trump and take at least three of five tricks. Jacks of trump's colour are the bowers."
+  },
+  "deck": {
+    "copies": 1,
+    "ranks": ["9", "10", "J", "Q", "K", "A"],
+    "jokers": 0
+  },
+  "cardOrder": {
+    "ranks": ["9", "10", "J", "Q", "K", "A"],
+    "trump": "declared",
+    "bowers": true
+  },
+  "options": {
+    "targetScore": {
+      "label": "Play to",
+      "type": "choice",
+      "values": [10, 5, 7, 11],
+      "default": 10
+    },
+    "stickTheDealer": {
+      "label": "Stick the dealer (the dealer must name trump in the second round)",
+      "type": "boolean",
+      "default": false
+    },
+    "euchreLoner4": {
+      "label": "Euchring a lone player scores 4",
+      "type": "boolean",
+      "default": false
+    },
+    "defendAlone": {
+      "label": "A defender may go alone against a lone player (4 for euchring them)",
+      "type": "boolean",
+      "default": false
+    },
+    "canadianLoner": {
+      "label": "Ordering up your partner (the dealer) means going alone",
+      "type": "boolean",
+      "default": false
+    },
+    "loneMarch": {
+      "label": "Points when a lone player takes all five tricks",
+      "type": "choice",
+      "values": [4, 5],
+      "default": 4
+    }
+  },
+  "zones": {
+    "hand": { "per": "player", "visibility": "owner" },
+    "kitty": { "shared": true, "visibility": "none", "countVisible": true },
+    "upcard": { "shared": true, "visibility": "all" },
+    "trick": { "shared": true, "visibility": "all" },
+    "won": { "per": "team", "visibility": "none", "countVisible": true }
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": { "to": "hand", "count": 5 },
+    "rest": "kitty",
+    "flip": { "from": "kitty", "to": "upcard" },
+    "dealerRotation": "left"
+  },
+  "phases": [
+    {
+      "name": "orderUp",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "until": "state.maker != null",
+      "actions": [
+        {
+          "type": "choose",
+          "values": ["orderUp"],
+          "labels": { "orderUp": "Order it up" },
+          "set": "state.call",
+          "if": "!player.isDealer",
+          "effects": [
+            { "set": { "state.trump": "upcard.top.suit" } },
+            { "set": { "state.maker": "player.id" } },
+            { "set": { "state.makerTeam": "player.team" } },
+            { "set": { "state.pickUp": true } },
+            {
+              "set": {
+                "state.dealerPartnerOrdered": "anyPlayer.isDealer && anyPlayer.team == player.team && anyPlayer.id != player.id"
+              }
+            }
+          ]
+        },
+        {
+          "type": "choose",
+          "values": ["pickUp"],
+          "labels": { "pickUp": "Pick it up" },
+          "set": "state.call",
+          "if": "player.isDealer",
+          "effects": [
+            { "set": { "state.trump": "upcard.top.suit" } },
+            { "set": { "state.maker": "player.id" } },
+            { "set": { "state.makerTeam": "player.team" } },
+            { "set": { "state.pickUp": true } }
+          ]
+        },
+        {
+          "type": "choose",
+          "values": ["pass"],
+          "labels": { "pass": "Pass" },
+          "set": "state.call"
+        }
+      ]
+    },
+    {
+      "name": "nameTrump",
+      "if": "state.maker == null",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "until": "state.maker != null",
+      "actions": [
+        {
+          "type": "declareTrump",
+          "if": "suit != upcard.top.suit",
+          "effects": [
+            { "set": { "state.maker": "player.id" } },
+            { "set": { "state.makerTeam": "player.team" } }
+          ]
+        },
+        {
+          "type": "choose",
+          "values": ["pass"],
+          "labels": { "pass": "Pass" },
+          "set": "state.call",
+          "if": "!(options.stickTheDealer && player.isDealer)"
+        }
+      ]
+    },
+    {
+      "name": "goAlone",
+      "if": "state.maker != null",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "actions": [
+        {
+          "type": "choose",
+          "values": ["alone"],
+          "labels": { "alone": "Go alone" },
+          "set": "state.makerChoice",
+          "if": "player.id == state.maker",
+          "effects": [{ "set": { "state.alone": true } }, { "sitOut": "(player.id + 2) % 4" }]
+        },
+        {
+          "type": "choose",
+          "values": ["withPartner"],
+          "labels": { "withPartner": "Play with partner" },
+          "set": "state.makerChoice",
+          "if": "player.id == state.maker && !(options.canadianLoner && state.dealerPartnerOrdered == true)"
+        }
+      ]
+    },
+    {
+      "name": "defendAlone",
+      "if": "options.defendAlone && state.alone == true",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "until": "state.defenderAlone == true",
+      "actions": [
+        {
+          "type": "choose",
+          "values": ["defendAlone"],
+          "labels": { "defendAlone": "Defend alone" },
+          "set": "state.defenderChoice",
+          "if": "player.team != state.makerTeam",
+          "effects": [
+            { "set": { "state.defenderAlone": true } },
+            { "sitOut": "(player.id + 2) % 4" }
+          ]
+        },
+        {
+          "type": "choose",
+          "values": ["pass"],
+          "labels": { "pass": "Pass" },
+          "set": "state.defenderChoice",
+          "if": "player.team != state.makerTeam"
+        }
+      ]
+    },
+    {
+      "name": "exchange",
+      "if": "state.pickUp == true",
+      "order": "dealer",
+      "rounds": 1,
+      "turn": [
+        { "actions": [{ "type": "draw", "from": "upcard", "if": "player.isDealer" }] },
+        { "actions": [{ "type": "discard", "to": "kitty", "if": "player.isDealer" }] }
+      ]
+    },
+    {
+      "name": "play",
+      "if": "state.maker != null",
+      "leader": { "first": "leftOfDealer", "then": "lastTrickWinner" },
+      "repeat": 5,
+      "actions": [{ "type": "playToTrick", "followSuit": true }],
+      "afterTrick": [
+        { "resolveTrick": "highestTrumpElseHighestLed" },
+        { "moveTrick": "won", "of": "winnerTeam" }
+      ]
+    }
+  ],
+  "scoring": {
+    "perTeam": [
+      {
+        "if": "team.id == state.makerTeam && team.tricks >= 3 && team.tricks < 5",
+        "add": 1
+      },
+      {
+        "if": "team.id == state.makerTeam && team.tricks == 5",
+        "add": "state.alone == true ? options.loneMarch : 2"
+      },
+      {
+        "if": "state.makerTeam != null && team.id != state.makerTeam && team.tricks >= 3",
+        "add": "state.defenderAlone == true || (state.alone == true && options.euchreLoner4) ? 4 : 2"
+      }
+    ]
+  },
+  "endCondition": {
+    "when": "anyTeam.score >= options.targetScore",
+    "winner": "highestScore"
+  }
+}

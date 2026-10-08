@@ -627,6 +627,20 @@ General parts of the game format, added because rummy and gin needed them.
   would go out. Their random games use random legal moves, except that they meld, lay off or
   go out whenever they can and arrange their hand after each draw.
 
+## 2026-10-08: Euchre
+
+- **Standard rules:** 4 players in partnerships, 24 cards (9 to A), 5 each, the rest is the
+  kitty with its top card turned up. Trump order: right bower (jack of trump), left bower (the
+  other jack of the same colour, which counts as a trump), A, K, Q, 10, 9. First round: order
+  up the upcard (the dealer takes it and discards) or pass; second round: name another suit
+  or pass; all pass twice: the hand is thrown in. The maker may go alone (partner sits out).
+  Makers 3–4 tricks: 1; all 5: 2; alone and all 5: 4; euchred: 2 to the defenders. Game to 10.
+- **House rules (options):** play to 5/7/10/11; stick the dealer (off by default: the dealer
+  must name trump in the second round); euchring a loner scores 4; defending alone; partner
+  ordering up the dealer must go alone ("Canadian loner"); a lone march scores 5.
+- **Left out:** the Joker ("Benny"), the 32-card deck, 2- and 3-player versions, and
+  redealing weak hands.
+
 ## 2026-10-08: Building blocks added for euchre
 
 - **`cardOrder.bowers`**: the jack of trump ranks highest and the other jack of the same
