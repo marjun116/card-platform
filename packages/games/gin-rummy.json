@@ -1,0 +1,279 @@
+{
+  "$schema": "../engine/game-file.schema.json",
+  "meta": {
+    "name": "Gin Rummy",
+    "players": 2,
+    "description": "Build melds in your hand and knock when your deadwood is low enough. Gin is no deadwood at all."
+  },
+  "deck": { "copies": 1, "jokers": 0 },
+  "meldRules": {
+    "kinds": ["set", "run"],
+    "minSize": 3,
+    "aces": "options.aces",
+    "autoArrange": "options.sortButton",
+    "zone": "melds"
+  },
+  "options": {
+    "targetScore": {
+      "label": "Play to",
+      "type": "choice",
+      "values": [100, 150, 250],
+      "default": 100
+    },
+    "ginBonus": {
+      "label": "Gin bonus",
+      "type": "choice",
+      "values": [25, 20, 50],
+      "default": 25
+    },
+    "undercutBonus": {
+      "label": "Undercut bonus",
+      "type": "choice",
+      "values": [25, 10, 20],
+      "default": 25
+    },
+    "bigGin": {
+      "label": "Big gin (all 11 cards melded, no discard)",
+      "type": "choice",
+      "values": ["off", 31, 50],
+      "labels": { "off": "Not allowed", "31": "Allowed, bonus 31", "50": "Allowed, bonus 50" },
+      "default": "off"
+    },
+    "oklahoma": {
+      "label": "Oklahoma: the upcard sets the knock limit; a spade upcard doubles the hand",
+      "type": "boolean",
+      "default": false
+    },
+    "bonuses": {
+      "label": "Game bonus (100), box bonus (25 a hand) and shutouts",
+      "type": "boolean",
+      "default": true
+    },
+    "aces": {
+      "label": "Aces in runs",
+      "type": "choice",
+      "values": ["low", "both"],
+      "labels": { "low": "Low (A-2-3)", "both": "High or low" },
+      "default": "low"
+    },
+    "sortButton": {
+      "label": "Allow \"Sort into melds\"",
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "zones": {
+    "hand": { "per": "player", "visibility": "owner" },
+    "stock": { "shared": true, "visibility": "none", "countVisible": true },
+    "discard": { "shared": true, "visibility": "topCardOnly" },
+    "melds": { "per": "player", "visibility": "all", "melds": true }
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": { "to": "hand", "count": 10 },
+    "rest": "stock",
+    "flip": {
+      "from": "stock",
+      "to": "discard",
+      "set": {
+        "state.upcard": "'open'",
+        "state.knockLimit": "options.oklahoma ? (card.rank == 'A' ? 0 : cardValue(card)) : 10",
+        "state.double": "options.oklahoma && card.suit == 'spades'"
+      }
+    },
+    "dealerRotation": "left"
+  },
+  "phases": [
+    {
+      "name": "upcard",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "until": "state.knockType != null || (state.taker != null && turn.draws == 0)",
+      "turn": [
+        {
+          "optional": true,
+          "actions": [
+            {
+              "type": "draw",
+              "from": "discard",
+              "effects": [
+                { "set": { "state.taker": "player.id" } },
+                { "set": { "player.taken": "card.id" } }
+              ]
+            }
+          ]
+        },
+        {
+          "actions": [
+            {
+              "type": "discard",
+              "to": "discard",
+              "if": "turn.draws > 0 && card.id != player.taken"
+            },
+            {
+              "type": "choose",
+              "values": ["pass"],
+              "labels": { "pass": "Pass" },
+              "set": "state.upcardPass",
+              "if": "turn.draws == 0",
+              "effects": [
+                { "set": { "state.upcard": "state.upcard == 'open' ? 'onePass' : 'passed'" } }
+              ]
+            }
+          ]
+        },
+        {
+          "optional": true,
+          "actions": [
+            {
+              "type": "choose",
+              "values": ["knock"],
+              "labels": { "knock": "Knock" },
+              "set": "state.knockType",
+              "if": "turn.draws > 0 && player.deadwood > 0 && player.deadwood <= state.knockLimit",
+              "effects": [{ "set": { "state.knocker": "player.id" } }, { "layOutMelds": "melds" }]
+            },
+            {
+              "type": "choose",
+              "values": ["gin"],
+              "labels": { "gin": "Gin!" },
+              "set": "state.knockType",
+              "if": "turn.draws > 0 && player.deadwood == 0",
+              "effects": [{ "set": { "state.knocker": "player.id" } }, { "layOutMelds": "melds" }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "play",
+      "if": "state.knockType == null",
+      "leader": {
+        "first": "state.taker == null ? 'leftOfDealer' : 1 - state.taker"
+      },
+      "until": "state.knockType != null || (stock.count <= 2 && turn.draws == 0)",
+      "turn": [
+        {
+          "actions": [
+            {
+              "type": "draw",
+              "from": "stock",
+              "effects": [
+                { "set": { "state.upcard": "'done'" } },
+                { "set": { "player.taken": null } }
+              ]
+            },
+            {
+              "type": "draw",
+              "from": "discard",
+              "if": "state.upcard != 'passed'",
+              "effects": [{ "set": { "player.taken": "card.id" } }]
+            }
+          ]
+        },
+        {
+          "actions": [
+            { "type": "discard", "to": "discard", "if": "card.id != player.taken" },
+            {
+              "type": "choose",
+              "values": ["bigGin"],
+              "labels": { "bigGin": "Big gin!" },
+              "set": "state.knockType",
+              "if": "options.bigGin != 'off' && hand.count == 11 && player.deadwood == 0",
+              "effects": [{ "set": { "state.knocker": "player.id" } }, { "layOutMelds": "melds" }]
+            }
+          ]
+        },
+        {
+          "optional": true,
+          "actions": [
+            {
+              "type": "choose",
+              "values": ["knock"],
+              "labels": { "knock": "Knock" },
+              "set": "state.knockType",
+              "if": "player.deadwood > 0 && player.deadwood <= state.knockLimit",
+              "effects": [{ "set": { "state.knocker": "player.id" } }, { "layOutMelds": "melds" }]
+            },
+            {
+              "type": "choose",
+              "values": ["gin"],
+              "labels": { "gin": "Gin!" },
+              "set": "state.knockType",
+              "if": "player.deadwood == 0",
+              "effects": [{ "set": { "state.knocker": "player.id" } }, { "layOutMelds": "melds" }]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "layOff",
+      "if": "state.knocker != null",
+      "order": "leftOfDealer",
+      "rounds": 1,
+      "turn": [
+        {
+          "optional": true,
+          "repeatable": true,
+          "actions": [
+            {
+              "type": "layOff",
+              "to": "melds",
+              "if": "state.knockType == 'knock' && player.id != state.knocker"
+            }
+          ]
+        },
+        {
+          "actions": [
+            {
+              "type": "choose",
+              "values": ["show"],
+              "labels": { "show": "Show my hand" },
+              "set": "state.shown",
+              "if": "player.id != state.knocker"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "cardValue": { "J": 10, "Q": 10, "K": 10, "A": 1, "default": "rankNumber" },
+    "playerValues": { "deadwood": "player.deadwood", "points": "player.score" },
+    "perPlayer": [
+      {
+        "if": "state.knocker == player.id && state.knockType == 'knock' && sum(activePlayers, deadwood) > 2 * deadwood(player)",
+        "add": "(sum(activePlayers, deadwood) - 2 * deadwood(player)) * (state.double ? 2 : 1)",
+        "track": { "boxes": 1 }
+      },
+      {
+        "if": "state.knockType == 'knock' && state.knocker != player.id && 2 * deadwood(player) <= sum(activePlayers, deadwood)",
+        "add": "(sum(activePlayers, deadwood) - 2 * deadwood(player) + options.undercutBonus) * (state.double ? 2 : 1)",
+        "track": { "boxes": 1 }
+      },
+      {
+        "if": "state.knocker == player.id && state.knockType == 'gin'",
+        "add": "(sum(activePlayers, deadwood) + options.ginBonus) * (state.double ? 2 : 1)",
+        "track": { "boxes": 1 }
+      },
+      {
+        "if": "state.knocker == player.id && state.knockType == 'bigGin'",
+        "add": "(sum(activePlayers, deadwood) + options.bigGin) * (state.double ? 2 : 1)",
+        "track": { "boxes": 1 }
+      }
+    ],
+    "atGameEnd": [
+      { "if": "options.bonuses && player.score >= options.targetScore", "add": 100 },
+      { "if": "options.bonuses", "add": "25 * player.boxes" },
+      {
+        "if": "options.bonuses && player.score > 0 && sum(activePlayers, points) == player.score",
+        "add": "player.score"
+      }
+    ]
+  },
+  "endCondition": {
+    "when": "anyPlayer.score >= options.targetScore",
+    "winner": "highestScore"
+  }
+}

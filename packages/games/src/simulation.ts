@@ -60,9 +60,15 @@ const keepMelds: Strategy = (moves, state, pick) => {
   return discards.reduce((best, m) => (worth(m) > worth(best) ? m : best));
 };
 
+/** Usually the costliest loose card, sometimes any random move. */
+const mostlyKeepMelds: Strategy = (moves, state, pick) =>
+  pick(3) === 0 ? randomStrategy(moves, state, pick) : keepMelds(moves, state, pick);
+
 /** How each game is played randomly, where plain random moves wouldn't do. */
 const RANDOM: Partial<Record<BuiltInGameName, Strategy>> = {
   rummy: arranging(randomStrategy),
+  // Random discards almost never get deadwood down to 10, so every hand would be a draw.
+  'gin-rummy': arranging(mostlyKeepMelds),
 };
 
 /**
@@ -84,6 +90,7 @@ const SENSIBLE: Record<BuiltInGameName, Strategy> = {
   'crazy-eights': preferring((m) => m.type === 'play'),
   // Keep melds together and throw away the costliest loose card.
   rummy: arranging(keepMelds),
+  'gin-rummy': arranging(keepMelds),
 };
 
 /**
@@ -141,6 +148,18 @@ const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> 
     },
     { cards: 10, jokers: 'printed', aces: 'high', rummyBonus: false, targetScore: 250 },
   ],
+  'gin-rummy': [
+    {
+      ginBonus: 50,
+      undercutBonus: 10,
+      bigGin: 31,
+      aces: 'both',
+      sortButton: false,
+      targetScore: 150,
+    },
+    { oklahoma: true, bonuses: false, bigGin: 50 },
+    { ginBonus: 20, undercutBonus: 20, targetScore: 250 },
+  ],
 };
 const VARIANT_GAMES = 200;
 
@@ -154,6 +173,7 @@ const MIN_ROUNDS: Record<BuiltInGameName, number> = {
   // The winner collects 50 per 8, so games to 100 are short.
   'crazy-eights': 2,
   rummy: 2,
+  'gin-rummy': 2,
 };
 
 /**
