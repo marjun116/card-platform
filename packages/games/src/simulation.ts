@@ -1,0 +1,208 @@
+/**
+ * The random-play simulation every built-in game must pass (CLAUDE.md):
+ * 1,000 seeded games of random legal moves with no crashes and no illegal
+ * states, checked after every move by the engine's harness.
+ *
+ * Purely random play is shallow in some games (random spades bids sink both
+ * teams within a couple of rounds), so each game also plays a smaller batch
+ * with a "sensible" player that reaches the parts random play never does.
+ */
+import {
+  bestArrangeMove,
+  type Strategy,
+  preferring,
+  randomStrategy,
+  simulateMany,
+} from '@card-table/engine/testing';
+import { type Move, type OptionValue, viewFor } from '@card-table/engine';
+import { describe, expect, it } from 'vitest';
+import { type BuiltInGameName, builtInGames } from './index';
+
+/**
+ * Random play for games where players arrange their hands: random legal moves,
+ * except that it melds, lays off or goes out whenever it can, and arranges its
+ * hand after each draw (with "Sort into melds", or the same arrangement made by
+ * hand when a house rule switches that off). Purely random players never
+ * arrange (or knock), so nobody would ever go out.
+ */
+const arranging =
+  (choose: Strategy): Strategy =>
+  (moves, state, pick) => {
+    const out = moves.filter(
+      (m) =>
+        ['meld', 'layOff', 'showHand'].includes(m.type) ||
+        (m.type === 'choose' && ['knock', 'gin', 'bigGin'].includes(m.value)),
+    );
+    if (out.length > 0) return out[pick(out.length)] as Move;
+    const player = state.cursor.current;
+    if (state.log.at(-1)?.type === 'draw') {
+      return moves.find((m) => m.type === 'sortHand') ?? bestArrangeMove(state, player);
+    }
+    return choose(
+      moves.filter((m) => m.type !== 'sortHand'),
+      state,
+      pick,
+    );
+  };
+
+/** Discards the loose card worth the most, keeping its melds together. */
+const keepMelds: Strategy = (moves, state, pick) => {
+  const discards = moves.filter((m) => m.type === 'discard');
+  const arrangement = viewFor(state, state.cursor.current).arrangement;
+  if (discards.length === 0 || !arrangement) return randomStrategy(moves, state, pick);
+  const grouped = new Set(arrangement.groups.filter((g) => g.kind).flatMap((g) => g.cards));
+  const worth = (m: Move) => {
+    if (m.type !== 'discard') return -1;
+    const rank = m.card.split('.')[0]?.slice(0, -1) ?? '';
+    const points = ['J', 'Q', 'K'].includes(rank) ? 10 : rank === 'A' ? 1 : Number(rank) || 0;
+    return grouped.has(m.card) ? -1 : points;
+  };
+  return discards.reduce((best, m) => (worth(m) > worth(best) ? m : best));
+};
+
+/** How each game is played randomly, where plain random moves wouldn't do. */
+const RANDOM: Partial<Record<BuiltInGameName, Strategy>> = {
+  rummy: arranging(randomStrategy),
+};
+
+/**
+ * House rules every simulated game of this kind uses. Rummy turns the discard
+ * pile over only once: with no limit a hand can stall for good (see "Running out
+ * of stock" in docs/decisions.md).
+ */
+const BASE_OPTIONS: Partial<Record<BuiltInGameName, Record<string, OptionValue>>> = {
+  rummy: { emptyStock: 'once' },
+};
+
+/** A player that plays like a person would, at least a little. */
+const SENSIBLE: Record<BuiltInGameName, Strategy> = {
+  // Bid low, so teams make their bids, games run to 500 and bags pile up.
+  spades: preferring((m) => m.type === 'bid' && typeof m.value === 'number' && m.value <= 3),
+  // Duck tricks with low cards, so points spread out and games last.
+  hearts: preferring((m) => m.type === 'playToTrick' && /^[2-7][CDHS]/.test(m.card)),
+  // Play a card whenever possible instead of drawing.
+  'crazy-eights': preferring((m) => m.type === 'play'),
+  // Keep melds together and throw away the costliest loose card.
+  rummy: arranging(keepMelds),
+};
+
+/**
+ * House rules that change how a game plays, simulated on top of the random
+ * games. Each set is played in a batch of its own.
+ */
+const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> = {
+  spades: [{ nil: false, blindNil: true, targetScore: 300 }],
+  hearts: [
+    { moon: 'shooterChooses', jackOfDiamonds: true, passing: 'rotateNoHold', shareTies: true },
+    {
+      moon: 'shooterMinus26',
+      pointsOnFirstTrick: true,
+      queenBreaksHearts: true,
+      passing: 'left',
+      firstLead: 'leftOfDealer',
+      targetScore: 50,
+    },
+    { leadHeartsAnytime: true, passing: 'none', targetScore: 150 },
+  ],
+  'crazy-eights': [
+    {
+      drawing: 'one',
+      reshuffle: true,
+      drawTwo: true,
+      stackTwos: true,
+      jacksSkip: true,
+      acesReverse: true,
+      queenOfSpades: true,
+      targetScore: 200,
+    },
+    {
+      scoring: 'penalty',
+      drawing: 'upToThree',
+      cards: 8,
+      starterEight: 'counts',
+      drawTwo: true,
+      reshuffle: true,
+      // Random players drawing up to 3 with reshuffles build huge hands, so keep it to one.
+      targetScore: 'oneHand',
+    },
+    { cards: 7, targetScore: 200 },
+  ],
+  rummy: [
+    { melding: 'inHand', aces: 'both', sortButton: false, emptyStock: 'once' },
+    {
+      cards: 'hoyle',
+      jokers: 'none',
+      pureRun: false,
+      scoring: 'penalty',
+      mustDiscard: true,
+      throwBack: true,
+      emptyStock: 'end',
+      targetScore: 150,
+    },
+    { cards: 10, jokers: 'printed', aces: 'high', rummyBonus: false, targetScore: 250 },
+  ],
+};
+const VARIANT_GAMES = 200;
+
+const RANDOM_GAMES = 1_000;
+const SENSIBLE_GAMES = 50;
+
+/** Hands a sensible game should last on average, so it reaches its later rounds. */
+const MIN_ROUNDS: Record<BuiltInGameName, number> = {
+  spades: 5,
+  hearts: 5,
+  // The winner collects 50 per 8, so games to 100 are short.
+  'crazy-eights': 2,
+  rummy: 2,
+};
+
+/**
+ * The simulation tests for one game. Each game has its own test file
+ * (`<game>.simulation.test.ts`), so games are simulated in parallel.
+ */
+export function simulationTests(game: BuiltInGameName): void {
+  describe(`${game} simulation`, () => simulate(game));
+}
+
+function simulate(game: BuiltInGameName): void {
+  const name = game;
+  const file = builtInGames[game];
+  const random = RANDOM[game] ?? randomStrategy;
+  const base = BASE_OPTIONS[game] ?? {};
+
+  it(`plays ${RANDOM_GAMES} random games without a problem`, { timeout: 600_000 }, () => {
+    const report = simulateMany(file, {
+      games: RANDOM_GAMES,
+      seedPrefix: `${name}-random`,
+      strategy: random,
+      options: base,
+    });
+    expect(report.games).toBe(RANDOM_GAMES);
+  });
+
+  it(`plays ${SENSIBLE_GAMES} sensible games without a problem`, { timeout: 300_000 }, () => {
+    const report = simulateMany(file, {
+      games: SENSIBLE_GAMES,
+      seedPrefix: `${name}-sensible`,
+      strategy: SENSIBLE[game],
+      options: base,
+    });
+    // These games should get past the first couple of rounds.
+    expect(report.averageRounds).toBeGreaterThan(MIN_ROUNDS[game]);
+  });
+
+  const variants = VARIANTS[game] ?? [];
+  it.each(variants.map((options) => [JSON.stringify(options), options] as const))(
+    `plays ${VARIANT_GAMES} random games with house rules %s`,
+    { timeout: 300_000 },
+    (label, options) => {
+      const report = simulateMany(file, {
+        games: VARIANT_GAMES,
+        seedPrefix: `${name}-${label}`,
+        strategy: random,
+        options: { ...base, ...options },
+      });
+      expect(report.games).toBe(VARIANT_GAMES);
+    },
+  );
+}

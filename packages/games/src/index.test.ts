@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { validate } from '@card-table/engine';
 import { describe, expect, it } from 'vitest';
 import { builtInGames } from './index';
@@ -17,5 +18,9 @@ describe('built-in games', () => {
       'targetScore',
       'mercyRule',
     ]);
+  });
+
+  it.each(Object.keys(builtInGames))('%s has a simulation test file', (name) => {
+    expect(existsSync(new URL(`./${name}.simulation.test.ts`, import.meta.url))).toBe(true);
   });
 });

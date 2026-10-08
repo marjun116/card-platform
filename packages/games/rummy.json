@@ -1,0 +1,232 @@
+{
+  "$schema": "../engine/game-file.schema.json",
+  "meta": {
+    "name": "Rummy",
+    "players": [2, 6],
+    "description": "Group your cards into sets and runs. You need a pure run. First out wins the deadwood in other hands."
+  },
+  "deck": {
+    "copies": "activePlayers.count * (options.cards == 'hoyle' ? (activePlayers.count == 2 ? 10 : activePlayers.count <= 4 ? 7 : 6) : options.cards) <= 38 ? 1 : 2",
+    "jokers": "options.jokers == 'none' ? 0 : 2"
+  },
+  "cardOrder": {
+    "wild": "options.jokers != 'none' && (card.isJoker || (options.jokers == 'printedAndCut' && card.rank == state.cutRank))"
+  },
+  "meldRules": {
+    "kinds": ["set", "run"],
+    "minSize": 3,
+    "aces": "options.aces",
+    "pureRunRequired": "options.pureRun",
+    "autoArrange": "options.sortButton",
+    "zone": "melds"
+  },
+  "options": {
+    "targetScore": {
+      "label": "Play to",
+      "type": "choice",
+      "values": [100, 150, 250, 500],
+      "default": 100
+    },
+    "scoring": {
+      "label": "Scoring",
+      "type": "choice",
+      "values": ["winnerCollects", "penalty"],
+      "labels": {
+        "winnerCollects": "Winner scores the deadwood in other hands",
+        "penalty": "Everyone scores their own deadwood; lowest wins"
+      },
+      "default": "winnerCollects"
+    },
+    "cards": {
+      "label": "Cards dealt",
+      "type": "choice",
+      "values": [13, 10, "hoyle"],
+      "labels": {
+        "13": "13 each",
+        "10": "10 each",
+        "hoyle": "10 for two players, 7 for 3–4, 6 for 5–6"
+      },
+      "default": 13
+    },
+    "jokers": {
+      "label": "Wild cards",
+      "type": "choice",
+      "values": ["printedAndCut", "printed", "none"],
+      "labels": {
+        "printedAndCut": "Jokers and a cut joker",
+        "printed": "Jokers only",
+        "none": "No wild cards"
+      },
+      "default": "printedAndCut"
+    },
+    "pureRun": {
+      "label": "A pure run is needed (for wild melds, to go out, and for melds to count)",
+      "type": "boolean",
+      "default": true
+    },
+    "melding": {
+      "label": "Melds",
+      "type": "choice",
+      "values": ["asYouGo", "inHand"],
+      "labels": {
+        "asYouGo": "Laid down as you go",
+        "inHand": "Kept in hand until you go out"
+      },
+      "default": "asYouGo"
+    },
+    "aces": {
+      "label": "Aces in runs",
+      "type": "choice",
+      "values": ["low", "high", "both"],
+      "labels": { "low": "Low (A-2-3)", "high": "High (Q-K-A)", "both": "High or low" },
+      "default": "low"
+    },
+    "mustDiscard": {
+      "label": "You must discard your last card to go out",
+      "type": "boolean",
+      "default": false
+    },
+    "rummyBonus": {
+      "label": "Going out all at once doubles your score",
+      "type": "boolean",
+      "default": true
+    },
+    "throwBack": {
+      "label": "You may discard the card you just took from the discard pile",
+      "type": "boolean",
+      "default": false
+    },
+    "emptyStock": {
+      "label": "When the stock runs out",
+      "type": "choice",
+      "values": ["reuse", "once", "end"],
+      "labels": {
+        "reuse": "Turn the discard pile over and keep going",
+        "once": "Turn it over once, then end the hand",
+        "end": "End the hand"
+      },
+      "default": "reuse"
+    },
+    "sortButton": {
+      "label": "Allow \"Sort into melds\"",
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "zones": {
+    "hand": { "per": "player", "visibility": "owner" },
+    "stock": { "shared": true, "visibility": "none", "countVisible": true },
+    "discard": { "shared": true, "visibility": "topCardOnly" },
+    "cut": { "shared": true, "visibility": "all" },
+    "melds": { "per": "player", "visibility": "all", "melds": true }
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": {
+      "to": "hand",
+      "count": "options.cards == 'hoyle' ? (activePlayers.count == 2 ? 10 : activePlayers.count <= 4 ? 7 : 6) : options.cards"
+    },
+    "rest": "stock",
+    "flip": [
+      { "from": "stock", "to": "discard" },
+      {
+        "if": "options.jokers == 'printedAndCut'",
+        "from": "stock",
+        "to": "cut",
+        "set": { "state.cutRank": "card.isJoker ? 'A' : card.rank" }
+      }
+    ],
+    "dealerRotation": "left"
+  },
+  "phases": [
+    {
+      "name": "play",
+      "order": "clockwise",
+      "until": "anyPlayer.hand.count == 0 || state.out != null",
+      "turn": [
+        {
+          "actions": [
+            { "type": "draw", "from": "stock", "effects": [{ "set": { "player.taken": null } }] },
+            {
+              "type": "draw",
+              "from": "discard",
+              "effects": [{ "set": { "player.taken": "card.id" } }]
+            }
+          ]
+        },
+        {
+          "optional": true,
+          "repeatable": true,
+          "actions": [
+            {
+              "type": "meld",
+              "to": "melds",
+              "if": "options.melding == 'asYouGo' && (!meld.usesWild || player.hasPureRun || !options.pureRun) && (!options.mustDiscard || hand.count > meld.size)"
+            },
+            {
+              "type": "layOff",
+              "to": "melds",
+              "if": "options.melding == 'asYouGo' && (!options.mustDiscard || hand.count > 1)"
+            }
+          ]
+        },
+        {
+          "actions": [
+            {
+              "type": "discard",
+              "to": "discard",
+              "if": "card.id != player.taken || options.throwBack || hand.count == 1",
+              "effects": [
+                { "if": "hand.count > 0", "set": { "player.hasMelded": "melds.melds > 0" } }
+              ]
+            },
+            {
+              "type": "showHand",
+              "to": "discard",
+              "if": "options.melding == 'inHand'",
+              "effects": [{ "set": { "state.out": "player.id" } }, { "layOutMelds": "melds" }]
+            }
+          ]
+        }
+      ],
+      "whenEmpty": {
+        "stock": {
+          "policy": "reshuffleDiscardExceptTop",
+          "limit": "options.emptyStock == 'reuse' ? 'unlimited' : options.emptyStock == 'once' ? 1 : 0"
+        }
+      }
+    },
+    {
+      "name": "show",
+      "order": "clockwise",
+      "rounds": 1,
+      "actions": [
+        {
+          "type": "choose",
+          "values": ["show"],
+          "labels": { "show": "Show my hand" },
+          "set": "state.shown",
+          "if": "hand.count > 0 && state.out != player.id"
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "cardValue": { "J": 10, "Q": 10, "K": 10, "A": 1, "JOKER": 0, "default": "rankNumber" },
+    "playerValues": { "deadwood": "player.deadwood" },
+    "perPlayer": [
+      {
+        "if": "options.scoring == 'winnerCollects' && (player.hand.count == 0 || state.out == player.id)",
+        "add": "sum(activePlayers, deadwood) * (options.rummyBonus && options.melding == 'asYouGo' && !(player.hasMelded == true) ? 2 : 1)"
+      },
+      {
+        "if": "options.scoring == 'penalty'",
+        "add": "deadwood(player)"
+      }
+    ]
+  },
+  "endCondition": {
+    "when": "anyPlayer.score >= options.targetScore",
+    "winner": "options.scoring == 'penalty' ? 'lowestScore' : 'highestScore'"
+  }
+}
