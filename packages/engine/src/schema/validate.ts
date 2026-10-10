@@ -456,9 +456,19 @@ class Checker {
         `Doesn't include ${missing.join(', ')}, which are in the deck`,
       );
     }
-    const declares = this.allActions().some(({ action }) => action.type === 'declareTrump');
+    // Trump is named with declareTrump, or set by an effect (bridge: from the contract).
+    const declares = this.allActions().some(
+      ({ action }) =>
+        action.type === 'declareTrump' ||
+        (action.effects ?? []).some(
+          (e) => typeof e.set === 'object' && Object.hasOwn(e.set, 'state.trump'),
+        ),
+    );
     if (this.file.cardOrder?.trump === 'declared' && !declares) {
-      this.warn(['cardOrder', 'trump'], '"declared" trump needs a declareTrump action somewhere');
+      this.warn(
+        ['cardOrder', 'trump'],
+        '"declared" trump needs a declareTrump action, or an effect setting "state.trump"',
+      );
     }
   }
 

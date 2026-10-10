@@ -231,7 +231,16 @@ export function findHiddenCardLeak(state: GameState): string | null {
     }
     for (const card of state.passing.flat()) hidden.set(card.id, 'cards being passed');
 
-    const view = JSON.stringify({ ...viewFor(state, viewer.id), log: [], lastTrick: null });
+    // The round history and points scored hold no cards, and grow all game long: leaving
+    // them out keeps this check from slowing long games down (a rubber of bridge).
+    const view = JSON.stringify({
+      // The log is left out too (from the state, so viewFor needn't build it).
+      ...viewFor({ ...state, log: [] }, viewer.id),
+      log: [],
+      lastTrick: null,
+      history: [],
+      scoreEvents: [],
+    });
     // Every card id anywhere in the view, collected once ("QS.0", "10H.1", "JOKER.0").
     const shown = new Set(
       view.match(/(?<=")(?:10|[2-9JQKA])[CDHS]\.\d+(?=")|(?<=")JOKER\.\d+(?=")/g),

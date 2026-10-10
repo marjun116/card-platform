@@ -182,37 +182,42 @@ export function controlOf(state: GameState): Control | null {
  * player's moves several times per move. Never use this while a move is being
  * applied.
  */
-const settled = new WeakMap<GameState, Map<string, Candidate[]>>();
+const settled = new WeakMap<GameState, Map<PlayerId, Candidate[]>>();
 export function stableCandidates(
   state: GameState,
   player: PlayerId,
   opts: CandidateOptions = {},
 ): Candidate[] {
-  let byKey = settled.get(state);
-  if (!byKey) {
-    byKey = new Map();
-    settled.set(state, byKey);
+  let byPlayer = settled.get(state);
+  if (!byPlayer) {
+    byPlayer = new Map();
+    settled.set(state, byPlayer);
   }
-  const key = `${player}|${opts.skipLook ? 'skipLook' : ''}`;
-  let found = byKey.get(key);
+  let found = byPlayer.get(player);
   if (!found) {
     const control = controlOf(state);
     if (control?.seat === player) {
       found = [];
     } else {
-      found = candidates(state, player, opts);
+      found = candidates(state, player);
       if (control?.by === player) {
-        const theirs = candidates(state, control.seat, opts).map((c) => ({
+        // Only the seat's turn: looking at or sorting its hand stays its own business.
+        const theirs = candidates(state, control.seat, { skipLook: true }).map((c) => ({
           ...c,
           move: { ...c.move, by: player },
         }));
         found = [...found, ...theirs];
       }
     }
-    byKey.set(key, found);
+    byPlayer.set(player, found);
   }
-  return found;
+  // The same list without the free moves (looking at or sorting your hand), worked out
+  // from the full list rather than all over again.
+  return opts.skipLook ? found.filter((c) => !FREE_MOVES.has(c.move.type)) : found;
 }
+
+/** Moves that never take a turn, left out with `skipLook`. */
+const FREE_MOVES = new Set<Move['type']>(['lookAtHand', 'sortHand']);
 
 export function getLegalMoves(state: GameState, player: PlayerId): Move[] {
   return stableCandidates(state, player).map((c) => c.move);

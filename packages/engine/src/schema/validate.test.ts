@@ -200,8 +200,30 @@ describe('validate', () => {
     it('warns when the rank order or trump looks incomplete', () => {
       expect(warnings({ ...spades, cardOrder: { ranks: ['2', '3'], trump: 'declared' } })).toEqual([
         "cardOrder.ranks: Doesn't include 4, 5, 6, 7, 8, 9, 10, J, Q, K, A, which are in the deck",
-        'cardOrder.trump: "declared" trump needs a declareTrump action somewhere',
+        'cardOrder.trump: "declared" trump needs a declareTrump action, or an effect setting "state.trump"',
       ]);
+    });
+
+    it('accepts declared trump set by an effect', () => {
+      const setsTrump = {
+        ...spades,
+        cardOrder: { ...spades.cardOrder, trump: 'declared' as const },
+        phases: spades.phases.map((p, i) =>
+          i === 0
+            ? {
+                ...p,
+                actions: [
+                  {
+                    type: 'bid' as const,
+                    values: { range: [1, 13] as [number, number] },
+                    effects: [{ set: { 'state.trump': "'hearts'" } }],
+                  },
+                ],
+              }
+            : p,
+        ),
+      };
+      expect(warnings(setsTrump)).toEqual([]);
     });
   });
 
