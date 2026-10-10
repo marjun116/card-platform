@@ -695,6 +695,22 @@ kbd {
   font-size: 0.85em;
   opacity: 0.9;
 }
+/* Seats played by a computer. */
+.bot-badge {
+  margin-left: 0.5em;
+  padding: 0 0.4em;
+  border-radius: 4px;
+  font-size: 0.75em;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 1px solid currentColor;
+}
+.seat .replace-bot {
+  align-self: flex-start;
+  color: var(--felt-text);
+  font-size: 0.85em;
+}
+
 /* A hand shown face up at another seat (bridge's dummy): a row per suit, high cards first. */
 .seat.has-open-hand {
   max-width: 340px;

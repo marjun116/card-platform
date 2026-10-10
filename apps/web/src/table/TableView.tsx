@@ -229,6 +229,13 @@ export function TableView({
                 controls={controls}
                 selected={selected}
                 onPress={press}
+                {...(isHost && {
+                  onReplace: (seat: number) => {
+                    if (window.confirm(`Let a bot play for ${names(seat)} from now on?`)) {
+                      send({ type: 'replaceWithBot', seat });
+                    }
+                  },
+                })}
               />
             ))}
           </div>

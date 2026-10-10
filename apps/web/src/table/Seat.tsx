@@ -28,6 +28,7 @@ export function Seat({
   controls,
   selected,
   onPress,
+  onReplace,
 }: {
   seat: number;
   view: PlayerView;
@@ -41,6 +42,8 @@ export function Seat({
   controls: Controls;
   selected: readonly string[];
   onPress: (card: CardData) => void;
+  /** Host only: a bot takes over this (disconnected) player's seat. */
+  onReplace?: (seat: number) => void;
 }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -66,7 +69,10 @@ export function Seat({
     showTricks && player ? `Won ${player.tricks}` : null,
     player && !player.active ? 'Out' : null,
     player?.sittingOut ? 'Sitting out' : null,
+    info?.bot ? 'Bot' : null,
   ].filter(Boolean);
+  // A player who left can be replaced by a bot (built-in games only).
+  const replaceable = table.botsAllowed && info?.user && !info.bot && !info.connected;
 
   // Which way the popup opens, so it stays on the table.
   const popup = `${x > 50 ? 'from-right' : 'from-left'} ${y > 50 ? 'upwards' : 'downwards'}`;
@@ -104,7 +110,7 @@ export function Seat({
           />
           <strong className="seat-player">{name}</strong>
           {acting && <span className="turn-badge">Turn</span>}
-          {acting && info?.user && (
+          {acting && info?.user && !info.bot && (
             <button
               type="button"
               className="link-button nudge"
@@ -126,6 +132,16 @@ export function Seat({
           )}
           {facts.length > 0 && <span className="seat-facts">{facts.join(' · ')}</span>}
         </div>
+        {replaceable && onReplace && (
+          <button
+            type="button"
+            className="link-button replace-bot"
+            aria-label={`Replace ${name} with a bot`}
+            onClick={() => onReplace(seat)}
+          >
+            Replace with bot
+          </button>
+        )}
         {openCards && (
           <OpenHand
             cards={openCards}

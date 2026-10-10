@@ -120,12 +120,31 @@ export function Lobby({
                         />
                         {seat.user.displayName}
                         {mine && ' (you)'}
+                        {seat.bot && <span className="bot-badge">Bot</span>}
                       </>
                     ) : (
                       <span className="muted">Empty</span>
                     )}
                   </span>
                   <span className="seat-actions">
+                    {!seat.user && isHost && table.botsAllowed && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void run({ type: 'addBot', seat: seat.seat })}
+                      >
+                        Add bot
+                      </button>
+                    )}
+                    {isHost && seat.bot && (
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void run({ type: 'removeBot', seat: seat.seat })}
+                      >
+                        Remove bot
+                      </button>
+                    )}
                     {!seat.user && mySeat === null && (
                       <button
                         type="button"

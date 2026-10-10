@@ -51,14 +51,18 @@ function fakeConnection() {
 }
 
 /** Renders the table as `seat` sees `state`. */
-function show(state: GameState, seat: number) {
+function show(
+  state: GameState,
+  seat: number,
+  { table = tableInfo(state.players.length), isHost = false } = {},
+) {
   const connection = fakeConnection();
   const props = {
-    table: tableInfo(state.players.length),
+    table,
     connection: connection as unknown as TableConnection,
     error: null,
     nudgedBy: null,
-    isHost: false,
+    isHost,
   };
   const result = render(<TableView {...props} game={gameMessage(state, seat)} />);
   const update = (next: GameState) =>
@@ -411,5 +415,44 @@ describe('a hand played by another seat (bridge-style dummy)', () => {
     const scores = within(screen.getByRole('region', { name: 'Scores' }));
     expect(scores.getAllByText(/Hands played 1/).length).toBeGreaterThan(0);
     expect(scores.queryByText(/Secret/)).toBeNull();
+  });
+});
+
+describe('bots at the table', () => {
+  /** Seat 1 is a bot; seat 2's player has left. */
+  function withBotAndAbsentee(): TableInfo {
+    const table = tableInfo(4);
+    return {
+      ...table,
+      seats: table.seats.map((s) =>
+        s.seat === 1
+          ? { ...s, user: { id: 'bot-2', displayName: 'Bot 2' }, bot: true }
+          : s.seat === 2
+            ? { ...s, connected: false }
+            : s,
+      ),
+    };
+  }
+
+  it('lets the host replace a player who left with a bot', () => {
+    const state = createGame(spades, {}, 4, 'view-bots');
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    const { connection } = show(state, 0, { table: withBotAndAbsentee(), isHost: true });
+    fireEvent.click(screen.getByRole('button', { name: 'Replace Sam with a bot' }));
+    expect(connection.send).toHaveBeenCalledWith({ type: 'replaceWithBot', seat: 2 });
+    // Only players who left: not the bot, nor anyone still here.
+    expect(screen.queryByRole('button', { name: /Replace Bot 2/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Replace Raj/ })).toBeNull();
+    confirm.mockRestore();
+  });
+
+  it('shows bots as bots, never nudged, and offers other players nothing', () => {
+    let state = createGame(spades, {}, 4, 'view-bots-2');
+    state = playUntil(state, (s) => s.cursor.current === 1);
+    show(state, 0, { table: withBotAndAbsentee() });
+    const seat = screen.getByRole('region', { name: /^Bot 2/ });
+    expect(within(seat).getByText(/Bot/, { selector: '.seat-facts' })).toBeTruthy();
+    expect(within(seat).queryByRole('button', { name: /Nudge/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Replace/ })).toBeNull();
   });
 });
