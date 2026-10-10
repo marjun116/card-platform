@@ -26,8 +26,11 @@ export interface TrickGoals {
    * can ("fewest"), or exactly what its side bid ("bid": spades, Oh Hell).
    */
   aim: 'most' | 'fewest' | 'bid';
-  /** Cards that cost points when taken (hearts): never won if it can be helped, dumped first. */
-  isPointCard?: (card: Card) => boolean;
+  /**
+   * Points a card costs whoever takes it (hearts: 1 a heart, 13 the Q♠): such
+   * cards are never won if it can be helped, and the costliest are dumped first.
+   */
+  points?: (card: Card) => number;
 }
 
 type Option = { move: Move; card: Card };
@@ -90,7 +93,7 @@ function follow(
   seat: PlayerId,
   want: boolean,
 ): Option {
-  const points = goals.isPointCard ?? (() => false);
+  const points = goals.points ?? (() => 0);
   const winners = options.filter((o) => wouldWin(rules, played, o.card));
   const losers = options.filter((o) => !winners.includes(o));
   const leader = plays[winningIndex(rules, played)]?.player ?? seat;
@@ -112,7 +115,7 @@ function follow(
     // Can't follow: dump point cards first, then the most dangerous high card.
     if (!following) {
       return losers.reduce((a, b) => {
-        const score = (o: Option) => (points(o.card) ? 1000 : 0) + power(rules, o.card);
+        const score = (o: Option) => points(o.card) * 100 + power(rules, o.card);
         return score(b) > score(a) ? b : a;
       });
     }
@@ -123,7 +126,7 @@ function follow(
   if (!want) {
     // Every card wins: take it with the highest card that isn't a point card, saving
     // low cards for ducking later (and never adding points of our own if we can help it).
-    const clean = options.filter((o) => !points(o.card));
+    const clean = options.filter((o) => points(o.card) === 0);
     return highest(rules, clean.length > 0 ? clean : options);
   }
 
@@ -141,10 +144,10 @@ function lead(
   hand: readonly Card[],
   want: boolean,
 ): Option {
-  const points = goals.isPointCard ?? (() => false);
+  const points = goals.points ?? (() => 0);
   if (!want) {
     // Lead low, and not a point card if there's a choice.
-    const clean = options.filter((o) => !points(o.card));
+    const clean = options.filter((o) => points(o.card) === 0);
     return lowest(rules, clean.length > 0 ? clean : options);
   }
   // A card nobody can beat in its suit (not a trump, so trumps can take tricks later).
@@ -182,7 +185,7 @@ export function passHigh(goals: TrickGoals = { aim: 'fewest' }): BotPart {
     const score = (id: string) => {
       const card = hand.find((c) => c.id === id);
       if (!card) return 0;
-      return power(rules, card) + (goals.isPointCard?.(card) ? 1000 : 0);
+      return power(rules, card) + (goals.points?.(card) ?? 0) * 100;
     };
     return passes.reduce((best, m) => {
       const total = (move: Move) =>

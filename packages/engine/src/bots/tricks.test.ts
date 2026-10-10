@@ -78,7 +78,7 @@ describe('trick-taking bots', () => {
   it('dumps a point card when it cannot follow, and ducks when it can', () => {
     const goals: TrickGoals = {
       aim: 'fewest',
-      isPointCard: (c) => 'suit' in c && c.suit === 'hearts',
+      points: (c) => ('suit' in c && c.suit === 'hearts' ? 1 : 0),
     };
     const { state, seats } = atPlay([['2C', '9C'], ['QH', '3D'], ['5C', 'KC'], ['4C']]);
     const s = playCard(state, seats[0] as number, '9C');
