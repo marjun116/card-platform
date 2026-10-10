@@ -228,19 +228,32 @@ building them.
 
 Add games one at a time, picking each to stretch a different part of the engine. When a game can't be expressed, extend the engine's building blocks rather than special-casing that game.
 
-- [ ] Decide the launch list (see **Still open** in the Game format tab)
-- [ ] Suggested order: hearts (passing), crazy eights (shedding), rummy and gin (melds), euchre (stripped deck, bowers), Oh Hell (changing hand sizes), cribbage (unusual scoring), pinochle and canasta (double decks), bridge (bidding auction, dummy hand)
-- [ ] For each game: game file, common house rule options, scenario tests, simulation test, a real playtest
-  - [ ] Hearts: game file, house rules, scenario and simulation tests done; real playtest to do
-  - [ ] Crazy eights: game file, house rules, scenario and simulation tests done; real playtest to do
-  - [ ] Rummy: game file, house rules, scenario and simulation tests done; real playtest to do
-  - [ ] Gin rummy: game file, house rules, scenario and simulation tests done; real playtest to do
-  - [ ] Euchre: game file, house rules, scenario and simulation tests done; real playtest to do
-  - [ ] Oh Hell: game file, house rules, scenario and simulation tests done; real playtest to do
-  - [ ] Cribbage: game file, house rules, scenario and simulation tests done; real playtest to do
-  - [ ] Pinochle: game file, house rules, scenario and simulation tests done; real playtest to do
-  - [ ] Canasta: game file, house rules, scenario and simulation tests done; real playtest to do
-  - [ ] Bridge: game file, house rules, scenario and simulation tests done; real playtest to do
+- [x] Decide the launch list: every built-in game so far (spades, hearts, crazy eights, rummy,
+      gin rummy, euchre, Oh Hell, cribbage, pinochle, canasta, bridge). Decided 2026-10-10.
+- [x] Suggested order: hearts (passing), crazy eights (shedding), rummy and gin (melds), euchre (stripped deck, bowers), Oh Hell (changing hand sizes), cribbage (unusual scoring), pinochle and canasta (double decks), bridge (bidding auction, dummy hand)
+- [x] For each game: game file, common house rule options, scenario tests, simulation test
+  - [x] Hearts
+  - [x] Crazy eights
+  - [x] Rummy
+  - [x] Gin rummy
+  - [x] Euchre
+  - [x] Oh Hell
+  - [x] Cribbage
+  - [x] Pinochle
+  - [x] Canasta
+  - [x] Bridge
+- [ ] Real playtests (with family, on your own devices):
+  - [ ] Hearts
+  - [ ] Crazy eights
+  - [ ] Rummy
+  - [ ] Gin rummy
+  - [ ] Euchre
+  - [ ] Oh Hell
+  - [ ] Cribbage
+  - [ ] Pinochle
+  - [ ] Canasta
+  - [ ] Bridge
+  - [ ] Bots: fill seats with bots, and replace a player who leaves mid-game
 - [ ] Saved variants: a table's chosen options saved as a named, shareable preset
 - [ ] Game history (results are already saved by the server; nothing shows them yet):
   - [ ] "Past games" on the home page: game, date, players, final score, and whether you won

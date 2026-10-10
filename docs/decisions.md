@@ -951,3 +951,10 @@ General parts of the game format, added because bridge needed them; none mention
   stalemate (see "Running out of stock"). A table of bots would then play on until the
   engine's 10,000-move stop; the bot logs the error and stops moving. The planned "call it
   a draw" button (Phase 7) is the fix; meanwhile hosts can limit reshuffles.
+
+## 2026-10-10: Launch list
+
+- **Decided:** every built-in game so far ships at launch: spades, hearts, crazy eights,
+  rummy, gin rummy, euchre, Oh Hell, cribbage, pinochle, canasta and bridge.
+- Each game's file, house rules, scenario and simulation tests are done; the real
+  playtests are tracked as a separate list in the Phase 5 checklist.

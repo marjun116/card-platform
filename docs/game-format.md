@@ -263,4 +263,6 @@ Some house rules won't fit the action library, such as "the dealer can call a re
 
 ### Still open
 
-- [ ] Which games ship at launch: more than five, list to be decided.
+- [x] Which games ship at launch: every built-in game so far: spades, hearts, crazy eights,
+  rummy, gin rummy, euchre, Oh Hell, cribbage, pinochle, canasta and bridge (decided
+  2026-10-10).
