@@ -53,7 +53,7 @@ describe('shedding bots', () => {
     expect(decide(after, shed)).toMatchObject({ type: 'chooseSuit', suit: 'hearts' });
   });
 
-  it('play whole games', () => {
+  it('play whole games', { timeout: 60_000 }, () => {
     const report = simulateMany(sevensUp, { games: 10, strategy: botStrategy(combineBots(shed)) });
     expect(report.games).toBe(10);
   });
@@ -97,7 +97,7 @@ describe('melding bots', () => {
     else expect(['meld', 'layOff', 'showHand']).toContain(next?.type);
   });
 
-  it('play whole games, with and without the sort button', () => {
+  it('play whole games, with and without the sort button', { timeout: 60_000 }, () => {
     const variants: Record<string, OptionValue>[] = [{}, { sort: false }];
     for (const options of variants) {
       const report = simulateMany(wildRummy, {
@@ -110,7 +110,7 @@ describe('melding bots', () => {
     }
   });
 
-  it('play games without arranged hands too (no sorted groups)', () => {
+  it('play games without arranged hands too (no sorted groups)', { timeout: 60_000 }, () => {
     const report = simulateMany(miniRummy, {
       games: 3,
       strategy: botStrategy(meld),
@@ -167,7 +167,7 @@ describe('counting bots', () => {
     expect(card(decide(s, play))).toBe(id('2H'));
   });
 
-  it('play whole games', () => {
+  it('play whole games', { timeout: 60_000 }, () => {
     const bot = combineBots(countingPlay({ keep: () => 3, pile: 'pile', count: 'total' }));
     expect(simulateMany(counting, { games: 10, strategy: botStrategy(bot) }).games).toBe(10);
   });

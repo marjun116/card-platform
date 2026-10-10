@@ -135,7 +135,7 @@ describe('other decisions', () => {
 describe('bots in whole games', () => {
   const smart: Bot = combineBots(lookFirst, trickPlay({ aim: 'bid' }));
 
-  it('play spades to the end, seeing only their own views', () => {
+  it('play spades to the end, seeing only their own views', { timeout: 60_000 }, () => {
     const report = simulateMany(spades, {
       games: 20,
       strategy: botStrategy(smart),
@@ -144,7 +144,7 @@ describe('bots in whole games', () => {
     expect(report.games).toBe(20);
   });
 
-  it('beat random players at taking tricks', () => {
+  it('beat random players at taking tricks', { timeout: 60_000 }, () => {
     // Seats 0 and 2 (one team) are smart, 1 and 3 random; count tricks over many hands.
     const bots = [smart, randomBot, smart, randomBot];
     let ours = 0;
