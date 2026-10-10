@@ -930,3 +930,24 @@ General parts of the game format, added because bridge needed them; none mention
   longest plain suit; when avoiding tricks, its lowest non-point card.
 - **`view.roundStart`:** where the current hand's moves begin in the log, so a bot (or the
   table) can see which cards have gone this hand.
+- **Other play styles:** shedding (crazy eights: play rather than draw, costliest card first,
+  wild cards kept back, name the longest suit); melding (rummy, gin, canasta: keep the hand
+  sorted into melds, go out, knock, meld and lay off whenever possible, take the discard only
+  when it completes a set or run, canasta always takes the pile and never throws a wild
+  card, discard the costliest loose card); counting (cribbage: keep the four best-scoring
+  cards, peg the most points without leaving a count of 5 or 21).
+- **`sortedGroups()`** comes with every bot's input: the groups "Sort into melds" would make
+  of the bot's own hand. It uses only the bot's cards and public rules, so bots get it even
+  when a house rule hides the button.
+- **Server:** each bot is a user with `isBot` (the bot in seat s is "Bot s+1"). The host adds
+  bots to empty seats (lobby or mid-game), removes them in the lobby, and replaces a player
+  who isn't connected during the game. When a bot is due to move, the room waits
+  `botMoveDelayMs` (2 seconds), asks the bot (its view and legal moves only) and plays the
+  move through the same path as anyone's; choices are seeded by the table seed and move
+  number. Bots play only while someone has the table open. Bots aren't nudged.
+- **Results with bots** are saved as usual; whether a seat was a bot is on its user
+  (`isBot`), so game history and stats can mark or separate them later.
+- **Known gap, now more likely:** a rummy hand with unlimited reshuffles can reach a
+  stalemate (see "Running out of stock"). A table of bots would then play on until the
+  engine's 10,000-move stop; the bot logs the error and stops moving. The planned "call it
+  a draw" button (Phase 7) is the fix; meanwhile hosts can limit reshuffles.

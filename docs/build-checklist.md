@@ -256,8 +256,8 @@ Add games one at a time, picking each to stretch a different part of the engine.
         Rules link for each game on the Games page
   - [ ] Rules text in a small formatting subset (headings, paragraphs, lists, bold) shown by
         our own renderer: no new dependency, no raw HTML
-- [ ] Bots for built-in games: start with random legal moves, then simple rule-of-thumb play per game family
-- [ ] Bots fill empty seats and replace players who leave
+- [x] Bots for built-in games: start with random legal moves, then simple rule-of-thumb play per game family
+- [x] Bots fill empty seats and replace players who leave
 
 ```text
 Read CLAUDE.md, docs/game-format.md and docs/decisions.md. Add the built-in
