@@ -120,7 +120,10 @@ export function simulateGame(
 
     const move = strategy(legal, state, pick);
     // Arrangements aren't listed among the legal moves; applyMove checks them.
-    if (move.type !== 'arrange' && !legal.some((m) => moveKey(m) === moveKey(move))) {
+    // Usually one of the listed moves itself; otherwise compare keys.
+    const listed =
+      (legal as readonly Move[]).includes(move) || legal.some((m) => moveKey(m) === moveKey(move));
+    if (move.type !== 'arrange' && !listed) {
       fail(`The strategy chose a move that isn't legal: ${JSON.stringify(move)}`);
     }
     try {
@@ -232,23 +235,31 @@ function cardIds(state: GameState): string[] {
  * which says nothing about where those cards are now.
  */
 export function findHiddenCardLeak(state: GameState): string | null {
+  // What each zone shows doesn't depend on who's looking, except "owner" zones.
+  const zones = Object.entries(state.zones).map(([key, cards]) => {
+    const { name, player, team } = parseZoneKey(key);
+    const def = zoneDef(state, name);
+    const shown =
+      isRevealed(state, key) || def.visibility === 'all'
+        ? cards
+        : def.visibility === 'topCardOnly'
+          ? cards.slice(-1)
+          : [];
+    return { key, cards, player, team, owner: def.visibility === 'owner', shown: new Set(shown) };
+  });
   for (const viewer of state.players) {
     const hidden = new Map<string, string>();
-    for (const [key, cards] of Object.entries(state.zones)) {
-      const { name, player, team } = parseZoneKey(key);
-      const def = zoneDef(state, name);
+    for (const { key, cards, player, team, owner, shown } of zones) {
       const owns = player === viewer.id || (team !== null && team === viewer.team);
       const blind = state.lookRequired && !viewer.hasLookedAtHand && player === viewer.id;
-      const visible =
-        def.visibility === 'all' ? cards : def.visibility === 'topCardOnly' ? cards.slice(-1) : [];
-      const seen =
-        (def.visibility === 'owner' && owns && !blind) || isRevealed(state, key) ? cards : visible;
-      for (const card of cards) if (!seen.includes(card)) hidden.set(card.id, key);
+      if (owner && owns && !blind) continue;
+      for (const card of cards) if (!shown.has(card)) hidden.set(card.id, key);
     }
     for (const card of state.passing.flat()) hidden.set(card.id, 'cards being passed');
 
     // The round history and points scored hold no cards, and grow all game long: leaving
     // them out keeps this check from slowing long games down (a rubber of bridge).
+    // So are the words for bids, choices and counters, which come from the game file.
     const view = JSON.stringify({
       // The log is left out too (from the state, so viewFor needn't build it).
       ...viewFor({ ...state, log: [] }, viewer.id),
@@ -256,6 +267,9 @@ export function findHiddenCardLeak(state: GameState): string | null {
       lastTrick: null,
       history: [],
       scoreEvents: [],
+      bidLabels: {},
+      choiceLabels: {},
+      trackLabels: {},
     });
     // Every card id anywhere in the view, collected once ("QS.0", "10H.1", "JOKER.0").
     const shown = new Set(

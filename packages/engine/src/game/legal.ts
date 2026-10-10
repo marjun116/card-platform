@@ -217,7 +217,23 @@ export function stableCandidates(
 }
 
 /** Moves that never take a turn, left out with `skipLook`. */
-const FREE_MOVES = new Set<Move['type']>(['lookAtHand', 'sortHand']);
+export const FREE_MOVES: ReadonlySet<Move['type']> = new Set(['lookAtHand', 'sortHand']);
+
+/**
+ * Remembers the moves settle found for the player whose turn it is, once the
+ * state stands still (it's about to be handed back by createGame or
+ * applyMove), so getLegalMoves and playersToAct needn't work them out again.
+ * Not in a phase with `control`, where a seat's public moves differ.
+ */
+export function rememberCandidates(state: GameState, player: PlayerId, found: Candidate[]): void {
+  if (currentPhase(state).control) return;
+  let byPlayer = settled.get(state);
+  if (!byPlayer) {
+    byPlayer = new Map();
+    settled.set(state, byPlayer);
+  }
+  byPlayer.set(player, found);
+}
 
 export function getLegalMoves(state: GameState, player: PlayerId): Move[] {
   return stableCandidates(state, player).map((c) => c.move);
@@ -225,10 +241,30 @@ export function getLegalMoves(state: GameState, player: PlayerId): Move[] {
 
 /** The legal candidate matching a requested move, or null if the move isn't legal. */
 export function findCandidate(state: GameState, move: Move): Candidate | null {
-  const key = moveKey(move);
-  return (
-    stableCandidates(state, move.by ?? move.player).find((c) => moveKey(c.move) === key) ?? null
-  );
+  const found = stableCandidates(state, move.by ?? move.player);
+  // Usually the very move getLegalMoves handed out: no need to compare keys.
+  const same = found.find((c) => c.move === move);
+  if (same) return same;
+  return byKey(found).get(moveKey(move)) ?? null;
+}
+
+/**
+ * Candidates by move key, worked out once per list: passing offers hundreds of
+ * moves, and comparing each one's key for every move made adds up.
+ */
+const keyed = new WeakMap<Candidate[], Map<string, Candidate>>();
+function byKey(found: Candidate[]): Map<string, Candidate> {
+  let map = keyed.get(found);
+  if (!map) {
+    map = new Map();
+    // The first candidate for a key wins, as in `candidates`.
+    for (const c of found) {
+      const key = moveKey(c.move);
+      if (!map.has(key)) map.set(key, c);
+    }
+    keyed.set(found, map);
+  }
+  return map;
 }
 
 let checkingMoves = false;

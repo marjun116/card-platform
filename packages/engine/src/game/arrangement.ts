@@ -14,7 +14,7 @@ import {
 } from '../actions/arrange';
 import type { Card, CardId } from '../cards/card';
 import { IllegalMoveError } from '../errors';
-import { evaluate, evaluateCondition, type Scope } from '../expr/evaluate';
+import { compile, evaluate, evaluateCondition, type Scope, walk } from '../expr/evaluate';
 import { ACES } from '../schema/gameFile';
 import type { PlayerId } from './move';
 import { buildScope, cardObject, cardValue, type MeldContext, withCard, withMeld } from './scope';
@@ -31,8 +31,10 @@ export function meldRulesOf(state: GameState, goingOut = false): MeldRules | nul
   if (!def) return null;
   const wild = state.file.cardOrder?.wild;
   // Whether a card is wild doesn't change while these rules are in use, so each card's
-  // answer is worked out once (lay-offs check every card against every meld).
-  const known = new Map<string, boolean>();
+  // answer is worked out once (lay-offs check every card against every meld). When the
+  // rule only reads the card, house rules and game values, answers are kept for as long
+  // as those values stay the same: rules are worked out many times per move.
+  const known = (wild && sharedWildAnswers(state, wild)) || new Map<string, boolean>();
   const scope = wild || def.allowed ? buildScope(state) : null;
   const rules: MeldRules = {
     kinds: def.kinds ?? ['set', 'run'],
@@ -58,6 +60,53 @@ export function meldRulesOf(state: GameState, goingOut = false): MeldRules | nul
       );
   }
   return rules;
+}
+
+/**
+ * The `state` and `options` values a wild card rule reads, if it reads nothing
+ * else but the card (otherwise null: its answers can't be kept).
+ */
+function wildDependencies(wild: string): { state: string[]; options: string[] } | null {
+  const reads = { state: new Set<string>(), options: new Set<string>() };
+  let other = false;
+  walk(compile(wild).ast, (node) => {
+    if (node.kind === 'member' && node.object.kind === 'name') {
+      const owner = node.object.name;
+      if (owner === 'state' || owner === 'options') reads[owner].add(node.name);
+    }
+    if (node.kind === 'name' && !['card', 'state', 'options'].includes(node.name)) other = true;
+    if (node.kind === 'call') other = true;
+  });
+  return other ? null : { state: [...reads.state], options: [...reads.options] };
+}
+
+const wildCache = new WeakMap<
+  object,
+  { deps: ReturnType<typeof wildDependencies>; byValues: Map<string, Map<string, boolean>> }
+>();
+
+/**
+ * Kept answers (by card id) for the game's wild card rule, for the values it
+ * reads right now; null if the rule reads something that can't be kept.
+ */
+function sharedWildAnswers(state: GameState, wild: string): Map<string, boolean> | null {
+  let entry = wildCache.get(state.file);
+  if (!entry) {
+    entry = { deps: wildDependencies(wild), byValues: new Map() };
+    wildCache.set(state.file, entry);
+  }
+  const { deps, byValues } = entry;
+  if (!deps) return null;
+  const values = JSON.stringify([
+    deps.state.map((name) => state.vars[name] ?? null),
+    deps.options.map((name) => state.options[name] ?? null),
+  ]);
+  let answers = byValues.get(values);
+  if (!answers) {
+    answers = new Map();
+    byValues.set(values, answers);
+  }
+  return answers;
 }
 
 /** What a meld condition sees as `meld`. */

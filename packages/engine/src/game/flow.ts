@@ -11,7 +11,15 @@ import { evaluate, evaluateCondition } from '../expr/evaluate';
 import { DEALER_ROTATIONS, LEADER_FIRST } from '../schema/gameFile';
 import { scoreRound } from '../scoring';
 import { findCard } from './cards';
-import { type Candidate, candidates, currentPhase, isTrickPhase, turnSteps } from './legal';
+import {
+  type Candidate,
+  candidates,
+  currentPhase,
+  FREE_MOVES,
+  isTrickPhase,
+  rememberCandidates,
+  turnSteps,
+} from './legal';
 import type { Move, PlayerId } from './move';
 import type { PhaseDef } from './types';
 import { buildScope } from './scope';
@@ -195,7 +203,8 @@ export function settle(state: GameState): void {
       endPhase(state);
       continue;
     }
-    const options = candidates(state, cursor.current, { skipLook: true });
+    const all = candidates(state, cursor.current);
+    const options = all.filter((c) => !FREE_MOVES.has(c.move.type));
     // Nothing left to do but end the turn (say an optional knock that isn't possible):
     // the turn ends by itself. It counts as a pass, so a table where nobody can do
     // anything still ends the phase.
@@ -208,7 +217,11 @@ export function settle(state: GameState): void {
       endTurn(state);
       continue;
     }
-    if (options.length > 0) return;
+    if (options.length > 0) {
+      // The game stands still now: keep these moves so nobody works them out again.
+      rememberCandidates(state, cursor.current, all);
+      return;
+    }
 
     // The current player has no legal move.
     if (isTrickPhase(phase)) {

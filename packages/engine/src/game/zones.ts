@@ -75,6 +75,9 @@ export function canDraw(state: GameState, key: ZoneKey): boolean {
  * round? ("endRound", or a reshuffle limit that has been used up.)
  */
 export function endsRoundWhenEmpty(state: GameState, key: ZoneKey): boolean {
+  // A pile with cards in it never ends the round: check that before the rule's condition,
+  // which can be costly (canasta asks whether the player could take the discard pile).
+  if (zoneCards(state, key).length > 0) return false;
   const policy = policyFor(state, key);
   const ending =
     policy === 'endRound' ||

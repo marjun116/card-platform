@@ -48,7 +48,8 @@ const arranging =
 /** Discards the loose card worth the most, keeping its melds together. */
 const keepMelds: Strategy = (moves, state, pick) => {
   const discards = moves.filter((m) => m.type === 'discard');
-  const arrangement = viewFor(state, state.cursor.current).arrangement;
+  // Only the hand's groups are needed: a view without the move log is far cheaper.
+  const arrangement = viewFor({ ...state, log: [] }, state.cursor.current).arrangement;
   if (discards.length === 0 || !arrangement) return randomStrategy(moves, state, pick);
   const grouped = new Set(arrangement.groups.filter((g) => g.kind).flatMap((g) => g.cards));
   const worth = (m: Move) => {
@@ -125,7 +126,7 @@ const canastaPlayer =
   };
 
 /** How each game is played randomly, where plain random moves wouldn't do. */
-const RANDOM: Partial<Record<BuiltInGameName, Strategy>> = {
+export const RANDOM: Partial<Record<BuiltInGameName, Strategy>> = {
   rummy: arranging(randomStrategy),
   // Random discards almost never get deadwood down to 10, so every hand would be a draw.
   'gin-rummy': arranging(mostlyKeepMelds),
@@ -144,7 +145,7 @@ const RANDOM: Partial<Record<BuiltInGameName, Strategy>> = {
  * pile over only once: with no limit a hand can stall for good (see "Running out
  * of stock" in docs/decisions.md).
  */
-const BASE_OPTIONS: Partial<Record<BuiltInGameName, Record<string, OptionValue>>> = {
+export const BASE_OPTIONS: Partial<Record<BuiltInGameName, Record<string, OptionValue>>> = {
   rummy: { emptyStock: 'once' },
 };
 
