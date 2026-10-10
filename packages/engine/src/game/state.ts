@@ -183,6 +183,8 @@ export interface GameState {
   history: RoundResult[];
   /** Moves made this round, to catch game files that never end a round. */
   roundMoves: number;
+  /** Where this round's moves begin in the log. */
+  roundStart: number;
 }
 
 // ---- zones ----

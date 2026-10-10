@@ -84,6 +84,7 @@ export function startGame(
     log: [],
     history: [],
     roundMoves: 0,
+    roundStart: 0,
   };
   startRound(state);
   settle(state);
@@ -227,6 +228,7 @@ export function startRound(state: GameState): void {
   state.passing = state.players.map(() => []);
   state.reshuffles = {};
   state.roundMoves = 0;
+  state.roundStart = state.log.length;
 
   // Empty every zone.
   state.zones = {};

@@ -909,3 +909,24 @@ General parts of the game format, added because bridge needed them; none mention
   round's values are cleared): `"state.contract == null ? 'none' : 'left'"`.
 - Bids that must go up are plain numbers: bridge uses level × 10 + suit (11 = 1♣ … 75 =
   7NT), so "higher" is `bid > state.contract` and level and suit come from `%`.
+
+## 2026-10-10: Bots
+
+- **Agreed plan:** bots see only what a person in their seat would (`viewFor` and their legal
+  moves) and pick a legal move; their moves go through the same checks and the move log as
+  anyone's. Bots are only for built-in games.
+- **Decided (2026-10-10):** one bot level (rule-of-thumb play; random play is only for tests);
+  bots move after about 2 seconds; a player who leaves is replaced only when the host presses
+  "Replace with bot" on their (disconnected) seat; games with bots count in results, marked
+  as played with bots.
+- **Where the code lives:** the bot interface and the shared play styles are in
+  `packages/engine/src/bots/`; which style each built-in game uses (and how it bids) is in
+  `packages/games/src/bots.ts`. Game files don't change.
+- **Trick-taking style:** goals are "most" tricks, "fewest" (with point cards to avoid and
+  dump first), or "bid" (exactly what its side bid). Following: lets a partner's winning
+  card stand, wins cheaply when last, otherwise wins high but never with a higher trump than
+  needed; when it can't or won't win it throws its lowest plain card. Leading: a card nobody
+  can beat in its suit (worked out from the cards played this hand), else low from its
+  longest plain suit; when avoiding tricks, its lowest non-point card.
+- **`view.roundStart`:** where the current hand's moves begin in the log, so a bot (or the
+  table) can see which cards have gone this hand.

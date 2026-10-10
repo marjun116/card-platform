@@ -10,6 +10,7 @@ export {
   viewFor,
 } from './api';
 
+export * from './bots';
 export * from './cards/card';
 export { buildDeck, type DeckDef } from './cards/deck';
 export type { TrickRule } from './cards/order';

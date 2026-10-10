@@ -77,6 +77,8 @@ export interface PlayerView {
   } | null;
   zones: Record<ZoneKey, ZoneView>;
   log: PublicMove[];
+  /** Where this round's moves begin in `log` (to see which cards have gone this hand). */
+  roundStart: number;
   /** Every finished round, oldest first (public: bids, tricks and scores only). */
   history: RoundResult[];
   /** Points scored during rounds (`score` effects), oldest first, to show in the log. */
@@ -308,6 +310,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     },
     zones,
     log: state.log.map((m) => publicMove(state, m, viewer)),
+    roundStart: state.roundStart,
     history: state.history,
     scoreEvents: state.scoreEvents,
     display: displayValues(state),
