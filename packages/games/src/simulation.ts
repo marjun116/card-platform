@@ -187,7 +187,7 @@ const SENSIBLE: Record<BuiltInGameName, Strategy> = {
  * House rules that change how a game plays, simulated on top of the random
  * games. Each set is played in a batch of its own.
  */
-const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> = {
+export const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> = {
   spades: [{ nil: false, blindNil: true, targetScore: 300 }],
   hearts: [
     { moon: 'shooterChooses', jackOfDiamonds: true, passing: 'rotateNoHold', shareTies: true },

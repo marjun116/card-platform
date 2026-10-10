@@ -34,6 +34,7 @@ function choose(state: GameState, goals: TrickGoals): Move {
     view: viewFor(state, seat),
     legal: getLegalMoves(state, seat),
     random: () => 0,
+    sortedGroups: () => null,
   });
 }
 
@@ -116,6 +117,7 @@ describe('other decisions', () => {
         { player: 0, type: 'passBid' },
       ],
       random: () => 0,
+      sortedGroups: () => null,
     });
     expect(look).toEqual({ player: 0, type: 'lookAtHand' });
     expect(
@@ -124,6 +126,7 @@ describe('other decisions', () => {
         view: viewFor(createGame(spades, {}, 4, 'b'), 0),
         legal: [],
         random: () => 0,
+        sortedGroups: () => null,
       }),
     ).toBeNull();
   });

@@ -7,6 +7,7 @@
 import { applyMove, createGame, getLegalMoves, playersToAct, replay, viewFor } from '../api';
 import { isRevealed } from '../view';
 import type { Bot } from '../bots/types';
+import { askBot, botSeat } from '../bots/input';
 import type { Move, PlayerId } from '../game/move';
 import { draft, type GameState, parseZoneKey, zoneDef } from '../game/state';
 import { sortHand } from '../game/arrangement';
@@ -45,10 +46,10 @@ export function preferring(prefer: (move: Move, state: GameState) => boolean): S
  */
 export function botStrategy(bots: Bot | readonly Bot[]): Strategy {
   return (moves, state, pick) => {
-    const seat = moves[0]?.by ?? moves[0]?.player ?? state.cursor.current;
+    const seat = botSeat(moves, state.cursor.current);
     const bot = typeof bots === 'function' ? bots : bots[seat];
     if (!bot) throw new Error(`No bot for seat ${seat}`);
-    return bot({ file: state.file, view: viewFor(state, seat), legal: moves, random: pick });
+    return askBot(bot, state, moves, pick);
   };
 }
 

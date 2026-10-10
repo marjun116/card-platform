@@ -11,14 +11,18 @@ import {
   type Card,
   choose,
   combineBots,
+  countingPlay,
   discardLowest,
   estimateTricks,
   handOf,
+  isJoker,
   lookFirst,
   lowestBid,
+  meldingPlay,
   type Move,
   passHigh,
   passLow,
+  sheddingPlay,
   strongestTrump,
   type Suit,
   SUITS,
@@ -218,7 +222,7 @@ const bridgeBid: BotPart = (input) => {
 // ---- the bots ----
 
 /** The bot for each built-in game. */
-export const builtInBots: Partial<Record<BuiltInGameName, Bot>> = {
+export const builtInBots: Record<BuiltInGameName, Bot> = {
   spades: combineBots(lookFirst, spadesBid, trickPlay({ aim: 'bid' })),
   hearts: combineBots(
     passHigh({ aim: 'fewest', points: heartsPoints }),
@@ -243,4 +247,21 @@ export const builtInBots: Partial<Record<BuiltInGameName, Bot>> = {
     trickPlay({ aim: 'most' }),
   ),
   bridge: combineBots(bridgeBid, trickPlay({ aim: 'most' })),
+  'crazy-eights': combineBots(sheddingPlay({ wild: (card) => suited(card) && card.rank === '8' })),
+  rummy: combineBots(meldingPlay()),
+  'gin-rummy': combineBots(meldingPlay()),
+  canasta: combineBots(
+    meldingPlay({
+      takePile: true,
+      // Wild cards are worth keeping: discarding one freezes the pile for everyone.
+      keep: (card) => isJoker(card) || card.rank === '2',
+    }),
+  ),
+  cribbage: combineBots(
+    countingPlay({
+      keep: (view) => (view.options.fiveCard === true ? 3 : 4),
+      pile: 'pegging',
+      count: 'total',
+    }),
+  ),
 };

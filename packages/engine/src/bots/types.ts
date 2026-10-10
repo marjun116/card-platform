@@ -16,6 +16,13 @@ export interface BotInput {
   legal: readonly Move[];
   /** A seeded random number from 0 to n-1, so a bot's choices can be replayed. */
   random: (n: number) => number;
+  /**
+   * In games where players arrange their hands: the groups "Sort into melds"
+   * would make of the bot's own hand (null in other games). It uses only the
+   * bot's own cards and public rules, so it tells the bot nothing a person
+   * couldn't work out; bots get it even when a house rule hides the button.
+   */
+  sortedGroups: () => string[][] | null;
 }
 
 /** Picks one of the legal moves. */

@@ -154,3 +154,21 @@ export function estimateTricks(rules: TrickRules, cards: readonly Card[]): numbe
   }
   return tricks;
 }
+
+const RANK_NUMBER: Record<string, number> = { A: 1, J: 11, Q: 12, K: 13, JOKER: 0 };
+
+/**
+ * A card's points from the game file's `scoring.cardValue` (the card itself,
+ * then its rank, its suit, "default"), or its rank number: as the engine counts.
+ */
+export function cardPoints(file: GameFile, card: Card): number {
+  const table = file.scoring.cardValue ?? {};
+  const keys = isJoker(card) ? ['JOKER'] : [cardCode(card), card.rank, card.suit];
+  for (const key of [...keys, 'default']) {
+    const value = Object.hasOwn(table, key) ? table[key] : undefined;
+    if (typeof value === 'number') return value;
+    if (value === 'rankNumber') break;
+  }
+  if (isJoker(card)) return 0;
+  return RANK_NUMBER[card.rank] ?? Number(card.rank);
+}
