@@ -12,6 +12,7 @@ import {
   applyMove,
   type Card,
   cardLabel,
+  bidLabelsOf,
   choiceLabelsOf,
   createGame,
   type GameFile,
@@ -78,6 +79,7 @@ for (const pair of args.option ?? []) {
 }
 
 const choiceLabels = choiceLabelsOf(file);
+const bidLabels = bidLabelsOf(file);
 
 const [minPlayers] = Array.isArray(file.meta.players) ? file.meta.players : [file.meta.players];
 const playerCount = Number(args.players ?? minPlayers);
@@ -108,6 +110,12 @@ function labelFromId(id: string): string {
 }
 
 function describeMove(move: Move): string {
+  const text = moveText(move);
+  // Made for another seat (bridge's declarer playing the dummy).
+  return move.by === undefined ? text : `${text} for ${seatName(move.player)}`;
+}
+
+function moveText(move: Move): string {
   switch (move.type) {
     case 'play':
     case 'playToTrick':
@@ -119,7 +127,7 @@ function describeMove(move: Move): string {
         ? 'bid nil'
         : move.value === 'blindNil'
           ? 'bid blind nil'
-          : `bid ${move.value}`;
+          : `bid ${bidLabels[String(move.value)] ?? move.value}`;
     case 'passBid':
       return 'pass';
     case 'lookAtHand':
@@ -195,11 +203,20 @@ function show(view: PlayerView, legal: Move[]): void {
   );
   if (view.players.some((p) => p.bid !== null)) {
     const bids = view.players.map(
-      (p) => `${seatName(p.id)} ${p.bid ?? '–'}${view.trick ? ` (${p.tricks} won)` : ''}`,
+      (p) =>
+        `${seatName(p.id)} ${p.bid === null ? '–' : (bidLabels[String(p.bid)] ?? p.bid)}${view.trick ? ` (${p.tricks} won)` : ''}`,
     );
     console.log(`Bids:   ${bids.join(' · ')}`);
   }
-  for (const item of view.display) console.log(`${item.label}: ${String(item.value)}`);
+  for (const item of view.display) {
+    const value =
+      typeof item.value !== 'number' || !item.format
+        ? String(item.value)
+        : item.format === 'player'
+          ? seatName(item.value)
+          : (view.teams[item.value]?.players.map(seatName).join(' & ') ?? String(item.value));
+    console.log(`${item.label}: ${value}`);
+  }
   // Face-up shared piles (an upcard, cards played in turn), and piles showing their top card.
   for (const [key, zone] of Object.entries(view.zones)) {
     if (key.includes('@') || view.trickZones.includes(key)) continue;
@@ -214,6 +231,14 @@ function show(view: PlayerView, legal: Move[]): void {
       (p) => `${seatName(p.player)} ${p.card ? cardLabel(p.card) : '?'}`,
     );
     console.log(`Trick:  ${plays.join(', ')}`);
+  }
+
+  // Other players' hands shown face up (bridge's dummy).
+  for (const p of view.players) {
+    const open = view.zones[`hand@${p.id}`];
+    if (p.id === you || open?.kind !== 'cards') continue;
+    const by = view.control?.seat === p.id ? ` (played by ${seatName(view.control.by)})` : '';
+    console.log(`${seatName(p.id)}'s hand${by}: ${handText(open.cards)}`);
   }
 
   const hand = view.zones[`hand@${you}`];
@@ -259,6 +284,15 @@ function estimateTricks(state: GameState, seat: number): number {
 
 function botMove(state: GameState, seat: number, legal: Move[]): Move {
   const numericBids = legal.filter((m) => m.type === 'bid' && typeof m.value === 'number');
+  const value = (m: Move) => (m as { value: number }).value;
+  // An auction (bids that aren't trick counts, like bridge's 11–75 or pinochle's 20+):
+  // open with the lowest bid now and then, otherwise pass, so the auction ends.
+  const pass = legal.find((m) => m.type === 'passBid');
+  if (pass && numericBids.some((m) => value(m) > 13)) {
+    const opened = state.players.some((p) => typeof p.bid === 'number');
+    if (opened || randomInt(botRng, 2) === 0) return pass;
+    return numericBids.reduce((low, m) => (value(m) < value(low) ? m : low));
+  }
   if (numericBids.length > 0) {
     const target = estimateTricks(state, seat);
     return numericBids.reduce((best, m) =>

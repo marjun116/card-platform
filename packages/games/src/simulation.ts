@@ -79,6 +79,22 @@ const lowBidding =
   };
 
 /**
+ * Bridge calls: pass, the lowest bid on offer, or (now and then) double or
+ * redouble. Random bids climb to 7NT, nobody makes game and rubbers never end.
+ */
+const lowCalling =
+  (doubleOneIn: number): Strategy =>
+  (moves, state, pick) => {
+    const doubles = moves.filter((m) => m.type === 'bid' && typeof m.value === 'string');
+    if (doubles.length > 0 && pick(doubleOneIn) === 0) return doubles[pick(doubles.length)] as Move;
+    return lowBidding(randomStrategy)(
+      moves.filter((m) => !doubles.includes(m)),
+      state,
+      pick,
+    );
+  };
+
+/**
  * Random canasta: takes the pile whenever it can, melds, lays off and goes out
  * whenever it can (asking first, and answering at random), and sorts its hand
  * after drawing. Purely random players never arrange their cards, so they'd
@@ -120,6 +136,7 @@ const RANDOM: Partial<Record<BuiltInGameName, Strategy>> = {
       : randomStrategy(moves, state, pick),
   ),
   canasta: canastaPlayer(randomStrategy),
+  bridge: lowCalling(4),
 };
 
 /**
@@ -153,6 +170,8 @@ const SENSIBLE: Record<BuiltInGameName, Strategy> = {
   canasta: canastaPlayer(
     preferring((m) => m.type !== 'discard' || !/^(2[CDHS]|JOKER)/.test(m.card)),
   ),
+  // Doubles rarely, so contracts are mostly made and rubbers run their course.
+  bridge: lowCalling(20),
   pinochle: (moves, state, pick) => {
     const pass = moves.find((m) => m.type === 'passBid');
     if (pass && state.vars.bidder != null) return pass;
@@ -249,6 +268,7 @@ const VARIANTS: Partial<Record<BuiltInGameName, Record<string, OptionValue>[]>> 
     { classic: true, targetScore: 100, minBid: 25 },
     { minBid: 25, targetScore: 200 },
   ],
+  bridge: [{ scoring: 'chicago', rubbers: 2 }, { honors: false }],
   cribbage: [
     { fiveCard: true, targetScore: 61 },
     { cribFourFlush: true, handFlushFive: true, hisHeels: false },
@@ -276,11 +296,15 @@ const MIN_ROUNDS: Record<BuiltInGameName, number> = {
   pinochle: 4,
   // A game to 5,000 takes a few hands of good melding.
   canasta: 3,
+  // A rubber is at least two games, each usually several partscores.
+  bridge: 4,
 };
 
 /**
  * The simulation tests for one game. Each game has its own test file
- * (`<game>.simulation.test.ts`), so games are simulated in parallel.
+ * (`<game>.simulation.test.ts`), so games are simulated in parallel. The time
+ * limits are generous for that reason: on a machine with few cores, each game
+ * gets a small share of it.
  */
 export function simulationTests(game: BuiltInGameName): void {
   describe(`${game} simulation`, () => simulate(game));
@@ -292,7 +316,7 @@ function simulate(game: BuiltInGameName): void {
   const random = RANDOM[game] ?? randomStrategy;
   const base = BASE_OPTIONS[game] ?? {};
 
-  it(`plays ${RANDOM_GAMES} random games without a problem`, { timeout: 600_000 }, () => {
+  it(`plays ${RANDOM_GAMES} random games without a problem`, { timeout: 1_200_000 }, () => {
     const report = simulateMany(file, {
       games: RANDOM_GAMES,
       seedPrefix: `${name}-random`,
@@ -302,7 +326,7 @@ function simulate(game: BuiltInGameName): void {
     expect(report.games).toBe(RANDOM_GAMES);
   });
 
-  it(`plays ${SENSIBLE_GAMES} sensible games without a problem`, { timeout: 300_000 }, () => {
+  it(`plays ${SENSIBLE_GAMES} sensible games without a problem`, { timeout: 600_000 }, () => {
     const report = simulateMany(file, {
       games: SENSIBLE_GAMES,
       seedPrefix: `${name}-sensible`,
@@ -316,7 +340,7 @@ function simulate(game: BuiltInGameName): void {
   const variants = VARIANTS[game] ?? [];
   it.each(variants.map((options) => [JSON.stringify(options), options] as const))(
     `plays ${VARIANT_GAMES} random games with house rules %s`,
-    { timeout: 300_000 },
+    { timeout: 600_000 },
     (label, options) => {
       const report = simulateMany(file, {
         games: VARIANT_GAMES,

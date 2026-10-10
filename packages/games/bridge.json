@@ -1,0 +1,512 @@
+{
+  "$schema": "../engine/game-file.schema.json",
+  "meta": {
+    "name": "Bridge",
+    "players": 4,
+    "teams": [
+      [0, 2],
+      [1, 3]
+    ],
+    "description": "Partners bid for a contract, then the declarer plays both hands with the dummy face up. Rubber bridge: first side to two games."
+  },
+  "deck": {
+    "copies": 1,
+    "jokers": 0
+  },
+  "cardOrder": {
+    "ranks": ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"],
+    "trump": "declared"
+  },
+  "options": {
+    "scoring": {
+      "label": "Scoring",
+      "type": "choice",
+      "values": ["rubber", "chicago"],
+      "labels": {
+        "rubber": "Rubber bridge",
+        "chicago": "Chicago (sets of 4 deals)"
+      },
+      "default": "rubber"
+    },
+    "rubbers": {
+      "label": "Rubbers to play (Chicago: sets of 4 deals)",
+      "type": "choice",
+      "values": [1, 2, 3],
+      "default": 1
+    },
+    "honors": {
+      "label": "Honors: 4 or 5 top trumps (or 4 aces at no trump) in one hand score",
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "zones": {
+    "hand": {
+      "per": "player",
+      "visibility": "owner",
+      "reveal": "player.id == state.dummy && state.dummyDown"
+    },
+    "trick": {
+      "shared": true,
+      "visibility": "all"
+    },
+    "won": {
+      "per": "team",
+      "visibility": "none",
+      "countVisible": true
+    }
+  },
+  "setup": {
+    "shuffle": true,
+    "deal": {
+      "to": "hand",
+      "count": 13
+    },
+    "dealerRotation": "options.scoring == 'chicago' && state.contract == null ? 'none' : 'left'"
+  },
+  "phases": [
+    {
+      "name": "auction",
+      "order": "dealer",
+      "until": "(state.contract != null && state.passes == 3) || state.passes == 4",
+      "actions": [
+        {
+          "type": "bid",
+          "values": [
+            11, 12, 13, 14, 15, 21, 22, 23, 24, 25, 31, 32, 33, 34, 35, 41, 42, 43, 44, 45, 51, 52,
+            53, 54, 55, 61, 62, 63, 64, 65, 71, 72, 73, 74, 75
+          ],
+          "labels": {
+            "11": "1♣",
+            "12": "1♦",
+            "13": "1♥",
+            "14": "1♠",
+            "15": "1NT",
+            "21": "2♣",
+            "22": "2♦",
+            "23": "2♥",
+            "24": "2♠",
+            "25": "2NT",
+            "31": "3♣",
+            "32": "3♦",
+            "33": "3♥",
+            "34": "3♠",
+            "35": "3NT",
+            "41": "4♣",
+            "42": "4♦",
+            "43": "4♥",
+            "44": "4♠",
+            "45": "4NT",
+            "51": "5♣",
+            "52": "5♦",
+            "53": "5♥",
+            "54": "5♠",
+            "55": "5NT",
+            "61": "6♣",
+            "62": "6♦",
+            "63": "6♥",
+            "64": "6♠",
+            "65": "6NT",
+            "71": "7♣",
+            "72": "7♦",
+            "73": "7♥",
+            "74": "7♠",
+            "75": "7NT"
+          },
+          "if": "state.contract == null || bid > state.contract",
+          "effects": [
+            {
+              "if": "state.vul == null",
+              "set": {
+                "state.vul": "options.scoring == 'rubber' ? (team.games >= 1 && team.oppGames >= 1 ? 'both' : team.games >= 1 ? player.team : team.oppGames >= 1 ? 1 - player.team : 'none') : (team.deals % 4 == 0 ? 'none' : team.deals % 4 == 3 ? 'both' : player.team)"
+              }
+            },
+            {
+              "if": "player.bid % 10 == 1 && player.team == 0 && state.named10 == null",
+              "set": {
+                "state.named10": "player.id"
+              }
+            },
+            {
+              "if": "player.bid % 10 == 1 && player.team == 1 && state.named11 == null",
+              "set": {
+                "state.named11": "player.id"
+              }
+            },
+            {
+              "if": "player.bid % 10 == 2 && player.team == 0 && state.named20 == null",
+              "set": {
+                "state.named20": "player.id"
+              }
+            },
+            {
+              "if": "player.bid % 10 == 2 && player.team == 1 && state.named21 == null",
+              "set": {
+                "state.named21": "player.id"
+              }
+            },
+            {
+              "if": "player.bid % 10 == 3 && player.team == 0 && state.named30 == null",
+              "set": {
+                "state.named30": "player.id"
+              }
+            },
+            {
+              "if": "player.bid % 10 == 3 && player.team == 1 && state.named31 == null",
+              "set": {
+                "state.named31": "player.id"
+              }
+            },
+            {
+              "if": "player.bid % 10 == 4 && player.team == 0 && state.named40 == null",
+              "set": {
+                "state.named40": "player.id"
+              }
+            },
+            {
+              "if": "player.bid % 10 == 4 && player.team == 1 && state.named41 == null",
+              "set": {
+                "state.named41": "player.id"
+              }
+            },
+            {
+              "if": "player.bid % 10 == 5 && player.team == 0 && state.named50 == null",
+              "set": {
+                "state.named50": "player.id"
+              }
+            },
+            {
+              "if": "player.bid % 10 == 5 && player.team == 1 && state.named51 == null",
+              "set": {
+                "state.named51": "player.id"
+              }
+            },
+            {
+              "set": {
+                "state.contract": "player.bid",
+                "state.level": "(player.bid - player.bid % 10) / 10",
+                "state.strain": "player.bid % 10",
+                "state.declTeam": "player.team",
+                "state.doubled": 0,
+                "state.passes": 0,
+                "state.declTricks": 0
+              }
+            },
+            {
+              "if": "state.strain == 1",
+              "set": {
+                "state.declarer": "player.team == 0 ? state.named10 : state.named11"
+              }
+            },
+            {
+              "if": "state.strain == 2",
+              "set": {
+                "state.declarer": "player.team == 0 ? state.named20 : state.named21"
+              }
+            },
+            {
+              "if": "state.strain == 3",
+              "set": {
+                "state.declarer": "player.team == 0 ? state.named30 : state.named31"
+              }
+            },
+            {
+              "if": "state.strain == 4",
+              "set": {
+                "state.declarer": "player.team == 0 ? state.named40 : state.named41"
+              }
+            },
+            {
+              "if": "state.strain == 5",
+              "set": {
+                "state.declarer": "player.team == 0 ? state.named50 : state.named51"
+              }
+            },
+            {
+              "set": {
+                "state.dummy": "(state.declarer + 2) % 4",
+                "state.trump": "state.strain == 1 ? 'clubs' : state.strain == 2 ? 'diamonds' : state.strain == 3 ? 'hearts' : state.strain == 4 ? 'spades' : null",
+                "state.declVul": "state.vul == 'both' || state.vul == player.team",
+                "state.declBelow": "team.below"
+              }
+            }
+          ]
+        },
+        {
+          "type": "bid",
+          "values": ["double"],
+          "if": "state.contract != null && state.doubled == 0 && player.team != state.declTeam",
+          "effects": [
+            {
+              "set": {
+                "state.doubled": 1,
+                "state.passes": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "bid",
+          "values": ["redouble"],
+          "if": "state.doubled == 1 && player.team == state.declTeam",
+          "effects": [
+            {
+              "set": {
+                "state.doubled": 2,
+                "state.passes": 0
+              }
+            }
+          ]
+        },
+        {
+          "type": "passBid",
+          "effects": [
+            {
+              "if": "state.vul == null",
+              "set": {
+                "state.vul": "options.scoring == 'rubber' ? (team.games >= 1 && team.oppGames >= 1 ? 'both' : team.games >= 1 ? player.team : team.oppGames >= 1 ? 1 - player.team : 'none') : (team.deals % 4 == 0 ? 'none' : team.deals % 4 == 3 ? 'both' : player.team)"
+              }
+            },
+            {
+              "set": {
+                "state.passes": "state.passes == null ? 1 : state.passes + 1"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "play",
+      "if": "state.contract != null",
+      "repeat": 13,
+      "leader": {
+        "first": "(state.declarer + 1) % 4",
+        "then": "lastTrickWinner"
+      },
+      "control": {
+        "seat": "state.dummy",
+        "by": "state.declarer"
+      },
+      "actions": [
+        {
+          "type": "playToTrick",
+          "followSuit": true,
+          "effects": [
+            {
+              "set": "state.dummyDown"
+            },
+            {
+              "if": "options.honors && hand.count == 12 && state.trump != null",
+              "set": {
+                "player.honors": "(hand.hasCard('A', state.trump) ? 1 : 0) + (hand.hasCard('K', state.trump) ? 1 : 0) + (hand.hasCard('Q', state.trump) ? 1 : 0) + (hand.hasCard('J', state.trump) ? 1 : 0) + (hand.hasCard('10', state.trump) ? 1 : 0) + (card.suit == state.trump && card.rank in ['A', 'K', 'Q', 'J', '10'] ? 1 : 0)"
+              }
+            },
+            {
+              "if": "options.honors && hand.count == 12 && state.trump == null",
+              "set": {
+                "player.aces": "hand.countRank('A') + (card.rank == 'A' ? 1 : 0)"
+              }
+            }
+          ]
+        }
+      ],
+      "afterTrick": [
+        {
+          "resolveTrick": "highestTrumpElseHighestLed"
+        },
+        {
+          "moveTrick": "won",
+          "of": "winnerTeam"
+        },
+        {
+          "if": "trick.winner % 2 == state.declTeam",
+          "set": {
+            "state.declTricks": "state.declTricks + 1"
+          }
+        },
+        {
+          "if": "trick.number == 13",
+          "set": {
+            "state.made": "state.declTricks >= state.level + 6",
+            "state.trickPts": "state.made ? (state.strain <= 2 ? 20 * state.level : state.strain <= 4 ? 30 * state.level : 30 * state.level + 10) * (state.doubled == 0 ? 1 : state.doubled == 1 ? 2 : 4) : 0",
+            "state.overPts": "state.made ? (state.declTricks - state.level - 6) * (state.doubled == 0 ? (state.strain <= 2 ? 20 : 30) : (state.declVul ? 200 : 100) * state.doubled) : 0",
+            "state.bonusPts": "state.made ? 50 * state.doubled + (state.level == 6 ? (state.declVul ? 750 : 500) : state.level == 7 ? (state.declVul ? 1500 : 1000) : 0) : 0",
+            "state.down": "state.made ? 0 : state.level + 6 - state.declTricks",
+            "state.downPts": "state.made ? 0 : state.doubled == 0 ? state.down * (state.declVul ? 100 : 50) : (state.declVul ? 300 * state.down - 100 : state.down <= 3 ? 200 * state.down - 100 : 300 * state.down - 400) * state.doubled",
+            "state.gameMade": "state.made && state.declBelow + state.trickPts >= 100"
+          }
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "perTeam": [
+      {
+        "if": "state.made && team.id == state.declTeam",
+        "add": "state.trickPts + state.overPts + state.bonusPts",
+        "track": {
+          "below": "state.trickPts"
+        }
+      },
+      {
+        "if": "state.made == false && team.id != state.declTeam",
+        "add": "state.downPts"
+      },
+      {
+        "if": "options.scoring == 'rubber' && state.gameMade && team.id == state.declTeam",
+        "track": {
+          "games": 1,
+          "below": "-team.below"
+        }
+      },
+      {
+        "if": "options.scoring == 'rubber' && state.gameMade && team.id != state.declTeam",
+        "track": {
+          "oppGames": 1,
+          "below": "-team.below"
+        }
+      },
+      {
+        "if": "options.scoring == 'rubber' && team.games == 2",
+        "add": "team.oppGames == 0 ? 700 : 500"
+      },
+      {
+        "if": "options.scoring == 'rubber' && (team.games == 2 || team.oppGames == 2)",
+        "track": {
+          "games": "-team.games",
+          "oppGames": "-team.oppGames",
+          "rubbers": 1
+        }
+      },
+      {
+        "if": "options.scoring == 'chicago' && state.gameMade && team.id == state.declTeam",
+        "add": "state.declVul ? 500 : 300"
+      },
+      {
+        "if": "options.scoring == 'chicago' && state.gameMade",
+        "track": {
+          "below": "-team.below"
+        }
+      },
+      {
+        "if": "options.scoring == 'chicago' && state.made && !state.gameMade && team.id == state.declTeam && team.deals % 4 == 3",
+        "add": 100
+      },
+      {
+        "if": "options.scoring == 'chicago' && state.contract != null",
+        "track": {
+          "deals": 1
+        }
+      },
+      {
+        "if": "options.scoring == 'chicago' && state.contract != null && team.deals % 4 == 0",
+        "track": {
+          "below": "-team.below",
+          "rubbers": 1
+        }
+      }
+    ],
+    "perPlayer": [
+      {
+        "if": "options.honors && state.trump != null && player.honors == 4",
+        "add": 100,
+        "to": "team"
+      },
+      {
+        "if": "options.honors && state.trump != null && player.honors == 5",
+        "add": 150,
+        "to": "team"
+      },
+      {
+        "if": "options.honors && state.trump == null && player.aces == 4",
+        "add": 150,
+        "to": "team"
+      }
+    ],
+    "trackLabels": {
+      "below": "Part score",
+      "games": "Games",
+      "oppGames": null,
+      "deals": null,
+      "rubbers": null
+    }
+  },
+  "endCondition": {
+    "when": "anyTeam.rubbers >= options.rubbers",
+    "winner": "highestScore",
+    "ties": "share"
+  },
+  "display": [
+    {
+      "label": "Vulnerable",
+      "value": "state.vul",
+      "labels": {
+        "none": "Neither side",
+        "both": "Both sides"
+      },
+      "format": "team"
+    },
+    {
+      "label": "Contract",
+      "value": "state.contract",
+      "labels": {
+        "11": "1♣",
+        "12": "1♦",
+        "13": "1♥",
+        "14": "1♠",
+        "15": "1NT",
+        "21": "2♣",
+        "22": "2♦",
+        "23": "2♥",
+        "24": "2♠",
+        "25": "2NT",
+        "31": "3♣",
+        "32": "3♦",
+        "33": "3♥",
+        "34": "3♠",
+        "35": "3NT",
+        "41": "4♣",
+        "42": "4♦",
+        "43": "4♥",
+        "44": "4♠",
+        "45": "4NT",
+        "51": "5♣",
+        "52": "5♦",
+        "53": "5♥",
+        "54": "5♠",
+        "55": "5NT",
+        "61": "6♣",
+        "62": "6♦",
+        "63": "6♥",
+        "64": "6♠",
+        "65": "6NT",
+        "71": "7♣",
+        "72": "7♦",
+        "73": "7♥",
+        "74": "7♠",
+        "75": "7NT"
+      }
+    },
+    {
+      "label": "Doubled",
+      "value": "state.doubled",
+      "labels": {
+        "1": "Yes",
+        "2": "Redoubled"
+      },
+      "if": "state.doubled == 1 || state.doubled == 2"
+    },
+    {
+      "label": "Declarer",
+      "value": "state.declarer",
+      "format": "player",
+      "if": "state.contract != null && state.passes == 3"
+    },
+    {
+      "label": "Tricks needed",
+      "value": "state.level + 6",
+      "if": "state.contract != null && state.passes == 3"
+    }
+  ]
+}
