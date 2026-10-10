@@ -34,6 +34,7 @@ export {
 } from './schema/validate';
 export type { Scores } from './scoring';
 export {
+  bidLabelsOf,
   choiceLabelsOf,
   type PlayerView,
   type PublicMove,

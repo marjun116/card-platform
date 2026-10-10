@@ -5,8 +5,15 @@ export type PlayerId = number;
 export type ZoneKey = string;
 export type BidValue = number | string;
 
-/** A move a player makes. getLegalMoves returns exactly these objects. */
-export type Move =
+/**
+ * A move a player makes. getLegalMoves returns exactly these objects.
+ * `player` is the seat whose turn it is and whose cards are used. `by` is set
+ * only when another seat makes the move for it (a phase's `control`, such as
+ * bridge's declarer playing the dummy's cards).
+ */
+export type Move = MoveBody & { by?: PlayerId };
+
+type MoveBody =
   | { player: PlayerId; type: 'play'; card: CardId; to: string }
   | { player: PlayerId; type: 'playToTrick'; card: CardId }
   | { player: PlayerId; type: 'discard'; card: CardId; to: string }
@@ -43,7 +50,7 @@ export type MoveType = Move['type'];
 
 /** Order-independent identity of a move, used to match a requested move to a legal one. */
 export function moveKey(move: Move): string {
-  const base = `${move.player}|${move.type}`;
+  const base = `${move.player}${move.by === undefined ? '' : `<${move.by}`}|${move.type}`;
   switch (move.type) {
     case 'play':
     case 'discard':

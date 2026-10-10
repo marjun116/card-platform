@@ -45,6 +45,7 @@ export function applyMove(state: GameState, move: Move): GameState {
   // An arrangement can't be listed among the legal moves (there are far too many);
   // it's checked as it's applied.
   if (move.type === 'arrange') {
+    if (move.by !== undefined) throw new IllegalMoveError('Only you can arrange your hand');
     const next = draft(state);
     performMove(next, { move, step: -1, action: null }, move);
     return next;

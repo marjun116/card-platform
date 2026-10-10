@@ -5,6 +5,7 @@
  * game can be replayed with `replay(file, options, players, seed, moves)`.
  */
 import { applyMove, createGame, getLegalMoves, playersToAct, replay, viewFor } from '../api';
+import { isRevealed } from '../view';
 import type { Move, PlayerId } from '../game/move';
 import { draft, type GameState, parseZoneKey, zoneDef } from '../game/state';
 import { sortHand } from '../game/arrangement';
@@ -224,7 +225,8 @@ export function findHiddenCardLeak(state: GameState): string | null {
       const blind = state.lookRequired && !viewer.hasLookedAtHand && player === viewer.id;
       const visible =
         def.visibility === 'all' ? cards : def.visibility === 'topCardOnly' ? cards.slice(-1) : [];
-      const seen = def.visibility === 'owner' && owns && !blind ? cards : visible;
+      const seen =
+        (def.visibility === 'owner' && owns && !blind) || isRevealed(state, key) ? cards : visible;
       for (const card of cards) if (!seen.includes(card)) hidden.set(card.id, key);
     }
     for (const card of state.passing.flat()) hidden.set(card.id, 'cards being passed');

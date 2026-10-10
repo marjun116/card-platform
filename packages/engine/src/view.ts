@@ -3,7 +3,7 @@
  * only this to a client, never the full state.
  */
 import type { Card, CardId } from './cards/card';
-import { turnSteps } from './game/legal';
+import { controlOf, turnSteps } from './game/legal';
 import { checkedGroups, deadwood } from './game/arrangement';
 import type { BidValue, Move, PlayerId, ZoneKey } from './game/move';
 import {
@@ -81,12 +81,21 @@ export interface PlayerView {
   history: RoundResult[];
   /** Points scored during rounds (`score` effects), oldest first, to show in the log. */
   scoreEvents: ScoreEvent[];
-  /** Values the game shows on the table (`display`), e.g. { label: "Count", value: 23 }. */
-  display: { label: string; value: string | number | boolean }[];
+  /**
+   * Values the game shows on the table (`display`), e.g. { label: "Count", value: 23 }.
+   * With `format`, the value is a seat or team number to show as names.
+   */
+  display: { label: string; value: string | number | boolean; format?: 'player' | 'team' }[];
   /** Words shown with the result once the game is over, e.g. "Skunk!". */
   notes: string[];
   /** Words for `choose` values, e.g. { "shooterMinus26": "Take 26 off my score" }. */
   choiceLabels: Record<string, string>;
+  /** Words for bids, e.g. { "11": "1♣" }. */
+  bidLabels: Record<string, string>;
+  /** Words for tracked counters; null means the counter isn't shown. */
+  trackLabels: Record<string, string | null>;
+  /** One seat playing for another (bridge's declarer for the dummy), or null. */
+  control: { seat: PlayerId; by: PlayerId } | null;
   /**
    * How you've grouped your hand, in games where players arrange their hands
    * (null otherwise): each group with what kind of meld it is (null if it
@@ -112,6 +121,7 @@ type Access = 'cards' | 'count' | 'top' | 'hidden';
 function access(state: GameState, key: ZoneKey, viewer: PlayerId): Access {
   const { name, player, team } = parseZoneKey(key);
   const def = zoneDef(state, name);
+  if (isRevealed(state, key)) return 'cards';
   switch (def.visibility) {
     case 'all':
       return 'cards';
@@ -128,6 +138,15 @@ function access(state: GameState, key: ZoneKey, viewer: PlayerId): Access {
       return blind && def.per === 'player' ? 'count' : 'cards';
     }
   }
+}
+
+/** Is this player's (or team's) zone shown to everyone right now (its `reveal`)? */
+export function isRevealed(state: GameState, key: ZoneKey): boolean {
+  const { name, player, team } = parseZoneKey(key);
+  const reveal = zoneDef(state, name).reveal;
+  if (!reveal) return false;
+  const owner = player !== null ? { player } : team !== null ? { team } : null;
+  return owner !== null && evaluateCondition(reveal, buildScope(state, owner));
 }
 
 function zoneView(cards: Card[], level: Access): ZoneView {
@@ -153,6 +172,19 @@ function trickZones(state: GameState): string[] {
     }
   }
   return [...names];
+}
+
+/** Labels for every bid action's values in the game file. */
+export function bidLabelsOf(file: GameFile): Record<string, string> {
+  const labels: Record<string, string> = {};
+  for (const phase of file.phases) {
+    for (const step of turnSteps(phase)) {
+      for (const action of step.actions) {
+        if (action.type === 'bid') Object.assign(labels, action.labels);
+      }
+    }
+  }
+  return labels;
 }
 
 /** Labels for every `choose` action's (and `ask` effect's) values in the game file. */
@@ -186,7 +218,7 @@ function trickView(state: GameState, trick: TrickState | null, viewer: PlayerId)
 }
 
 function publicMove(state: GameState, move: Move, viewer: PlayerId): PublicMove {
-  if (move.player === viewer) return move;
+  if (move.player === viewer || move.by === viewer) return move;
   if (move.type === 'pass') return { player: move.player, type: 'pass', hidden: true };
   if (move.type === 'arrange') return { player: move.player, type: 'arrange', hidden: true };
   if (move.type === 'play' || move.type === 'discard') {
@@ -206,12 +238,17 @@ function displayValues(state: GameState): PlayerView['display'] {
     if (item.if && !evaluateCondition(item.if, scope)) continue;
     const value = evaluate(item.value, scope);
     if (value === null) continue;
+    const simple =
+      typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean';
+    const word = simple ? item.labels?.[String(value)] : undefined;
+    if (word !== undefined) {
+      shown.push({ label: item.label, value: word });
+      continue;
+    }
     shown.push({
       label: item.label,
-      value:
-        typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean'
-          ? value
-          : JSON.stringify(value),
+      value: simple ? value : JSON.stringify(value),
+      ...(item.format && typeof value === 'number' ? { format: item.format } : {}),
     });
   }
   return shown;
@@ -276,6 +313,9 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     display: displayValues(state),
     notes: [...state.notes],
     choiceLabels: choiceLabelsOf(state.file),
+    bidLabels: bidLabelsOf(state.file),
+    trackLabels: { ...state.file.scoring.trackLabels },
+    control: controlOf(state),
     // A hand that is still face down (blind bids) shows no groups either.
     arrangement:
       state.file.meldRules && !(state.lookRequired && !state.players[viewer]?.hasLookedAtHand)

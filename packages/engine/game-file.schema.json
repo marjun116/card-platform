@@ -292,6 +292,9 @@
           },
           "melds": {
             "type": "boolean"
+          },
+          "reveal": {
+            "$ref": "#/$defs/__schema3"
           }
         },
         "required": [
@@ -349,11 +352,18 @@
           ]
         },
         "dealerRotation": {
-          "type": "string",
-          "enum": [
-            "left",
-            "right",
-            "none"
+          "anyOf": [
+            {
+              "type": "string",
+              "enum": [
+                "left",
+                "right",
+                "none"
+              ]
+            },
+            {
+              "$ref": "#/$defs/__schema3"
+            }
           ]
         }
       },
@@ -414,6 +424,23 @@
           "type": "array",
           "items": {
             "$ref": "#/$defs/__schema25"
+          }
+        },
+        "trackLabels": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/$defs/__schema8"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         }
       },
@@ -752,6 +779,22 @@
           "items": {
             "$ref": "#/$defs/__schema18"
           }
+        },
+        "control": {
+          "type": "object",
+          "properties": {
+            "seat": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "by": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "seat",
+            "by"
+          ],
+          "additionalProperties": false
         },
         "whenEmpty": {
           "type": "object",
@@ -1169,6 +1212,9 @@
                   }
                 }
               ]
+            },
+            "labels": {
+              "$ref": "#/$defs/__schema10"
             }
           },
           "required": [
@@ -1554,6 +1600,16 @@
         },
         "if": {
           "$ref": "#/$defs/__schema3"
+        },
+        "labels": {
+          "$ref": "#/$defs/__schema10"
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "player",
+            "team"
+          ]
         }
       },
       "required": [

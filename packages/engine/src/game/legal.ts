@@ -1,10 +1,12 @@
 import { SUITS } from '../cards/card';
-import { ExprError } from '../errors';
+import { ExprError, GameFileError } from '../errors';
+import { evaluate } from '../expr/evaluate';
 import { ACTION_TYPES } from '../schema/gameFile';
 import { actionMoves, allowsCard } from '../actions';
 import { type Move, moveKey, type PlayerId } from './move';
 import { findCard } from './cards';
 import { autoArrangeAllowed } from './arrangement';
+import { buildScope } from './scope';
 import { type GameState, isPlaying } from './state';
 import type { ActionDef, PhaseDef, TurnStepDef } from './types';
 
@@ -140,11 +142,45 @@ function pendingCandidates(
   return result;
 }
 
+/** One seat playing for another right now (a phase's `control`). */
+export interface Control {
+  /** The seat played for, which has no moves of its own meanwhile. */
+  seat: PlayerId;
+  /** The seat making its moves. */
+  by: PlayerId;
+}
+
+/** Who plays for whom in the current phase, or null if nobody does. */
+export function controlOf(state: GameState): Control | null {
+  if (state.status === 'over') return null;
+  const control = currentPhase(state).control;
+  if (!control) return null;
+  const scope = buildScope(state);
+  const seat = evaluate(control.seat, scope);
+  const by = evaluate(control.by, scope);
+  if (seat === null || by === null) return null;
+  for (const [what, value] of [
+    ['seat', seat],
+    ['by', by],
+  ] as const) {
+    if (typeof value !== 'number' || !state.players[value]) {
+      throw new GameFileError(
+        `control.${what} "${control[what]}" gave ${JSON.stringify(value)}; expected a seat`,
+      );
+    }
+  }
+  return seat === by ? null : { seat: seat as PlayerId, by: by as PlayerId };
+}
+
 /**
- * Candidates for a finished state, as the public API sees it. A state handed
- * back by createGame or applyMove is never changed again, so the answer is
- * remembered: a client (or simulation) asks for the same player's moves
- * several times per move. Never use this while a move is being applied.
+ * Candidates for a finished state, as the public API sees it: with a phase's
+ * `control`, the seat played for has no moves and the seat playing for it
+ * also gets its moves, marked with `by`.
+ *
+ * A state handed back by createGame or applyMove is never changed again, so
+ * the answer is remembered: a client (or simulation) asks for the same
+ * player's moves several times per move. Never use this while a move is being
+ * applied.
  */
 const settled = new WeakMap<GameState, Map<string, Candidate[]>>();
 export function stableCandidates(
@@ -160,7 +196,19 @@ export function stableCandidates(
   const key = `${player}|${opts.skipLook ? 'skipLook' : ''}`;
   let found = byKey.get(key);
   if (!found) {
-    found = candidates(state, player, opts);
+    const control = controlOf(state);
+    if (control?.seat === player) {
+      found = [];
+    } else {
+      found = candidates(state, player, opts);
+      if (control?.by === player) {
+        const theirs = candidates(state, control.seat, opts).map((c) => ({
+          ...c,
+          move: { ...c.move, by: player },
+        }));
+        found = [...found, ...theirs];
+      }
+    }
     byKey.set(key, found);
   }
   return found;
@@ -173,7 +221,9 @@ export function getLegalMoves(state: GameState, player: PlayerId): Move[] {
 /** The legal candidate matching a requested move, or null if the move isn't legal. */
 export function findCandidate(state: GameState, move: Move): Candidate | null {
   const key = moveKey(move);
-  return stableCandidates(state, move.player).find((c) => moveKey(c.move) === key) ?? null;
+  return (
+    stableCandidates(state, move.by ?? move.player).find((c) => moveKey(c.move) === key) ?? null
+  );
 }
 
 let checkingMoves = false;

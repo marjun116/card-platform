@@ -8,13 +8,14 @@ import { allowsCard } from '../actions/common';
 import { runEffects, setVar } from '../effects';
 import { GameFileError, IllegalMoveError } from '../errors';
 import { evaluate, evaluateCondition } from '../expr/evaluate';
-import { LEADER_FIRST } from '../schema/gameFile';
+import { DEALER_ROTATIONS, LEADER_FIRST } from '../schema/gameFile';
 import { scoreRound } from '../scoring';
 import { findCard } from './cards';
 import { type Candidate, candidates, currentPhase, isTrickPhase, turnSteps } from './legal';
 import type { Move, PlayerId } from './move';
 import type { PhaseDef } from './types';
 import { buildScope } from './scope';
+import { resolveSetting } from './settings';
 import { endsRoundWhenEmpty } from './zones';
 import { arrange, sortHand } from './arrangement';
 import { startRound } from './setup';
@@ -372,8 +373,14 @@ function endRound(state: GameState): void {
   if (state.round >= MAX_ROUNDS) {
     throw new GameFileError(`The game didn't end after ${MAX_ROUNDS} rounds`);
   }
+  // Worked out before the next deal clears the round's values (a passed-out hand: "none").
+  const rotation = resolveSetting(
+    state,
+    state.file.setup.dealerRotation ?? 'left',
+    DEALER_ROTATIONS,
+    'dealerRotation',
+  );
   state.round++;
-  const rotation = state.file.setup.dealerRotation ?? 'left';
   if (rotation !== 'none') {
     state.dealer = nextActive(state, state.dealer, rotation === 'left' ? 1 : -1);
   } else if (!state.players[state.dealer]?.active) {

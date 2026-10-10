@@ -853,3 +853,59 @@ General parts of the game format, added because canasta needed them; none mentio
   are found in one pass over the hand. Canasta's simulation went from 814 to 356 ms a game.
 - **Server:** moves may carry up to 400 cards (big multi-deck hands).
 - Test helper: `onTop(state, "stock", ["9H"])` puts cards on top of a pile.
+
+## 2026-10-10: Bridge
+
+- **Standard rules:** contract bridge with rubber scoring, 4 players in partnerships, 13
+  cards each. The dealer calls first; calls go left. A call is a pass (you can still bid
+  later), a bid from 1♣ to 7NT higher than the last (♣ < ♦ < ♥ < ♠ < NT), a double of the
+  opponents' last bid, or a redouble of your side's doubled bid. Three passes after a bid
+  end the auction; four passes at the start throw the hand in. The declarer is the player
+  on the contract's side who first named its suit (or NT). The player left of the declarer
+  leads; then the dummy's hand is shown to everyone and the declarer plays it. Follow suit.
+- **Scoring:** trick points below the line (♣♦ 20, ♥♠ 30, NT 40 then 30; ×2 doubled, ×4
+  redoubled); 100 below the line is a game, both sides then start the next game from zero;
+  a side with a game is vulnerable. Overtricks at trick value, or 100/200 (vulnerable) each
+  when doubled, twice that redoubled. Making a doubled contract 50 (redoubled 100). Slams
+  500/750 and 1,000/1,500. Down tricks to the defenders: 50/100 each undoubled; doubled
+  100, 300, 500 then +300 (not vulnerable) or 200, 500, 800 then +300 (vulnerable); twice
+  that redoubled. Honors (either side, on by default): 4 of the top 5 trumps in one hand
+  100, all 5 150, all 4 aces in one hand at NT 150. Rubber (first to 2 games) 700, or 500
+  when the other side has a game. Highest total wins.
+- **Decided (2026-10-10):** rubber scoring by default with Chicago as a house rule; honors
+  counted by default.
+- **Chicago:** sets of 4 deals. Vulnerability by deal: none, dealer's side, dealer's side,
+  both. Partscores carry over within the set; a game scores 300 (500 vulnerable) and clears
+  both partscores; a partscore on the 4th deal that doesn't make game scores 100. A passed-
+  out hand is dealt again by the same dealer and doesn't count as one of the 4. (In rubber
+  bridge the deal passes on.)
+- **House rules (options):** scoring (rubber, Chicago); rubbers (or sets of 4 deals) to play:
+  1, 2 or 3; honors (on).
+- **Left out:** duplicate and pairs movements (need several tables), conventions and alerts
+  (table talk), claims, and penalties for revokes and insufficient bids (the engine never
+  allows those moves).
+- **Seats:** teams are seats 0 and 2 against 1 and 3, so a seat's team is its number mod 2
+  (the file relies on this).
+
+## 2026-10-10: Building blocks added for bridge
+
+General parts of the game format, added because bridge needed them; none mention it.
+
+- **`control`** (on a phase): `{ "seat": "state.dummy", "by": "state.declarer" }`. While
+  the expressions give two different seats, the seat's moves are offered to `by` instead,
+  marked with `by` (`{ player: 2, by: 0, type: "playToTrick", … }`), and the seat itself has
+  no moves. `player` is still the seat whose turn it is and whose cards are used. The engine
+  checks `by` itself: a move with `by` is only legal from the controlling seat, so the
+  dummy's own client can't play its cards and no one else can either. Null from either
+  expression means nobody is controlled. The view has `control`, and the log shows who chose.
+- **`reveal`** (on a player or team zone): everyone sees the owner's cards while it holds,
+  whatever the zone's visibility, e.g. `"player.id == state.dummy && state.dummyDown"`. Read
+  as the owner (`player`, or `team`). The hidden-card checks (simulation and tests) use it.
+- **Labels:** a `bid` action's `labels` (`{ "11": "1♣" }`, sent as `view.bidLabels`); a
+  `display` entry's `labels` (words for values) and `format: "player" | "team"` (show a seat
+  or team as names); `scoring.trackLabels` renames counters on the scoreboard, and `null`
+  hides bookkeeping counters (`view.trackLabels`).
+- **`setup.dealerRotation`** may be an expression, worked out as the round ends (before the
+  round's values are cleared): `"state.contract == null ? 'none' : 'left'"`.
+- Bids that must go up are plain numbers: bridge uses level × 10 + suit (11 = 1♣ … 75 =
+  7NT), so "higher" is `bid > state.contract` and level and suit come from `%`.

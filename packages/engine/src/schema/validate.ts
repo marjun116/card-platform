@@ -24,6 +24,7 @@ import {
   ACES,
   ACTION_TYPES,
   gameFileSchema,
+  DEALER_ROTATIONS,
   LEADER_FIRST,
   PASS_DIRECTIONS,
   TIES,
@@ -386,6 +387,16 @@ class Checker {
       if (zone.countVisible && zone.visibility !== 'none') {
         this.warn([...path, 'countVisible'], 'Only matters for zones with "visibility": "none"');
       }
+      if (zone.reveal !== undefined) {
+        if (!zone.per) {
+          this.error(
+            [...path, 'reveal'],
+            `"reveal" is for a player's or team's zone; set a shared zone's "visibility" instead`,
+          );
+        } else {
+          this.checkExpr(zone.reveal, [...path, 'reveal'], zone.per === 'player' ? PLAYER : TEAM);
+        }
+      }
     }
     const hand = this.file.zones.hand;
     if (!hand || hand.per !== 'player' || hand.melds) {
@@ -486,7 +497,10 @@ class Checker {
   // ---- setup ----
 
   private checkSetup(): void {
-    const { deal, rest, flip } = this.file.setup;
+    const { deal, rest, flip, dealerRotation } = this.file.setup;
+    if (dealerRotation !== undefined) {
+      this.checkSetting(dealerRotation, DEALER_ROTATIONS, ['setup', 'dealerRotation']);
+    }
     this.zone(deal.to, ['setup', 'deal', 'to'], { per: 'player' });
     if (typeof deal.count === 'string')
       this.checkExpr(deal.count, ['setup', 'deal', 'count'], NO_CONTEXT);
@@ -542,6 +556,10 @@ class Checker {
     if (phase.until) this.checkExpr(phase.until, [...path, 'until'], PLAYER);
     if (phase.leader?.first !== undefined) {
       this.checkSetting(phase.leader.first, LEADER_FIRST, [...path, 'leader', 'first']);
+    }
+    if (phase.control) {
+      this.checkExpr(phase.control.seat, [...path, 'control', 'seat'], NO_CONTEXT);
+      this.checkExpr(phase.control.by, [...path, 'control', 'by'], NO_CONTEXT);
     }
 
     const actions = [
@@ -707,12 +725,20 @@ class Checker {
           }
         }
         break;
-      case 'bid':
+      case 'bid': {
         if (!Array.isArray(action.values)) {
           const [low, high] = action.values.range;
           if (low > high) this.error([...path, 'values', 'range'], `${low} is more than ${high}`);
         }
+        const { values: bids } = action;
+        const values = Array.isArray(bids)
+          ? bids.map(String)
+          : Array.from({ length: Math.max(0, bids.range[1] - bids.range[0] + 1) }, (_, i) =>
+              String(bids.range[0] + i),
+            );
+        this.checkLabels(action.labels, values, [...path, 'labels']);
         break;
+      }
       case 'passBid':
       case 'declareTrump':
         break;
@@ -887,6 +913,14 @@ class Checker {
     perPlayer.forEach((rule, i) =>
       this.checkRule(rule, ['scoring', 'perPlayer', i], PLAYER, false),
     );
+    for (const key of Object.keys(this.file.scoring.trackLabels ?? {})) {
+      if (!this.tracks.has(key)) {
+        this.error(
+          ['scoring', 'trackLabels', key],
+          `"${key}" isn't tracked by any scoring rule.${suggest(key, this.tracks)}`,
+        );
+      }
+    }
     for (const key of Object.keys(cardValue)) {
       if (!isRank(key) && !isSuit(key) && !isCardCode(key) && key !== 'default') {
         this.error(

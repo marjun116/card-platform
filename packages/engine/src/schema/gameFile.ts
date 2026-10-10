@@ -118,6 +118,12 @@ export const zoneSchema = z.strictObject({
   visibility: z.enum(['owner', 'all', 'none', 'topCardOnly']),
   countVisible: z.boolean().optional(),
   melds: z.boolean().optional(),
+  /**
+   * Everyone sees the owner's cards while this holds, whatever the visibility,
+   * e.g. bridge's dummy once the opening lead is made. Read as the owner
+   * (`player`, or `team` for a per-team zone).
+   */
+  reveal: expr.optional(),
 });
 
 const setValue = z.union([expr, z.number(), z.boolean(), z.null()]);
@@ -132,13 +138,15 @@ export const flipSchema = z.strictObject({
   reflipIf: expr.optional(),
 });
 
+export const DEALER_ROTATIONS = ['left', 'right', 'none'] as const;
 export const setupSchema = z.strictObject({
   shuffle: z.boolean().optional(),
   deal: z.strictObject({ to: name, count: z.union([count(0), expr]) }),
   rest: name.optional(),
   /** One card turned face up, or several in order. */
   flip: z.union([flipSchema, z.array(flipSchema).min(1)]).optional(),
-  dealerRotation: z.enum(['left', 'right', 'none']).optional(),
+  /** Or an expression giving one, checked as each round ends (a passed-out hand: "none"). */
+  dealerRotation: settingOr(DEALER_ROTATIONS).optional(),
 });
 
 export const effectSchema = z.strictObject({
@@ -258,6 +266,8 @@ export const bidActionSchema = action('bid', {
     z.strictObject({ range: z.tuple([z.int(), z.int()]) }),
     z.array(z.union([z.number(), z.string()])).min(1),
   ]),
+  /** Words shown for bids, e.g. { "11": "1♣", "15": "1NT" }. */
+  labels: labels.optional(),
 });
 export const passBidActionSchema = action('passBid', {});
 export const declareTrumpActionSchema = action('declareTrump', {
@@ -330,6 +340,13 @@ export const phaseSchema = z.strictObject({
   actions: z.array(actionSchema).min(1).optional(),
   turn: z.array(turnStepSchema).min(1).optional(),
   afterTrick: z.array(effectSchema).optional(),
+  /**
+   * One seat plays for another during this phase, e.g. bridge's declarer for
+   * the dummy: { "seat": "state.dummy", "by": "state.declarer" }. On the
+   * seat's turn its moves go to `by`, and the seat itself has none. Either
+   * expression giving null means nobody is controlled.
+   */
+  control: z.strictObject({ seat: expr, by: expr }).optional(),
   whenEmpty: z
     .record(
       name,
@@ -370,6 +387,11 @@ export const scoringSchema = z.strictObject({
   playerValues: z.record(name, expr).optional(),
   /** Rules run once when the game ends, before the winner is decided (bonuses). */
   atGameEnd: z.array(scoreRuleSchema).optional(),
+  /**
+   * Words for tracked counters on the scoreboard, e.g. { "below": "Part score" };
+   * null hides a counter that is only bookkeeping.
+   */
+  trackLabels: z.record(name, z.union([z.string().min(1), z.null()])).optional(),
 });
 
 export const TIES = ['playOn', 'share'] as const;
@@ -397,6 +419,10 @@ export const displaySchema = z.strictObject({
   label: z.string().min(1),
   value: expr,
   if: expr.optional(),
+  /** Words for values, e.g. { "1": "Doubled", "2": "Redoubled" }. */
+  labels: labels.optional(),
+  /** The value is a seat (shown as that player's name) or a team (its players' names). */
+  format: z.enum(['player', 'team']).optional(),
 });
 
 export const gameFileSchema = z.strictObject({
