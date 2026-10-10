@@ -39,7 +39,13 @@ export async function testServer(overrides: Partial<Deps> = {}): Promise<TestSer
       },
     },
     // Test players move far faster than people, so they get a much higher message limit.
-    config: { ...defaultConfig, publicUrl: 'http://cards.test', messageBurst: 10_000 },
+    // Bots move at once rather than after a pause.
+    config: {
+      ...defaultConfig,
+      publicUrl: 'http://cards.test',
+      messageBurst: 10_000,
+      botMoveDelayMs: 0,
+    },
     now: () => new Date(time),
     newSeed: () => `test-table-${++tables}`,
     ...overrides,

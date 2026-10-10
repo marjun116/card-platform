@@ -17,7 +17,10 @@ import {
 } from './types';
 
 const tableInclude = {
-  seats: { include: { user: { select: { displayName: true } } }, orderBy: { seat: 'asc' } },
+  seats: {
+    include: { user: { select: { displayName: true, isBot: true } } },
+    orderBy: { seat: 'asc' },
+  },
 } as const satisfies Prisma.TableInclude;
 
 type TableRow = Prisma.TableGetPayload<{ include: typeof tableInclude }>;
@@ -41,6 +44,7 @@ function toTable(row: TableRow): Table {
       seat: s.seat,
       userId: s.userId,
       displayName: s.user.displayName,
+      isBot: s.user.isBot,
       lastNudgeAt: s.lastNudgeAt,
     })),
   };
@@ -99,6 +103,15 @@ export class PrismaStore implements Store {
       });
       await tx.table.updateMany({ where: { hostId: fromId }, data: { hostId: intoId } });
       await tx.session.deleteMany({ where: { userId: fromId } });
+    });
+  }
+
+  botUser(n: number): Promise<User> {
+    const id = `bot-${n}`;
+    return this.db.user.upsert({
+      where: { id },
+      create: { id, displayName: `Bot ${n}`, isBot: true },
+      update: {},
     });
   }
 
@@ -299,11 +312,11 @@ export class PrismaStore implements Store {
   async findIdleTurns(before: Date): Promise<IdleTurn[]> {
     const rows = await this.db.table.findMany({
       where: { status: 'playing', turnSince: { lt: before } },
-      include: { seats: true },
+      include: { seats: { include: { user: { select: { isBot: true } } } } },
     });
     return rows.flatMap((table) =>
       table.seats
-        .filter((s) => table.toAct.includes(s.seat))
+        .filter((s) => table.toAct.includes(s.seat) && !s.user.isBot)
         .filter((s) => !s.lastNudgeAt || (table.turnSince && s.lastNudgeAt < table.turnSince))
         .map((s) => ({ tableId: table.id, seat: s.seat, userId: s.userId })),
     );

@@ -276,5 +276,26 @@ export function storeContract(makeStore: () => Promise<Store>): void {
       await store.setNudged(table.id, 1, new Date(0));
       expect(await store.findIdleTurns(new Date())).toEqual([]);
     });
+
+    it('keeps one account per bot, marks bot seats and never finds bots idle', async () => {
+      const { table } = await newTable();
+      const bot = await store.botUser(3);
+      expect(bot).toMatchObject({ id: 'bot-3', displayName: 'Bot 3', isBot: true, email: null });
+      expect(await store.botUser(3)).toEqual(bot);
+      const person = await store.createUser({ displayName: 'P' });
+      expect(person.isBot).toBe(false);
+      await store.takeSeat(table.id, 0, person.id);
+      await store.takeSeat(table.id, 2, bot.id);
+      const seats = (await store.getTable(table.id))?.seats;
+      expect(seats?.map((s) => [s.seat, s.isBot])).toEqual([
+        [0, false],
+        [2, true],
+      ]);
+      const turnSince = new Date(Date.now() - 60 * minute);
+      await store.updateTable(table.id, { status: 'playing', toAct: [0, 2], turnSince });
+      expect(await store.findIdleTurns(new Date())).toEqual([
+        { tableId: table.id, seat: 0, userId: person.id },
+      ]);
+    });
   });
 }

@@ -8,6 +8,8 @@
  */
 import {
   applyMove,
+  askBot,
+  type Bot,
   createGame,
   type GameState,
   getLegalMoves,
@@ -16,10 +18,13 @@ import {
   isGameOver,
   type Move,
   playersToAct,
+  randomInt,
   replay,
+  seedRng,
   teamsFor,
   viewFor,
 } from '@card-table/engine';
+import { builtInBots } from '@card-table/games';
 import type { WebSocket } from '@fastify/websocket';
 import type { Deps } from '../deps';
 import { ConflictError, type GameVersion, type Table, type User } from '../store/types';
@@ -44,6 +49,8 @@ export class TableRoom {
   private connections = new Set<Connection>();
   private queue: Promise<unknown> = Promise.resolve();
   private closed = false;
+  /** The next bot move, waiting out the pause before bots play. */
+  private botTimer: NodeJS.Timeout | null = null;
 
   private constructor(
     private readonly deps: Deps,
@@ -60,7 +67,10 @@ export class TableRoom {
       const moves = await deps.store.listMoves(table.id);
       state = replay(game.file, table.options, table.playerCount, table.seed, moves);
     }
-    return new TableRoom(deps, table, game, state);
+    const room = new TableRoom(deps, table, game, state);
+    // Bots due to move (say after a restart) carry on.
+    room.scheduleBots();
+    return room;
   }
 
   get tableId(): string {
@@ -113,7 +123,12 @@ export class TableRoom {
   /** Closes the room if nobody is connected. A closed room accepts no more connections. */
   closeIfEmpty(): Promise<boolean> {
     return this.enqueue(() => {
-      if (this.connections.size === 0) this.closed = true;
+      if (this.connections.size === 0) {
+        this.closed = true;
+        // Bots wait for someone to open the table again.
+        if (this.botTimer) clearTimeout(this.botTimer);
+        this.botTimer = null;
+      }
       return Promise.resolve(this.closed);
     });
   }
@@ -132,6 +147,60 @@ export class TableRoom {
 
   info(): TableInfo {
     return tableInfo(this.table, this.game, (userId) => this.isConnected(userId));
+  }
+
+  // ---- bots ----
+
+  /** The bot for this table's game, if bots can play it (built-in games only). */
+  private get bot(): Bot | null {
+    return botFor(this.game);
+  }
+
+  /** A bot seat whose turn it is, if any. */
+  private botToAct(): number | null {
+    const state = this.state;
+    if (!state || this.table.status !== 'playing' || this.closed) return null;
+    const bots = new Set(this.table.seats.filter((s) => s.isBot).map((s) => s.seat));
+    return playersToAct(state).find((seat) => bots.has(seat)) ?? null;
+  }
+
+  /** Lets a bot whose turn it is move after the pause (see Config.botMoveDelayMs). */
+  private scheduleBots(): void {
+    if (this.botTimer || this.botToAct() === null) return;
+    this.botTimer = setTimeout(() => {
+      this.botTimer = null;
+      this.enqueue(() => this.botTurn()).catch((error: unknown) => console.error(error));
+    }, this.deps.config.botMoveDelayMs);
+    this.botTimer.unref();
+  }
+
+  /**
+   * One bot move. The bot sees only its own view and legal moves; its move goes
+   * through the same path as a player's. Arranging a hand is free, so a bot
+   * that arranges its cards then moves straight away.
+   */
+  private async botTurn(): Promise<void> {
+    const bot = this.bot;
+    for (let arranged = 0; arranged < 5; arranged++) {
+      const seat = this.botToAct();
+      const state = this.state;
+      if (seat === null || !state || !bot) return;
+      const legal = getLegalMoves(state, seat);
+      if (legal.length === 0) return;
+      // Seeded by the table and the move number, so a bot's choices can be repeated.
+      const rng = seedRng(`${this.table.seed}:bot:${state.log.length}`);
+      const move = askBot(bot, state, legal, (n) => randomInt(rng, n));
+      try {
+        await this.play(move, state);
+      } catch (error) {
+        // A bot should never make an illegal move, and a game that can't go on (a
+        // stalemate the engine stops) can't be helped by trying again: log it and wait
+        // for the players.
+        console.error(`Bot in seat ${seat} at table ${this.table.id} couldn't move:`, error);
+        return;
+      }
+      if (move.type !== 'arrange') return;
+    }
   }
 
   // ---- message handling ----
@@ -156,6 +225,12 @@ export class TableRoom {
         return this.end(user);
       case 'freeSeat':
         return this.freeSeat(user, message.seat);
+      case 'addBot':
+        return this.addBot(user, message.seat);
+      case 'removeBot':
+        return this.removeBot(user, message.seat);
+      case 'replaceWithBot':
+        return this.replaceWithBot(user, message.seat);
     }
   }
 
@@ -209,6 +284,7 @@ export class TableRoom {
     this.state = state;
     this.broadcastTable();
     this.sendGameToAll();
+    this.scheduleBots();
   }
 
   private async move(
@@ -225,7 +301,6 @@ export class TableRoom {
     if (!state) throw new RoomError('WRONG_STATUS', "The game hasn't started");
     // Arranging your hand only touches your own groups, so it can't go stale: it's
     // often done while other players are moving.
-    const free = requested.type === 'arrange' || requested.type === 'sortHand';
     if (requested.type !== 'arrange' && seq !== state.log.length) {
       throw new RoomError(
         'STALE_SEQ',
@@ -245,6 +320,16 @@ export class TableRoom {
       // Otherwise a blind player could find out what they hold by guessing card ids.
       throw new RoomError('ILLEGAL_MOVE', 'Look at your hand first');
     }
+    await this.play(move, state);
+  }
+
+  /**
+   * Applies a move (a player's, or a bot's), saves it and tells everyone; then
+   * lets any bot due to move take its turn.
+   */
+  private async play(move: Move, state: GameState): Promise<void> {
+    // Arranging your hand doesn't change whose turn it is.
+    const free = move.type === 'arrange' || move.type === 'sortHand';
     let next: GameState;
     try {
       next = applyMove(state, move);
@@ -273,6 +358,7 @@ export class TableRoom {
       this.broadcastTable();
       this.sendOver();
     }
+    this.scheduleBots();
   }
 
   private async nudge(user: User, target: number): Promise<void> {
@@ -282,6 +368,7 @@ export class TableRoom {
     if (!seat || target === from || !this.table.toAct.includes(target)) {
       throw new RoomError('NOT_THEIR_TURN', "It isn't that player's turn");
     }
+    if (seat.isBot) throw new RoomError('NOT_THEIR_TURN', "Bots don't need nudging");
     const now = this.deps.now();
     if (
       seat.lastNudgeAt &&
@@ -316,6 +403,7 @@ export class TableRoom {
     this.broadcastTable();
     // Legal moves are hidden while paused, so everyone needs a fresh view.
     this.sendGameToAll();
+    this.scheduleBots();
   }
 
   private async end(user: User): Promise<void> {
@@ -346,7 +434,68 @@ export class TableRoom {
     this.broadcastTable();
   }
 
+  private async addBot(user: User, seat: number): Promise<void> {
+    this.requireHost(user);
+    this.requireBots();
+    const { status } = this.table;
+    if (status !== 'lobby' && status !== 'playing' && status !== 'paused') {
+      throw new RoomError('WRONG_STATUS', 'This table has ended');
+    }
+    if (seat >= this.table.playerCount) throw new RoomError('BAD_SEAT', `There is no seat ${seat}`);
+    if (this.table.seats.some((s) => s.seat === seat)) {
+      throw new RoomError('SEAT_TAKEN', 'That seat is taken');
+    }
+    await this.seatBot(seat);
+  }
+
+  private async removeBot(user: User, seat: number): Promise<void> {
+    this.requireHost(user);
+    this.requireStatus('lobby', 'Bots stay in their seats once the game has started');
+    if (!this.table.seats.find((s) => s.seat === seat)?.isBot) {
+      throw new RoomError('BAD_SEAT', "That seat doesn't have a bot");
+    }
+    await this.deps.store.leaveSeat(this.table.id, seat);
+    await this.reloadTable();
+    this.broadcastTable();
+  }
+
+  /** A bot takes over from a player who left (isn't connected). */
+  private async replaceWithBot(user: User, seat: number): Promise<void> {
+    this.requireHost(user);
+    this.requireBots();
+    const { status } = this.table;
+    if (status !== 'playing' && status !== 'paused') {
+      throw new RoomError('WRONG_STATUS', 'Bots take over players only during a game');
+    }
+    const taken = this.table.seats.find((s) => s.seat === seat);
+    if (!taken || taken.isBot) throw new RoomError('BAD_SEAT', 'There is no player in that seat');
+    if (this.isConnected(taken.userId)) {
+      throw new RoomError('PLAYER_CONNECTED', 'That player is still connected');
+    }
+    await this.deps.store.leaveSeat(this.table.id, seat);
+    await this.seatBot(seat);
+  }
+
+  /** Seats this seat's bot, tells everyone and lets it play if it's its turn. */
+  private async seatBot(seat: number): Promise<void> {
+    // The bot in seat s is always Bot s+1, so a table never has the same bot twice.
+    const bot = await this.deps.store.botUser(seat + 1);
+    try {
+      await this.deps.store.takeSeat(this.table.id, seat, bot.id);
+    } catch (error) {
+      if (error instanceof ConflictError) throw new RoomError('SEAT_TAKEN', 'That seat is taken');
+      throw error;
+    }
+    await this.reloadTable();
+    this.broadcastTable();
+    this.scheduleBots();
+  }
+
   // ---- checks ----
+
+  private requireBots(): void {
+    if (!this.bot) throw new RoomError('NO_BOTS', 'Bots only play the built-in games');
+  }
 
   private requireHost(user: User): void {
     if (user.id !== this.table.hostId) throw new RoomError('NOT_HOST', 'Only the host can do that');
@@ -445,10 +594,18 @@ export function tableInfo(
       return {
         seat,
         user: taken ? { id: taken.userId, displayName: taken.displayName } : null,
-        connected: taken ? isConnected(taken.userId) : false,
+        connected: taken ? taken.isBot || isConnected(taken.userId) : false,
+        bot: taken?.isBot ?? false,
       };
     }),
+    botsAllowed: botFor(game) !== null,
   };
+}
+
+/** The bot for a game, if bots can play it: only built-in games have bots. */
+function botFor(game: GameVersion): Bot | null {
+  if (!game.builtIn || !Object.hasOwn(builtInBots, game.slug)) return null;
+  return builtInBots[game.slug as keyof typeof builtInBots];
 }
 
 const OPEN = 1;

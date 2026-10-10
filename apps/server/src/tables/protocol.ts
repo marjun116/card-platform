@@ -94,6 +94,12 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ id, type: z.literal('end') }),
   /** Host: free a seat whose player isn't connected, so someone else can take it. */
   z.strictObject({ id, type: z.literal('freeSeat'), seat }),
+  /** Host, built-in games only: a bot takes this empty seat (before or during the game). */
+  z.strictObject({ id, type: z.literal('addBot'), seat }),
+  /** Host, before the game starts: the bot leaves this seat. */
+  z.strictObject({ id, type: z.literal('removeBot'), seat }),
+  /** Host, during the game: a bot takes over from a player who isn't connected. */
+  z.strictObject({ id, type: z.literal('replaceWithBot'), seat }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -102,8 +108,10 @@ export type MessageId = z.infer<typeof id>;
 export interface SeatInfo {
   seat: number;
   user: { id: string; displayName: string } | null;
-  /** The seated player has the table open right now. */
+  /** The seated player has the table open right now (a bot always has). */
   connected: boolean;
+  /** The seat is played by a bot. */
+  bot: boolean;
 }
 
 /** A game tables can be created from, as listed by GET /api/games. */
@@ -129,6 +137,8 @@ export interface TableInfo {
   status: TableStatus;
   hostId: string;
   seats: SeatInfo[];
+  /** Bots can take seats (built-in games only). */
+  botsAllowed: boolean;
 }
 
 export type ErrorCode =
@@ -145,6 +155,7 @@ export type ErrorCode =
   | 'NOT_THEIR_TURN'
   | 'RATE_LIMITED'
   | 'PLAYER_CONNECTED'
+  | 'NO_BOTS'
   | 'SERVER_ERROR';
 
 export type ServerMessage =

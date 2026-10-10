@@ -35,7 +35,9 @@ function tableInfo(players: number): TableInfo {
       seat,
       user: { id: `u${seat}`, displayName: NAMES[seat] ?? `P${seat}` },
       connected: true,
+      bot: false,
     })),
+    botsAllowed: true,
   };
 }
 

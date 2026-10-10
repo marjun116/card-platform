@@ -14,6 +14,8 @@ export interface Config {
   nudgeCooldownMs: number;
   /** Minimum time between sign-in emails to the same address. */
   emailCooldownMs: number;
+  /** How long a bot waits before making its move, so people can follow the play. */
+  botMoveDelayMs: number;
   /** WebSocket rate limit: a burst of this many messages... */
   messageBurst: number;
   /** ...refilled at this many per second. */
@@ -30,6 +32,7 @@ export const defaultConfig: Config = {
   idleCheckEveryMs: 10 * 60 * 1000,
   nudgeCooldownMs: 5 * 60 * 1000,
   emailCooldownMs: 60 * 1000,
+  botMoveDelayMs: 2000,
   messageBurst: 40,
   messagesPerSecond: 20,
 };

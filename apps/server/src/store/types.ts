@@ -10,6 +10,8 @@ export interface User {
   displayName: string;
   /** null for guests. */
   email: string | null;
+  /** A computer player; see Store.botUser. */
+  isBot: boolean;
   createdAt: Date;
 }
 
@@ -45,6 +47,7 @@ export interface Seat {
   seat: number;
   userId: string;
   displayName: string;
+  isBot: boolean;
   lastNudgeAt: Date | null;
 }
 
@@ -116,6 +119,11 @@ export interface Store {
    * everywhere. Seats at tables where `intoId` already sits stay with `fromId`.
    */
   mergeUser(fromId: string, intoId: string): Promise<void>;
+  /**
+   * The bot account "Bot n", created the first time it's needed. A table's
+   * bot in seat s is Bot s+1, so no two bots share a table.
+   */
+  botUser(n: number): Promise<User>;
 
   createSession(session: Session): Promise<void>;
   getSession(id: string): Promise<Session | null>;
@@ -159,7 +167,7 @@ export interface Store {
   getResult(tableId: string): Promise<Result | null>;
   /**
    * Seats whose turn began before `before`, at playing tables, that haven't
-   * been nudged since their turn began.
+   * been nudged since their turn began. Bots are never idle.
    */
   findIdleTurns(before: Date): Promise<IdleTurn[]>;
 }

@@ -44,6 +44,7 @@ export class MemoryStore implements Store {
       id: randomUUID(),
       displayName: data.displayName,
       email: data.email ?? null,
+      isBot: false,
       createdAt: new Date(),
     };
     this.users.set(user.id, user);
@@ -65,6 +66,16 @@ export class MemoryStore implements Store {
       return Promise.reject(new ConflictError('Email already in use'));
     }
     Object.assign(user, patch);
+    return Promise.resolve(copy(user));
+  }
+
+  botUser(n: number): Promise<User> {
+    const id = `bot-${n}`;
+    let user = this.users.get(id);
+    if (!user) {
+      user = { id, displayName: `Bot ${n}`, email: null, isBot: true, createdAt: new Date() };
+      this.users.set(id, user);
+    }
     return Promise.resolve(copy(user));
   }
 
@@ -254,6 +265,7 @@ export class MemoryStore implements Store {
       for (const seat of this.seats) {
         if (seat.tableId !== table.id || !table.toAct.includes(seat.seat)) continue;
         if (seat.lastNudgeAt && seat.lastNudgeAt >= since) continue;
+        if (this.users.get(seat.userId)?.isBot) continue;
         idle.push({ tableId: table.id, seat: seat.seat, userId: seat.userId });
       }
     }
@@ -272,6 +284,7 @@ export class MemoryStore implements Store {
         seat: s.seat,
         userId: s.userId,
         displayName: this.users.get(s.userId)?.displayName ?? '?',
+        isBot: this.users.get(s.userId)?.isBot ?? false,
         lastNudgeAt: s.lastNudgeAt,
       }));
     return copy({ ...table, seats });

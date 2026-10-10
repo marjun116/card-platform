@@ -14,6 +14,7 @@ export * from './bots';
 export * from './cards/card';
 export { buildDeck, type DeckDef } from './cards/deck';
 export type { TrickRule } from './cards/order';
+export { randomInt, seedRng } from './rng';
 export { ExprError, GameFileError, IllegalMoveError, SetupError } from './errors';
 export type { BidValue, Move, MoveType, PlayerId, ZoneKey } from './game/move';
 export type {

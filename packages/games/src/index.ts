@@ -34,3 +34,5 @@ export const builtInGames = {
 } as const satisfies Record<string, GameFile>;
 
 export type BuiltInGameName = keyof typeof builtInGames;
+
+export { builtInBots } from './bots';
