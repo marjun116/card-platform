@@ -61,7 +61,13 @@ export function GameOver({
       {lastRound && (
         <section className="panel">
           <h2>Last round</h2>
-          <RoundTable result={lastRound} teams={view.teams} names={names} />
+          <RoundTable
+            result={lastRound}
+            teams={view.teams}
+            names={names}
+            bidLabels={view.bidLabels}
+            trackLabels={view.trackLabels}
+          />
         </section>
       )}
 

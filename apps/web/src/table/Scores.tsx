@@ -1,20 +1,24 @@
 /** The scoreboard, round summaries and the history of every round. */
 import type { BidValue, PlayerView, RoundResult } from '@card-table/engine';
 import { type ReactNode, useEffect, useRef } from 'react';
-import { bidLabel, type SeatNames, teamName } from './describe';
+import { type BidLabels, bidWords, type SeatNames, teamName } from './describe';
 import { ZoneDisplay } from './ZoneViews';
 import { humanize, type PlacedZone, zoneCount } from './zones';
 
 type Team = PlayerView['teams'][number];
 
-function tracksText(tracks: Record<string, number>): string {
+/** Words for tracked counters (`view.trackLabels`); null hides a counter. */
+export type TrackLabels = Record<string, string | null>;
+
+function tracksText(tracks: Record<string, number>, labels: TrackLabels = {}): string {
   return Object.entries(tracks)
-    .map(([name, value]) => `${humanize(name)} ${value}`)
+    .filter(([name]) => labels[name] !== null)
+    .map(([name, value]) => `${labels[name] ?? humanize(name)} ${value}`)
     .join(' · ');
 }
 
-function bidText(bid: BidValue | null): string {
-  return bid === null ? '–' : bidLabel(bid).toLowerCase();
+function bidText(bid: BidValue | null, labels: BidLabels = {}): string {
+  return bid === null ? '–' : bidWords(bid, labels);
 }
 
 function signed(n: number): string {
@@ -40,7 +44,7 @@ export function Scoreboard({
       <ul>
         {view.teams.map((team) => {
           const mine = team.players.includes(view.you);
-          const tracks = tracksText({ ...team.tracks, ...team.held });
+          const tracks = tracksText({ ...team.tracks, ...team.held }, view.trackLabels);
           return (
             <li key={team.id} className={mine ? 'mine' : undefined}>
               <div className="team-row">
@@ -53,7 +57,7 @@ export function Scoreboard({
                 <div className="muted">
                   {[
                     showBids
-                      ? `bid ${bidText(view.players[team.players[0] ?? 0]?.bid ?? null)}`
+                      ? `bid ${bidText(view.players[team.players[0] ?? 0]?.bid ?? null, view.bidLabels)}`
                       : null,
                     showTricks ? `won ${view.players[team.players[0] ?? 0]?.tricks ?? 0}` : null,
                   ]
@@ -69,7 +73,7 @@ export function Scoreboard({
                     return (
                       <li key={seat}>
                         <span>{names(seat)}</span>
-                        {showBids && <span>bid {bidText(player.bid)}</span>}
+                        {showBids && <span>bid {bidText(player.bid, view.bidLabels)}</span>}
                         {showTricks && <span>won {player.tricks}</span>}
                       </li>
                     );
@@ -100,11 +104,15 @@ export function RoundTable({
   result,
   teams,
   names,
+  bidLabels = {},
+  trackLabels = {},
 }: {
   result: RoundResult;
   /** Who is on which team (teams never change during a game). */
   teams: Pick<Team, 'id' | 'players'>[];
   names: SeatNames;
+  bidLabels?: BidLabels;
+  trackLabels?: TrackLabels;
 }) {
   const showBids = result.players.some((p) => p.bid !== null);
   const showTricks = result.players.some((p) => p.tricks > 0);
@@ -123,7 +131,7 @@ export function RoundTable({
       {result.teams.map((team) => {
         const members = teams.find((t) => t.id === team.id)?.players ?? [];
         const players = result.players.filter((p) => members.includes(p.id));
-        const tracks = tracksText({ ...team.tracks, ...team.held });
+        const tracks = tracksText({ ...team.tracks, ...team.held }, trackLabels);
         return (
           <tbody key={team.id}>
             {players.map((player, i) => (
@@ -132,9 +140,7 @@ export function RoundTable({
                   {names(player.id)}
                   {player.eliminated && <span className="muted"> (out)</span>}
                 </th>
-                {showBids && (
-                  <td>{player.bid === null ? '–' : bidLabel(player.bid).toLowerCase()}</td>
-                )}
+                {showBids && <td>{bidText(player.bid, bidLabels)}</td>}
                 {showTricks && <td>{player.tricks}</td>}
                 {i === 0 && (
                   <>

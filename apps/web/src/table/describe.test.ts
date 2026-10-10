@@ -146,3 +146,29 @@ describe('words for taking a pile and going out', () => {
     expect(describeMove(out, names)).toBe('Ana went out');
   });
 });
+
+describe("the game's own words for bids, and moves made for another seat", () => {
+  const bids = { '11': '1♣', '35': '3NT' };
+
+  it('uses bid labels as written, even mid-sentence', () => {
+    expect(bidLabel(35, bids)).toBe('3NT');
+    expect(moveLabel({ player: 2, type: 'bid', value: 35 }, names, {}, bids)).toBe('Bid 3NT');
+    expect(describeMove({ player: 0, type: 'bid', value: 35 }, names, {}, bids)).toBe(
+      'Ana bid 3NT',
+    );
+    // Bids with no label are as before.
+    expect(describeMove({ player: 0, type: 'bid', value: 'double' }, names, {}, bids)).toBe(
+      'Ana bid double',
+    );
+    expect(seatStats({ bid: 11, tricks: 0, active: true }, null, false, bids)).toEqual({
+      short: '1♣',
+      spoken: 'bid 1♣',
+    });
+  });
+
+  it('says whose cards a move for another seat uses', () => {
+    const forAna = { player: 0, by: 2, type: 'playToTrick' as const, card: 'QS.0' };
+    expect(moveLabel(forAna, names)).toBe('Play Q♠ for Ana');
+    expect(describeMove(forAna, names)).toBe('You (for Ana) played Queen of spades');
+  });
+});

@@ -6,11 +6,13 @@
  * the full panel opens as a popup when the chip is tapped. CSS decides which
  * is shown (see `.felt.many` in styles.css); both are always rendered.
  */
-import type { PlayerView } from '@card-table/engine';
+import type { Card as CardData, PlayerView } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
 import { useId, useState } from 'react';
-import { CardBack } from './Card';
-import { bidLabel, type SeatNames, seatStats } from './describe';
+import { CardBack, CardFace } from './Card';
+import { SUITS, sortHand, spokenLabel } from './cards';
+import { bidWords, type SeatNames, seatStats } from './describe';
+import { type Controls, isCardUsable } from './moves';
 import { ZoneDisplay } from './ZoneViews';
 import { type PlacedZone, seatPosition } from './zones';
 
@@ -23,6 +25,9 @@ export function Seat({
   toAct,
   showTricks,
   onNudge,
+  controls,
+  selected,
+  onPress,
 }: {
   seat: number;
   view: PlayerView;
@@ -32,6 +37,10 @@ export function Seat({
   toAct: number[];
   showTricks: boolean;
   onNudge: (seat: number) => void;
+  /** Your moves: when you play this seat's cards (bridge's dummy), its cards use them. */
+  controls: Controls;
+  selected: readonly string[];
+  onPress: (card: CardData) => void;
 }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -42,14 +51,18 @@ export function Seat({
   const hand = zones.find((z) => z.name === 'hand');
   const others = zones.filter((z) => z !== hand);
   const handCount = hand?.view.kind === 'count' ? hand.view.count : null;
+  // A hand shown to everyone (bridge's dummy), which you may be the one playing.
+  const openCards = hand?.view.kind === 'cards' ? hand.view.cards : null;
+  const playedBy = view.control?.seat === seat ? view.control.by : null;
   const partner = player && view.players[view.you]?.team === player.team;
   const name = names(seat);
-  const stats = seatStats(player, handCount, showTricks);
+  const stats = seatStats(player, handCount, showTricks, view.bidLabels);
 
   const facts = [
     seat === view.dealer ? 'Dealer' : null,
     partner && view.teams[player.team]?.players.length !== 1 ? 'Partner' : null,
-    player?.bid != null ? `Bid ${bidLabel(player.bid).toLowerCase()}` : null,
+    player?.bid != null ? `Bid ${bidWords(player.bid, view.bidLabels)}` : null,
+    playedBy !== null ? `Played by ${playedBy === view.you ? 'you' : names(playedBy)}` : null,
     showTricks && player ? `Won ${player.tricks}` : null,
     player && !player.active ? 'Out' : null,
     player?.sittingOut ? 'Sitting out' : null,
@@ -60,7 +73,7 @@ export function Seat({
 
   return (
     <section
-      className={`seat${acting ? ' acting' : ''}${open ? ' open' : ''}`}
+      className={`seat${acting ? ' acting' : ''}${open ? ' open' : ''}${openCards ? ' has-open-hand' : ''}`}
       style={{ ['--x' as string]: x, ['--y' as string]: y, ['--order' as string]: order }}
       aria-label={`${name}${acting ? ', to play' : ''}`}
       onKeyDown={(e) => {
@@ -113,10 +126,83 @@ export function Seat({
           )}
           {facts.length > 0 && <span className="seat-facts">{facts.join(' · ')}</span>}
         </div>
+        {openCards && (
+          <OpenHand
+            cards={openCards}
+            name={name}
+            controls={playedBy === view.you ? controls : null}
+            selected={selected}
+            onPress={onPress}
+          />
+        )}
         {others.map((zone) => (
           <ZoneDisplay key={zone.key} zone={zone} compact />
         ))}
       </div>
     </section>
+  );
+}
+
+/**
+ * Another player's hand shown face up (bridge's dummy), in a row per suit.
+ * When you play its cards, each card is a button that works like the cards
+ * in your own hand.
+ */
+function OpenHand({
+  cards,
+  name,
+  controls,
+  selected,
+  onPress,
+}: {
+  cards: readonly CardData[];
+  name: string;
+  controls: Controls | null;
+  selected: readonly string[];
+  onPress: (card: CardData) => void;
+}) {
+  const sorted = sortHand(cards);
+  const rows = [
+    ...SUITS.map((suit) => sorted.filter((c) => 'suit' in c && c.suit === suit)),
+    sorted.filter((c) => !('suit' in c)),
+  ]
+    .filter((row) => row.length > 0)
+    // High cards first, as a hand laid out on the table reads.
+    .map((row) => [...row].reverse());
+  const choosing = controls !== null && controls.byCard.size > 0;
+  return (
+    <div
+      className={`open-hand${controls ? ' yours' : ''}`}
+      role="group"
+      aria-label={`${name}'s hand, face up: ${cards.length} card${cards.length === 1 ? '' : 's'}`}
+    >
+      {rows.map((row) => (
+        <div key={row[0]?.id} className="open-row">
+          {row.map((card) => {
+            if (!controls) return <CardFace key={card.id} card={card} size="tiny" />;
+            const usable = isCardUsable(controls, card.id);
+            const isSelected = selected.includes(card.id);
+            const state = [
+              choosing && usable ? 'playable' : null,
+              choosing && !usable ? 'unusable' : null,
+              isSelected ? 'selected' : null,
+            ];
+            return (
+              <button
+                key={card.id}
+                type="button"
+                className={['hand-card', ...state].filter(Boolean).join(' ')}
+                aria-pressed={isSelected}
+                aria-disabled={!usable}
+                aria-label={`${spokenLabel(card)}${choosing && !usable ? ", can't be played now" : ''}`}
+                onClick={() => usable && onPress(card)}
+              >
+                <CardFace card={card} size="small" />
+              </button>
+            );
+          })}
+        </div>
+      ))}
+    </div>
   );
 }

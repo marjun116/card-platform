@@ -11,7 +11,7 @@ import { Menu, type MenuItem } from '../components/Menu';
 import { useHeaderSlot } from '../headerSlot';
 import { DecisionPanel, HandActions } from './ActionBar';
 import type { GameMessage, TableConnection } from './connection';
-import { bidLabel, logLines, seatNames } from './describe';
+import { bidWords, logLines, seatNames, teamName } from './describe';
 import { GroupSummary, Hand } from './Hand';
 import { buildControls, quickMove, turnPrompt } from './moves';
 import { Dialog, HistoryTable, RoundTable, Scoreboard } from './Scores';
@@ -112,14 +112,14 @@ export function TableView({
 
   const log = useMemo(() => logLines(view, names), [view, names]);
   const lastLog = log[log.length - 1];
-  const announcement = [lastLog ?? null, yourTurn && !paused ? turnPrompt(controls) : null]
+  const announcement = [lastLog ?? null, yourTurn && !paused ? turnPrompt(controls, names) : null]
     .filter(Boolean)
     .join('. ');
 
   const status = paused
     ? 'The host paused the game.'
     : yourTurn
-      ? turnPrompt(controls)
+      ? turnPrompt(controls, names)
       : `Waiting for ${toAct.map(names).join(', ') || 'the next round'}…`;
 
   const others = view.players.filter((p) => p.id !== view.you);
@@ -226,18 +226,32 @@ export function TableView({
                 toAct={paused ? [] : toAct}
                 showTricks={showTricks}
                 onNudge={(seat) => send({ type: 'nudge', seat })}
+                controls={controls}
+                selected={selected}
+                onPress={press}
               />
             ))}
           </div>
           <div className="center">
             {view.display.length > 0 && (
               <p className="display-values">
-                {view.display.map((item) => (
-                  <span key={item.label}>
-                    <span className="muted">{item.label}</span>{' '}
-                    <strong>{String(item.value)}</strong>
-                  </span>
-                ))}
+                {view.display.map((item) => {
+                  const team =
+                    item.format === 'team' && typeof item.value === 'number'
+                      ? view.teams[item.value]
+                      : undefined;
+                  const text =
+                    item.format === 'player' && typeof item.value === 'number'
+                      ? names(item.value)
+                      : team
+                        ? teamName(team, names)
+                        : String(item.value);
+                  return (
+                    <span key={item.label}>
+                      <span className="muted">{item.label}</span> <strong>{text}</strong>
+                    </span>
+                  );
+                })}
               </p>
             )}
             <div className="center-row">
@@ -269,6 +283,7 @@ export function TableView({
               controls={controls}
               names={names}
               choices={view.choiceLabels}
+              bidLabels={view.bidLabels}
               busy={busy}
               onMove={act}
             />
@@ -322,7 +337,8 @@ export function TableView({
           <strong>{status}</strong>
           <span className="muted">
             {layout.hand?.view.kind === 'count' && ' Your cards are face down.'}
-            {myBid != null && ` Your bid: ${bidLabel(myBid).toLowerCase()}.`}
+            {myBid != null && ` Your bid: ${bidWords(myBid, view.bidLabels)}.`}
+            {view.control?.seat === view.you && ` ${names(view.control.by)} is playing your cards.`}
             {showTricks && ` You've won ${view.players[view.you]?.tricks ?? 0}.`}
           </span>
         </div>
@@ -360,7 +376,13 @@ export function TableView({
           title={`Round ${newRound.round} scores`}
           onClose={() => setRoundsSeen(view.history.length)}
         >
-          <RoundTable result={newRound} teams={view.teams} names={names} />
+          <RoundTable
+            result={newRound}
+            teams={view.teams}
+            names={names}
+            bidLabels={view.bidLabels}
+            trackLabels={view.trackLabels}
+          />
         </Dialog>
       )}
       {showHistory && !newRound && (

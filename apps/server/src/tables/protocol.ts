@@ -18,10 +18,16 @@ const cardList = z.array(cardId).min(1).max(400);
 const meldRef = z.strictObject({ zone: zoneName, index: z.number().int().min(0).max(100) });
 
 /**
- * A move as the client sends it. `player` is optional and always ignored:
- * the server fills in the sender's own seat.
+ * A move as the client sends it. Normally `player` is optional and ignored:
+ * the server fills in the sender's own seat. A move made for another seat
+ * (bridge's declarer playing the dummy) names that seat in `player` and has
+ * `by`; the server sets `by` to the sender's seat and the engine checks the
+ * sender really controls that seat.
  */
-const player = { player: z.number().int().optional() };
+const player = {
+  player: z.number().int().min(0).max(9).optional(),
+  by: z.number().int().min(0).max(9).optional(),
+};
 export const moveSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...player, type: z.literal('play'), card: cardId, to: zoneName }),
   z.strictObject({ ...player, type: z.literal('playToTrick'), card: cardId }),

@@ -211,7 +211,11 @@ export class TableRoom {
     this.sendGameToAll();
   }
 
-  private async move(user: User, seq: number, requested: Omit<Move, 'player'>): Promise<void> {
+  private async move(
+    user: User,
+    seq: number,
+    requested: Omit<Move, 'player'> & { player?: number },
+  ): Promise<void> {
     this.requireStatus(
       'playing',
       this.table.status === 'paused' ? 'The game is paused' : "The game isn't being played",
@@ -229,8 +233,14 @@ export class TableRoom {
       );
     }
 
-    // Always the sender's own seat, whatever the message said.
-    const move = { ...requested, player: seat } as Move;
+    // The sender's own seat, whatever the message said: as the player, or as `by` when
+    // playing for another seat (which the engine only allows from the seat in control).
+    const { by: claimed, player: forSeat, ...rest } = requested;
+    const move = (
+      claimed !== undefined && forSeat !== undefined
+        ? { ...rest, player: forSeat, by: seat }
+        : { ...rest, player: seat }
+    ) as Move;
     if (isBlind(state, seat) && namesCards(move)) {
       // Otherwise a blind player could find out what they hold by guessing card ids.
       throw new RoomError('ILLEGAL_MOVE', 'Look at your hand first');

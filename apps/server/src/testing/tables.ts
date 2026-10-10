@@ -38,18 +38,23 @@ export async function createTable(
 }
 
 /**
- * Four guests at a spades table: the first is the host, each sits in the seat
- * matching their index. Starts the game unless `start` is false.
+ * Four guests at a spades table (or another four-player game): the first is
+ * the host, each sits in the seat matching their index. Starts the game
+ * unless `start` is false.
  */
 export async function spadesTable(
   server: TestServer,
   baseUrl: string,
-  { options = {}, start = true }: { options?: Record<string, OptionValue>; start?: boolean } = {},
+  {
+    options = {},
+    start = true,
+    game = 'spades',
+  }: { options?: Record<string, OptionValue>; start?: boolean; game?: string } = {},
 ): Promise<{ code: string; players: Player[] }> {
   const names = ['North', 'East', 'South', 'West'];
   const guests = await Promise.all(names.map((name) => guest(server.app, name)));
   const code = await createTable(server, (guests[0] as { token: string }).token, {
-    game: 'spades',
+    game,
     options,
   });
   const players: Player[] = [];

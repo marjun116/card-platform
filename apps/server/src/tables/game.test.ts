@@ -3,7 +3,7 @@
  * with their own socket, playing random legal moves until someone wins.
  * Also covers reconnecting and resuming after a server restart.
  */
-import { getScores, isGameOver, replay } from '@card-table/engine';
+import { getScores, isGameOver, type Move, replay } from '@card-table/engine';
 import { builtInGames } from '@card-table/games';
 import { afterEach, describe, expect, it } from 'vitest';
 import { buildApp } from '../app';
@@ -125,5 +125,53 @@ describe('reconnecting', () => {
     }
     await playRandomly(players, 'restart-2', { maxMoves: 10 });
     expect(players[0]?.client.lastGame?.seq).toBe(35);
+  });
+});
+
+describe('playing for another seat', () => {
+  it("lets bridge's declarer play the dummy's cards, and nobody else", async () => {
+    server = await testServer();
+    const baseUrl = await listen(server);
+    const { players } = await spadesTable(server, baseUrl, { game: 'bridge' });
+    clients.push(...players.map((p) => p.client));
+    const client = (seat: number) => (players[seat] as (typeof players)[number]).client;
+    const send = async (seat: number, move: Move) => {
+      const seq = client(seat).lastGame?.seq ?? 0;
+      await client(seat).ok({ type: 'move', seq, move });
+      await Promise.all(players.map((p) => p.client.game(seq + 1)));
+    };
+
+    // The dealer bids 1♣ and everyone else passes: the dealer declares.
+    const dealer = client(0).lastGame?.view.dealer as number;
+    await send(dealer, { player: dealer, type: 'bid', value: 11 });
+    for (let i = 1; i < 4; i++) await send((dealer + i) % 4, { player: 0, type: 'passBid' });
+    const dummy = (dealer + 2) % 4;
+    const leader = (dealer + 1) % 4;
+    const lead = client(leader).lastGame?.legalMoves[0] as Move;
+    await send(leader, lead);
+
+    // The dummy's turn: its hand is face up for everyone; the declarer is told its moves.
+    const game = client(dealer).lastGame;
+    expect(game?.toAct).toEqual([dealer]);
+    expect(game?.view.control).toEqual({ seat: dummy, by: dealer });
+    expect(client(leader).lastGame?.view.zones[`hand@${dummy}`]).toMatchObject({ kind: 'cards' });
+    expect(client(dummy).lastGame?.legalMoves).toEqual([]);
+    const forDummy = game?.legalMoves.find((m) => m.player === dummy) as Move;
+    expect(forDummy).toMatchObject({ by: dealer, type: 'playToTrick' });
+
+    // The dummy can't play its own card, and another player can't play it either.
+    const seq = game?.seq as number;
+    const { by: _by, ...own } = forDummy;
+    expect(
+      await client(dummy).request({ type: 'move', seq, move: { ...own, player: dummy } }),
+    ).toMatchObject({ type: 'error', code: 'ILLEGAL_MOVE' });
+    expect(
+      await client(leader).request({ type: 'move', seq, move: { ...forDummy, by: leader } }),
+    ).toMatchObject({ type: 'error', code: 'ILLEGAL_MOVE' });
+
+    // The declarer can, whatever `by` the message claims; the log records who chose it.
+    await send(dealer, { ...forDummy, by: 3 });
+    const log = client(leader).lastGame?.view.log;
+    expect(log?.at(-1)).toMatchObject({ player: dummy, by: dealer });
   });
 });

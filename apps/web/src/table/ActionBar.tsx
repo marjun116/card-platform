@@ -9,21 +9,22 @@
 import type { Move } from '@card-table/engine';
 import { useState } from 'react';
 import { isRed } from './cards';
-import { bidLabel, type ChoiceLabels, moveLabel, type SeatNames } from './describe';
+import { type BidLabels, bidLabel, type ChoiceLabels, moveLabel, type SeatNames } from './describe';
 import type { Arrangement } from './Hand';
 import { type Controls, groupHint, hasDecisions, movesForSelection, regroup } from './moves';
 
 interface ButtonProps {
   names: SeatNames;
   choices?: ChoiceLabels;
+  bidLabels?: BidLabels;
   busy: boolean;
   onMove: (move: Move) => void;
 }
 
 function moveButton(
   move: Move,
-  { names, choices, busy, onMove }: ButtonProps,
-  label = moveLabel(move, names, choices),
+  { names, choices, bidLabels, busy, onMove }: ButtonProps,
+  label = moveLabel(move, names, choices, bidLabels),
   className?: string,
 ) {
   return (
@@ -61,7 +62,7 @@ function BidPicker({ bids, ...props }: ButtonProps & { bids: Controls['bids'] })
   const chosen = rest[picked] ?? rest[0];
   return (
     <>
-      {buttons.map(({ value, move }) => moveButton(move, props, bidLabel(value)))}
+      {buttons.map(({ value, move }) => moveButton(move, props, bidLabel(value, props.bidLabels)))}
       <span className="bid-picker">
         <select
           aria-label="Higher bid"
@@ -70,7 +71,7 @@ function BidPicker({ bids, ...props }: ButtonProps & { bids: Controls['bids'] })
         >
           {rest.map(({ value }, i) => (
             <option key={String(value)} value={i}>
-              {bidLabel(value)}
+              {bidLabel(value, props.bidLabels)}
             </option>
           ))}
         </select>
@@ -79,7 +80,7 @@ function BidPicker({ bids, ...props }: ButtonProps & { bids: Controls['bids'] })
           disabled={props.busy || !chosen}
           onClick={() => chosen && props.onMove(chosen.move)}
         >
-          Bid {chosen ? bidLabel(chosen.value) : ''}
+          Bid {chosen ? bidLabel(chosen.value, props.bidLabels) : ''}
         </button>
       </span>
     </>
@@ -97,7 +98,9 @@ export function DecisionPanel({ controls, ...props }: ButtonProps & { controls: 
           {controls.bids.filter(({ value }) => typeof value === 'number').length > MANY_BIDS ? (
             <BidPicker bids={controls.bids} {...props} />
           ) : (
-            controls.bids.map(({ value, move }) => moveButton(move, props, bidLabel(value)))
+            controls.bids.map(({ value, move }) =>
+              moveButton(move, props, bidLabel(value, props.bidLabels)),
+            )
           )}
         </fieldset>
       )}

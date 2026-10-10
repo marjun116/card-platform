@@ -162,7 +162,7 @@ export function hasDecisions(controls: Controls): boolean {
 }
 
 /** What to tell a player whose turn it is, e.g. "Your turn: choose your bid." */
-export function turnPrompt(controls: Controls): string {
+export function turnPrompt(controls: Controls, names?: (seat: number) => string): string {
   const tasks: string[] = [];
   if (controls.bids.length > 0) tasks.push('choose your bid');
   if (controls.suits.length > 0) {
@@ -170,7 +170,12 @@ export function turnPrompt(controls: Controls): string {
   }
   if (controls.choices.length > 0) tasks.push('make your choice');
   if (controls.byPile.size > 0) tasks.push('draw a card');
-  if (controls.byCard.size > 0) tasks.push('choose a card');
+  const cardMoves = [...controls.byCard.values()].flat();
+  const forSeat = cardMoves[0]?.by !== undefined ? cardMoves[0].player : null;
+  // Every card move is for another seat (bridge's dummy): say whose.
+  if (forSeat !== null && names && cardMoves.every((m) => m.player === forSeat)) {
+    tasks.push(`choose a card for ${names(forSeat)}`);
+  } else if (controls.byCard.size > 0) tasks.push('choose a card');
   else if (controls.groups.length > 0) tasks.push('choose cards');
   if (tasks.length === 0) return 'Your turn.';
   return `Your turn: ${tasks.length > 1 ? `${tasks.slice(0, -1).join(', ')} or ${tasks[tasks.length - 1]}` : tasks[0]}.`;

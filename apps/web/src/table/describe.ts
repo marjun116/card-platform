@@ -14,9 +14,20 @@ export function seatNames(table: TableInfo | null, you: number | null): SeatName
   };
 }
 
-/** "3" or "Nil" or "Blind nil". */
-export function bidLabel(value: BidValue): string {
-  return typeof value === 'number' ? String(value) : humanize(value);
+/** Words the game file gives its bids, e.g. { "11": "1♣" } (`view.bidLabels`). */
+export type BidLabels = Record<string, string>;
+
+/** "3" or "Nil" or "Blind nil", or the game's own words for the bid ("1NT"). */
+export function bidLabel(value: BidValue, labels: BidLabels = {}): string {
+  const own = Object.hasOwn(labels, String(value)) ? labels[String(value)] : undefined;
+  return own ?? (typeof value === 'number' ? String(value) : humanize(value));
+}
+
+/** A bid inside a sentence ("bid nil"); the game's own words keep their case ("bid 1NT"). */
+export function bidWords(value: BidValue, labels: BidLabels = {}): string {
+  return Object.hasOwn(labels, String(value))
+    ? bidLabel(value, labels)
+    : bidLabel(value).toLowerCase();
 }
 
 /** "Q♠" or "Queen of spades"; card ids always name their card. */
@@ -38,7 +49,23 @@ function choiceText(value: string, choices: ChoiceLabels): string {
 }
 
 /** Label for a button that makes this move, e.g. "Play Q♠" or "Draw from the stock". */
-export function moveLabel(move: Move, names: SeatNames, choices: ChoiceLabels = {}): string {
+export function moveLabel(
+  move: Move,
+  names: SeatNames,
+  choices: ChoiceLabels = {},
+  bids: BidLabels = {},
+): string {
+  const label = ownMoveLabel(move, names, choices, bids);
+  // Made for another seat (the dummy in bridge): say whose cards.
+  return move.by === undefined ? label : `${label} for ${names(move.player)}`;
+}
+
+function ownMoveLabel(
+  move: Move,
+  names: SeatNames,
+  choices: ChoiceLabels,
+  bids: BidLabels,
+): string {
   switch (move.type) {
     case 'playToTrick':
       return `Play ${cardText(move.card, false)}`;
@@ -69,7 +96,7 @@ export function moveLabel(move: Move, names: SeatNames, choices: ChoiceLabels = 
     case 'meld':
       return `Meld ${move.cards.length} cards`;
     case 'bid':
-      return `Bid ${bidLabel(move.value)}`;
+      return `Bid ${bidLabel(move.value, bids)}`;
     case 'passBid':
       return 'Pass';
     case 'declareTrump':
@@ -96,8 +123,13 @@ export function describeMove(
   move: PublicMove,
   names: SeatNames,
   choices: ChoiceLabels = {},
+  bids: BidLabels = {},
 ): string {
-  const who = names(move.player);
+  // Made for another seat: "Ana (for Raj) played 9 of hearts".
+  const who =
+    'by' in move && move.by !== undefined
+      ? `${names(move.by)} (for ${names(move.player)})`
+      : names(move.player);
   const their = who === 'You' ? 'your' : 'their';
   if ('hidden' in move) {
     if (move.type === 'pass') return `${who} passed cards`;
@@ -131,7 +163,7 @@ export function describeMove(
     case 'meld':
       return `${who} melded ${move.cards.map(card).join(', ')}`;
     case 'bid':
-      return `${who} bid ${bidLabel(move.value).toLowerCase()}`;
+      return `${who} bid ${bidWords(move.value, bids)}`;
     case 'passBid':
       return `${who} passed`;
     case 'declareTrump':
@@ -180,7 +212,7 @@ export function logLines(view: PlayerView, names: SeatNames): string[] {
   view.log.forEach((move, i) => {
     // Arranging cards isn't news for anyone else, so it stays out of the log.
     if (move.type !== 'arrange' && move.type !== 'sortHand') {
-      lines.push(describeMove(move, names, view.choiceLabels));
+      lines.push(describeMove(move, names, view.choiceLabels, view.bidLabels));
     }
     lines.push(...scores(i + 1));
   });
@@ -203,12 +235,16 @@ export function seatStats(
     { bid: BidValue | null; tricks: number; active: boolean; sittingOut?: boolean } | undefined,
   handCount: number | null,
   showTricks: boolean,
+  bids: BidLabels = {},
 ): { short: string | null; spoken: string } {
   const short: string[] = [];
   const spoken: string[] = [];
   if (player?.bid != null) {
-    short.push(typeof player.bid === 'number' ? `B${player.bid}` : bidLabel(player.bid));
-    spoken.push(`bid ${bidLabel(player.bid).toLowerCase()}`);
+    const own = Object.hasOwn(bids, String(player.bid));
+    short.push(
+      typeof player.bid === 'number' && !own ? `B${player.bid}` : bidLabel(player.bid, bids),
+    );
+    spoken.push(`bid ${bidWords(player.bid, bids)}`);
   }
   if (showTricks && player) {
     short.push(`W${player.tricks}`);

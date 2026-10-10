@@ -695,6 +695,30 @@ kbd {
   font-size: 0.85em;
   opacity: 0.9;
 }
+/* A hand shown face up at another seat (bridge's dummy): a row per suit, high cards first. */
+.seat.has-open-hand {
+  max-width: 340px;
+}
+.open-hand {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.open-row {
+  display: flex;
+}
+.open-row > .card + .card {
+  margin-left: calc(var(--tiny-w) * -0.3);
+}
+/* Yours to play: small cards you can press, as in your own hand. */
+.open-hand.yours {
+  padding-top: 10px;
+  gap: 6px;
+}
+.open-row .hand-card + .hand-card {
+  margin-left: calc(var(--small-w) * -0.45);
+}
+
 .fan,
 .melds,
 .meld {
@@ -1136,6 +1160,10 @@ kbd {
     flex: 1 0 88px;
     padding: 0.35em 0.45em;
     font-size: 0.8rem;
+  }
+  /* A face-up hand (bridge's dummy) needs more of the strip. */
+  .seat.has-open-hand {
+    flex: 3 0 auto;
   }
   .seat-head .turn-badge {
     display: none;

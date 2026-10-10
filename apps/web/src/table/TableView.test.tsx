@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   counting,
   createGame,
+  dummyGame,
   gameMessage,
   miniRummy,
   passing,
@@ -337,5 +338,76 @@ describe('TableView: a wide range of bids', () => {
     const bids = within(screen.getByRole('group', { name: 'Your bid' }));
     expect(bids.queryByRole('combobox')).toBeNull();
     expect(bids.getByRole('button', { name: '13' })).toBeTruthy();
+  });
+});
+
+describe('a hand played by another seat (bridge-style dummy)', () => {
+  /** The dealer bids 1♣ and declares; the opening lead is made; it's the dummy's turn. */
+  function atDummysTurn() {
+    let state = createGame(dummyGame, {}, 4, 'web-dummy');
+    const declarer = state.dealer;
+    state = applyMove(state, { player: declarer, type: 'bid', value: 11 });
+    state = playUntil(
+      state,
+      (s) => s.cursor.phase === 1,
+      (moves) => moves.find((m) => m.type === 'passBid'),
+    );
+    const before = state;
+    state = playUntil(state, (s) => s.trick?.plays.length === 1);
+    return { before, state, declarer, dummy: (declarer + 2) % 4, leader: (declarer + 1) % 4 };
+  }
+  const openHand = (name: string) =>
+    screen.queryByRole('group', { name: new RegExp(`^${name}'s hand, face up`) });
+
+  it('shows the dummy face up only after the opening lead', () => {
+    const { before, state, dummy, leader } = atDummysTurn();
+    const { update } = show(before, leader);
+    expect(openHand(NAMES[dummy] as string)).toBeNull();
+    update(state);
+    const cards = within(openHand(NAMES[dummy] as string) as HTMLElement);
+    expect(cards.getAllByRole('img')).toHaveLength(4);
+    // Someone who doesn't play it can only look.
+    expect(cards.queryAllByRole('button')).toHaveLength(0);
+  });
+
+  it("lets the declarer play the dummy's cards, saying whose they are", () => {
+    const { state, declarer, dummy } = atDummysTurn();
+    const { connection } = show(state, declarer);
+    const name = NAMES[dummy] as string;
+    expect(screen.getByText(`Your turn: choose a card for ${name}.`)).toBeTruthy();
+    expect(screen.getByText(/Played by you/)).toBeTruthy();
+    const cards = within(openHand(name) as HTMLElement);
+    const playable = cards
+      .getAllByRole('button')
+      .filter((b) => b.getAttribute('aria-disabled') === 'false');
+    expect(playable.length).toBeGreaterThan(0);
+    const card = playable[0] as HTMLElement;
+    fireEvent.click(card);
+    fireEvent.click(card);
+    expect(connection.move).toHaveBeenCalledWith(
+      expect.objectContaining({ player: dummy, by: declarer, type: 'playToTrick' }),
+    );
+  });
+
+  it('tells the dummy who is playing their cards, and offers them nothing', () => {
+    const { state, declarer, dummy } = atDummysTurn();
+    show(state, dummy);
+    expect(screen.getByText(new RegExp(`${NAMES[declarer]} is playing your cards`))).toBeTruthy();
+    expect(screen.getByText(/^Waiting for/)).toBeTruthy();
+  });
+
+  it('shows display labels, seats as names, and counters by their labels', () => {
+    const { state, declarer } = atDummysTurn();
+    show(state, (declarer + 1) % 4);
+    expect(screen.getByText('1♣')).toBeTruthy();
+    const display = screen.getByText('Declarer').parentElement as HTMLElement;
+    expect(display.textContent).toContain(NAMES[declarer]);
+    cleanup();
+    // After a hand: "Hands played" is shown; the hidden counter isn't.
+    const after = playUntil(state, (s) => s.round > 1);
+    show(after, 0);
+    const scores = within(screen.getByRole('region', { name: 'Scores' }));
+    expect(scores.getAllByText(/Hands played 1/).length).toBeGreaterThan(0);
+    expect(scores.queryByText(/Secret/)).toBeNull();
   });
 });
