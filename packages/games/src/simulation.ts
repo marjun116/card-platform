@@ -302,54 +302,92 @@ const MIN_ROUNDS: Record<BuiltInGameName, number> = {
 };
 
 /**
- * The simulation tests for one game. Each game has its own test file
- * (`<game>.simulation.test.ts`), so games are simulated in parallel. The time
- * limits are generous for that reason: on a machine with few cores, each game
- * gets a small share of it.
+ * Each game has its own simulation test file (`<game>.simulation.test.ts`),
+ * so games are simulated in parallel; the slowest are split over several
+ * (`<game>.simulation-2.test.ts` and so on) so the work spreads over every
+ * test worker. The parts play exactly the games one file would: same seeds,
+ * same checks. The time limits are generous: on a machine with few cores,
+ * each file gets a small share of it.
  */
-export function simulationTests(game: BuiltInGameName): void {
-  describe(`${game} simulation`, () => simulate(game));
+export const SIMULATION_PARTS: Partial<Record<BuiltInGameName, number>> = {
+  rummy: 4,
+  'gin-rummy': 4,
+  canasta: 4,
+  bridge: 4,
+  pinochle: 4,
+  hearts: 2,
+  'crazy-eights': 2,
+};
+
+/**
+ * One part of a game's simulation tests. They're jobs (the random games in
+ * equal chunks, one chunk per part; the sensible games; each set of house
+ * rules), dealt round the parts in turn.
+ */
+export function simulationTests(game: BuiltInGameName, part = 1): void {
+  const parts = SIMULATION_PARTS[game] ?? 1;
+  if (part < 1 || part > parts) throw new Error(`${game}'s simulation has ${parts} parts`);
+  const title = parts === 1 ? `${game} simulation` : `${game} simulation, part ${part} of ${parts}`;
+  describe(title, () => {
+    simulationJobs(game, parts).forEach((job, i) => {
+      if (i % parts === part - 1) job();
+    });
+  });
 }
 
-function simulate(game: BuiltInGameName): void {
-  const name = game;
+/** Every simulation test for a game, each a function that declares it. */
+function simulationJobs(game: BuiltInGameName, parts: number): (() => void)[] {
   const file = builtInGames[game];
   const random = RANDOM[game] ?? randomStrategy;
   const base = BASE_OPTIONS[game] ?? {};
+  const size = RANDOM_GAMES / parts;
 
-  it(`plays ${RANDOM_GAMES} random games without a problem`, { timeout: 1_200_000 }, () => {
-    const report = simulateMany(file, {
-      games: RANDOM_GAMES,
-      seedPrefix: `${name}-random`,
-      strategy: random,
-      options: base,
-    });
-    expect(report.games).toBe(RANDOM_GAMES);
-  });
-
-  it(`plays ${SENSIBLE_GAMES} sensible games without a problem`, { timeout: 600_000 }, () => {
-    const report = simulateMany(file, {
-      games: SENSIBLE_GAMES,
-      seedPrefix: `${name}-sensible`,
-      strategy: SENSIBLE[game],
-      options: base,
-    });
-    // These games should get past the first couple of rounds.
-    expect(report.averageRounds).toBeGreaterThan(MIN_ROUNDS[game]);
-  });
-
-  const variants = VARIANTS[game] ?? [];
-  it.each(variants.map((options) => [JSON.stringify(options), options] as const))(
-    `plays ${VARIANT_GAMES} random games with house rules %s`,
-    { timeout: 600_000 },
-    (label, options) => {
+  const randomChunks = Array.from({ length: parts }, (_, chunk) => () => {
+    const first = chunk * size;
+    const title =
+      parts === 1
+        ? `plays ${RANDOM_GAMES} random games without a problem`
+        : `plays random games ${first + 1}-${first + size} of ${RANDOM_GAMES} without a problem`;
+    it(title, { timeout: 1_200_000 }, () => {
       const report = simulateMany(file, {
-        games: VARIANT_GAMES,
-        seedPrefix: `${name}-${label}`,
+        games: size,
+        firstGame: first,
+        seedPrefix: `${game}-random`,
         strategy: random,
-        options: { ...base, ...options },
+        options: base,
       });
-      expect(report.games).toBe(VARIANT_GAMES);
-    },
-  );
+      expect(report.games).toBe(size);
+    });
+  });
+
+  const sensible = () =>
+    it(`plays ${SENSIBLE_GAMES} sensible games without a problem`, { timeout: 600_000 }, () => {
+      const report = simulateMany(file, {
+        games: SENSIBLE_GAMES,
+        seedPrefix: `${game}-sensible`,
+        strategy: SENSIBLE[game],
+        options: base,
+      });
+      // These games should get past the first couple of rounds.
+      expect(report.averageRounds).toBeGreaterThan(MIN_ROUNDS[game]);
+    });
+
+  const variants = (VARIANTS[game] ?? []).map((options) => () => {
+    const label = JSON.stringify(options);
+    it(
+      `plays ${VARIANT_GAMES} random games with house rules ${label}`,
+      { timeout: 600_000 },
+      () => {
+        const report = simulateMany(file, {
+          games: VARIANT_GAMES,
+          seedPrefix: `${game}-${label}`,
+          strategy: random,
+          options: { ...base, ...options },
+        });
+        expect(report.games).toBe(VARIANT_GAMES);
+      },
+    );
+  });
+
+  return [...randomChunks, sensible, ...variants];
 }

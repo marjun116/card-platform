@@ -168,6 +168,12 @@ export interface SimulateManyOptions extends SimulationOptions {
   seedPrefix?: string;
   /** Also check that every Nth game replays exactly from its seed and moves (0 = never). Default 50. */
   replayEvery?: number;
+  /**
+   * Number of the first game (default 0), so a long run can be split into parts
+   * that play exactly the same games: seeds, player counts and replay checks all
+   * follow the game's number.
+   */
+  firstGame?: number;
 }
 
 export interface SimulationReport {
@@ -179,12 +185,12 @@ export interface SimulationReport {
 
 /** Plays many seeded games; throws SimulationError on the first problem. */
 export function simulateMany(file: GameFile, opts: SimulateManyOptions): SimulationReport {
-  const { games, seedPrefix = 'sim', replayEvery = 50 } = opts;
+  const { games, seedPrefix = 'sim', replayEvery = 50, firstGame = 0 } = opts;
   const counts = opts.playerCounts ?? allowedPlayerCounts(file);
   let moves = 0;
   let rounds = 0;
   let longest = 0;
-  for (let i = 0; i < games; i++) {
+  for (let i = firstGame; i < firstGame + games; i++) {
     const players = counts[i % counts.length] as number;
     const seed = `${seedPrefix}-${i}`;
     const result = simulateGame(file, players, seed, opts);
