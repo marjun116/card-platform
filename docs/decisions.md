@@ -993,3 +993,22 @@ General parts of the game format, added because bridge needed them; none mention
   mid-game no longer holds the seat, so that game isn't in their history or stats. Fixing it
   would mean recording each seat's players over time (a database change).
 - No database change: it's all built from the saved results.
+
+## 2026-10-10: Rulebook viewer (Phase 5)
+
+- **Rules files** are `packages/games/<game>.rules.md`, next to each game file, exported as
+  `builtInRules`. The server sends one at `GET /api/games/:slug/rules`; the web app loads
+  it only when the rules are opened (it isn't part of the games list).
+- **The formatting subset:** `#` (the title) and `##` headings, paragraphs (lines joined
+  until a blank line), `- ` bullet lists, and `**bold**`. Our renderer (`rulesText.ts`,
+  `components/Rules.tsx`) turns it into React elements; anything else, HTML included, is
+  shown as plain text. A test checks every built-in rulebook stays inside the subset.
+- **Every house rule must be explained:** a test checks each option's lobby label (up to
+  its first bracket, colon or comma) appears in bold in the rulebook's "House rules"
+  section, so a new option can't ship undocumented.
+- **Where:** a Rules button on the table (in the header on wide screens, in the ⋯ menu on
+  phones) and in the lobby opens the rulebook over the game, starting with "At this table"
+  (players, partners by name, every house rule with "(changed)" next to ones that differ
+  from the standard game). The Games page links to a page per game (`/games/<slug>/rules`)
+  with the written rules only.
+- The written rules for all eleven games are first drafts, to be reviewed on the site.

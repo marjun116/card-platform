@@ -261,13 +261,14 @@ Add games one at a time, picking each to stretch a different part of the engine.
   - [x] Simple stats per game: games played and won
 - [ ] Rulebook for each game, readable at any time (plan agreed 2026-10-07, see
       `docs/decisions.md`):
-  - [ ] Written rules for each built-in game (starting with spades): object, setup,
+  - [x] Written rules for each built-in game (starting with spades): object, setup,
         bidding, play, scoring, and what each house rule does. Draft for review first.
-  - [ ] An "At this table" section generated from the table's actual settings (players,
+  - [ ] Review every rulebook on the site, and fix what needs fixing
+  - [x] An "At this table" section generated from the table's actual settings (players,
         teams, house rules chosen)
-  - [ ] A **Rules** button on the table (opens over the game) and in the lobby, plus a
+  - [x] A **Rules** button on the table (opens over the game) and in the lobby, plus a
         Rules link for each game on the Games page
-  - [ ] Rules text in a small formatting subset (headings, paragraphs, lists, bold) shown by
+  - [x] Rules text in a small formatting subset (headings, paragraphs, lists, bold) shown by
         our own renderer: no new dependency, no raw HTML
 - [x] Bots for built-in games: start with random legal moves, then simple rule-of-thumb play per game family
 - [x] Bots fill empty seats and replace players who leave
