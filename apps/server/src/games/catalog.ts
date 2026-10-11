@@ -5,7 +5,7 @@
  */
 import { createHash } from 'node:crypto';
 import { type GameFile, teamsFor } from '@card-table/engine';
-import { builtInGames } from '@card-table/games';
+import { builtInGames, builtInRules } from '@card-table/games';
 import type { GameVersion, Store } from '../store/types';
 import type { GameSummary } from '../tables/protocol';
 
@@ -51,6 +51,16 @@ export class GameCatalog {
   /** The current version of a built-in game. */
   builtIn(slug: string): GameVersion | undefined {
     return this.latest.get(slug);
+  }
+
+  /**
+   * A built-in game's rulebook. Rules aren't versioned: an old table shows the
+   * current rules (see docs/decisions.md, "Rulebook").
+   */
+  rules(slug: string): string | undefined {
+    return Object.hasOwn(builtInRules, slug)
+      ? builtInRules[slug as keyof typeof builtInRules]
+      : undefined;
   }
 
   /** Any version, by id. Versions never change, so they're cached. */

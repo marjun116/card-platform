@@ -56,6 +56,16 @@ describe('games and tables over HTTP', () => {
     ]);
   });
 
+  it("sends a game's rulebook", async () => {
+    const res = await server.app.inject({ method: 'GET', url: '/api/games/spades/rules' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json<{ rules: string }>().rules).toMatch(/^# Spades\n/);
+    for (const slug of ['nope', 'toString', '__proto__']) {
+      const missing = await server.app.inject({ method: 'GET', url: `/api/games/${slug}/rules` });
+      expect(missing.statusCode).toBe(404);
+    }
+  });
+
   it('lists the player counts that play in partnerships', async () => {
     const res = await server.app.inject({ method: 'GET', url: '/api/games' });
     const { games } = res.json<{ games: GameSummary[] }>();

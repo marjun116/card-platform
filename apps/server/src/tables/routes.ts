@@ -3,6 +3,7 @@
  * client can see: having the code is what lets you see and join a table.
  *
  *   GET  /api/games                  built-in games and their options
+ *   GET  /api/games/:slug/rules      a game's rulebook
  *   POST /api/tables                 create a table
  *   GET  /api/tables/mine            my unfinished tables
  *   GET  /api/tables/:code           a table's lobby info
@@ -27,6 +28,7 @@ const createBody = z.strictObject({
   playerCount: z.number().int().min(1).max(10).optional(),
 });
 const codeParams = z.object({ code: z.string().min(1).max(32) });
+const slugParams = z.object({ slug: z.string().min(1).max(64) });
 
 const PING_EVERY_MS = 30_000;
 /** Messages held while a connection is being set up; more than this closes it. */
@@ -41,6 +43,13 @@ export function tableRoutes(
   const { store, config } = deps;
 
   app.get('/api/games', () => ({ games: catalog.list() }));
+
+  app.get('/api/games/:slug/rules', (request, reply) => {
+    const params = slugParams.safeParse(request.params);
+    const rules = params.success ? catalog.rules(params.data.slug) : undefined;
+    if (rules === undefined) return reply.code(404).send({ error: 'No rules for that game' });
+    return { rules };
+  });
 
   app.post('/api/tables', async (request, reply) => {
     const user = request.user;
