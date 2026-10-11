@@ -255,10 +255,10 @@ Add games one at a time, picking each to stretch a different part of the engine.
   - [ ] Bridge
   - [ ] Bots: fill seats with bots, and replace a player who leaves mid-game
 - [x] Saved variants: a table's chosen options saved as a named, shareable preset
-- [ ] Game history (results are already saved by the server; nothing shows them yet):
-  - [ ] "Past games" on the home page: game, date, players, final score, and whether you won
-  - [ ] A past game's page: final scores and every round
-  - [ ] Simple stats per game: games played and won
+- [x] Game history (results are already saved by the server; nothing shows them yet):
+  - [x] "Past games" on the home page: game, date, players, final score, and whether you won
+  - [x] A past game's page: final scores and every round
+  - [x] Simple stats per game: games played and won
 - [ ] Rulebook for each game, readable at any time (plan agreed 2026-10-07, see
       `docs/decisions.md`):
   - [ ] Written rules for each built-in game (starting with spades): object, setup,

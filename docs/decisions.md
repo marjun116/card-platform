@@ -977,3 +977,19 @@ General parts of the game format, added because bridge needed them; none mention
 - **Where:** the create-table page has "Start from" (standard rules or your variants for that
   game) and "Save as variant"; the lobby has "Save as variant" under its house rules; the
   Games page lists "Your variants" with New table, Copy link and Delete.
+
+## 2026-10-10: Game history
+
+- **Past games** on the home page lists the games you sat at that are over, newest first, 20
+  at a time ("Show more" for older ones): game, date, outcome (you won, lost, shared the win,
+  or ended early), and the final scores, winners first. Each links to the table's page,
+  which already shows a finished game's final scores and every round, so there's no
+  separate past-game page.
+- **Ended early** (the host pressed End game) is listed as "Ended early", with no scores, and
+  isn't counted in stats. A table ended from the lobby, before anyone played, isn't listed.
+- **Stats**: games played and won for each game, finished games only, shown above the list.
+  A shared win (a tie for first) counts as a win.
+- **Known gap, accepted:** history follows who holds each seat now. A player a bot replaced
+  mid-game no longer holds the seat, so that game isn't in their history or stats. Fixing it
+  would mean recording each seat's players over time (a database change).
+- No database change: it's all built from the saved results.
