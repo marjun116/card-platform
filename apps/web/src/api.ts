@@ -3,7 +3,7 @@
  * Vite forwards to the Fastify server during development.
  */
 import type { OptionValue } from '@card-table/engine';
-import type { GameSummary, TableInfo } from '@card-table/server/protocol';
+import type { GameSummary, TableInfo, VariantInfo } from '@card-table/server/protocol';
 
 export interface User {
   id: string;
@@ -62,7 +62,41 @@ export const api = {
     request<{ table: TableInfo }>('GET', `/tables/${encodeURIComponent(code)}`).then(
       (r) => r.table,
     ),
+
+  saveVariant: (
+    game: string,
+    name: string,
+    options: Record<string, OptionValue>,
+    playerCount: number,
+  ) =>
+    request<{ variant: VariantInfo }>('POST', '/variants', {
+      game,
+      name,
+      options,
+      playerCount,
+    }).then((r) => r.variant),
+  myVariants: () =>
+    request<{ variants: VariantInfo[] }>('GET', '/variants/mine').then((r) => r.variants),
+  variant: (code: string) =>
+    request<{ variant: VariantInfo }>('GET', `/variants/${encodeURIComponent(code)}`).then(
+      (r) => r.variant,
+    ),
+  deleteVariant: (code: string) =>
+    request<{ ok: true }>('DELETE', `/variants/${encodeURIComponent(code)}`),
 };
+
+/** The page that starts a table from a variant: its share link. */
+export function variantPath(variant: Pick<VariantInfo, 'code' | 'game'>): string {
+  return `/games/${variant.game.slug}/new?variant=${encodeURIComponent(variant.code)}`;
+}
+
+/** The full share link of a variant. */
+export function variantLink(
+  variant: Pick<VariantInfo, 'code' | 'game'>,
+  location: Location = window.location,
+): string {
+  return `${location.origin}${variantPath(variant)}`;
+}
 
 /** The WebSocket address of a table, on the same host as the page. */
 export function tableSocketUrl(code: string, location: Location = window.location): string {

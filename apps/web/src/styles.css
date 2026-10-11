@@ -152,7 +152,8 @@ button.primary,
 button.danger {
   color: var(--danger);
 }
-button.small {
+button.small,
+.button.small {
   min-height: 32px;
   padding: 0.2em 0.7em;
   font-size: 0.9rem;
@@ -406,6 +407,30 @@ kbd {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+
+/* ---- saved variants ---- */
+
+.my-variants,
+.keep-rules {
+  margin: 16px 0;
+}
+.variant-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5em 1em;
+  padding: 0.6em 0;
+}
+.variant-row .actions {
+  gap: 0.5em;
+}
+.save-variant {
+  margin-top: 0.8em;
+}
+.save-variant p {
+  margin: 0;
 }
 
 /* ---- lobby ---- */

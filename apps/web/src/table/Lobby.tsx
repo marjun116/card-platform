@@ -2,6 +2,7 @@ import type { OptionDef, OptionValue } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
 import { useState } from 'react';
 import { api } from '../api';
+import { SaveVariant } from '../components/Variants';
 import { useLoad } from '../useLoad';
 import type { Outgoing, TableConnection } from './connection';
 import { humanize } from './zones';
@@ -201,6 +202,11 @@ export function Lobby({
                 </div>
               ))}
             </dl>
+            <SaveVariant
+              game={table.game.slug}
+              options={table.options}
+              playerCount={table.playerCount}
+            />
           </section>
         )}
       </div>
