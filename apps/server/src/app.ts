@@ -7,6 +7,7 @@ import { newToken } from './auth/tokens';
 import { defaultConfig } from './config';
 import type { Deps } from './deps';
 import { GameCatalog } from './games/catalog';
+import { historyRoutes } from './history/routes';
 import { MemoryStore } from './store/memory';
 import { loggingNotifier } from './tables/notifier';
 import { Rooms } from './tables/rooms';
@@ -74,6 +75,7 @@ export async function buildApp(overrides: Partial<Deps> = {}): Promise<FastifyIn
   authRoutes(app, deps);
   tableRoutes(app, deps, catalog, rooms);
   variantRoutes(app, deps, catalog);
+  historyRoutes(app, deps, catalog);
 
   // Now and then, once the server is listening: nudge idle turns and delete
   // expired sessions and sign-in links.

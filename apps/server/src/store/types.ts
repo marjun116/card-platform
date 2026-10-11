@@ -76,6 +76,19 @@ export interface Result {
   scores: Scores;
 }
 
+/** A table that's over, for game history. */
+export interface PastTable extends Table {
+  /** null when the host ended the game early. */
+  result: Result | null;
+}
+
+/** One finished game a user sat at, for their stats. */
+export interface PlayedResult {
+  gameVersionId: string;
+  seat: number;
+  winners: number[];
+}
+
 export type TablePatch = Partial<
   Pick<Table, 'status' | 'startedAt' | 'endedAt' | 'toAct' | 'turnSince'>
 >;
@@ -179,6 +192,13 @@ export interface Store {
   /** Unfinished tables the user hosts or sits at, newest first. */
   listOpenTables(userId: string): Promise<Table[]>;
   updateTable(id: string, patch: TablePatch): Promise<Table>;
+  /**
+   * Tables the user sat at that are over: finished, or ended early after they
+   * started. Most recently ended first.
+   */
+  listPastTables(userId: string, page: { offset: number; limit: number }): Promise<PastTable[]>;
+  /** Every finished game the user sat at (not ones ended early). */
+  listPlayedResults(userId: string): Promise<PlayedResult[]>;
   /** Throws ConflictError if the seat is taken or the user already sits at this table. */
   takeSeat(tableId: string, seat: number, userId: string): Promise<void>;
   leaveSeat(tableId: string, seat: number): Promise<void>;

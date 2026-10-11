@@ -154,6 +154,30 @@ export interface VariantInfo {
   owner: { id: string; displayName: string };
 }
 
+/** A game you sat at that's over, as GET /api/history lists it. */
+export interface PastGame {
+  /** The table's code: its page shows the final scores and every round. */
+  code: string;
+  game: { slug: string; name: string };
+  /** `abandoned`: the host ended it early, and there's no result. */
+  status: 'finished' | 'abandoned';
+  /** When it ended (ISO 8601). */
+  endedAt: string | null;
+  seats: { seat: number; displayName: string; bot: boolean }[];
+  /** Your seat. */
+  you: number;
+  winners: number[];
+  /** Final scores, one entry per team (one-player teams for games without partners). */
+  teams: { players: number[]; score: number }[] | null;
+}
+
+/** Games played and won, per game; finished games only. */
+export interface GameStats {
+  game: { slug: string; name: string };
+  played: number;
+  won: number;
+}
+
 export type ErrorCode =
   | 'BAD_MESSAGE'
   | 'WRONG_STATUS'

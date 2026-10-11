@@ -340,6 +340,55 @@ export function storeContract(makeStore: () => Promise<Store>): void {
       expect(await store.findIdleTurns(new Date())).toEqual([]);
     });
 
+    it("lists the games a user sat at that are over, and the results they've played", async () => {
+      const player = await store.createUser({ displayName: 'P' });
+      const scores = { teams: [], players: [] };
+      const at = (minutes: number) => new Date(Date.UTC(2026, 9, 10, 12, minutes));
+      const finish = async (code: string, endedAt: Date, winners: number[]) => {
+        const { table } = await newTable(code);
+        await store.takeSeat(table.id, 1, player.id);
+        await store.updateTable(table.id, { status: 'playing', startedAt: at(0) });
+        await store.recordMove(
+          table.id,
+          0,
+          { player: 0, type: 'endTurn' },
+          { toAct: [], turnSince: null, finished: { endedAt, result: { winners, scores } } },
+        );
+        return table;
+      };
+      const won = await finish('WON', at(10), [1, 3]);
+      const lost = await finish('LOST', at(30), [0, 2]);
+      const { table: endedEarly } = await newTable('EARLY');
+      await store.takeSeat(endedEarly.id, 2, player.id);
+      await store.updateTable(endedEarly.id, {
+        status: 'abandoned',
+        startedAt: at(0),
+        endedAt: at(20),
+      });
+      // Not listed: ended in the lobby, still playing, or not sat at.
+      const { table: neverStarted } = await newTable('LOBBY');
+      await store.takeSeat(neverStarted.id, 0, player.id);
+      await store.updateTable(neverStarted.id, { status: 'abandoned', endedAt: at(40) });
+      const { table: playing } = await newTable('PLAYING');
+      await store.takeSeat(playing.id, 0, player.id);
+      await store.updateTable(playing.id, { status: 'playing', startedAt: at(0) });
+      await newTable('OTHERS');
+
+      const past = await store.listPastTables(player.id, { offset: 0, limit: 10 });
+      expect(past.map((t) => t.inviteCode)).toEqual(['LOST', 'EARLY', 'WON']);
+      expect(past[0]?.result).toEqual({ winners: [0, 2], scores });
+      expect(past[1]?.result).toBeNull();
+      expect(past[0]?.seats.map((s) => s.seat)).toEqual([1]);
+      const second = await store.listPastTables(player.id, { offset: 1, limit: 1 });
+      expect(second.map((t) => t.inviteCode)).toEqual(['EARLY']);
+
+      const played = await store.listPlayedResults(player.id);
+      expect(played.sort((a, b) => (a.winners[0] ?? 0) - (b.winners[0] ?? 0))).toEqual([
+        { gameVersionId: lost.gameVersionId, seat: 1, winners: [0, 2] },
+        { gameVersionId: won.gameVersionId, seat: 1, winners: [1, 3] },
+      ]);
+    });
+
     it('keeps one account per bot, marks bot seats and never finds bots idle', async () => {
       const { table } = await newTable();
       const bot = await store.botUser(3);

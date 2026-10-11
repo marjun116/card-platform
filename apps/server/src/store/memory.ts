@@ -9,6 +9,8 @@ import {
   type LoginToken,
   type NewTable,
   type NewVariant,
+  type PastTable,
+  type PlayedResult,
   type Result,
   type Session,
   type Store,
@@ -28,6 +30,10 @@ interface StoredSeat {
 }
 
 const copy = <T>(value: T): T => structuredClone(value);
+
+/** Over: finished, or ended early after it started. */
+const isPast = (t: StoredTable) =>
+  t.status === 'finished' || (t.status === 'abandoned' && t.startedAt !== null);
 
 export class MemoryStore implements Store {
   private users = new Map<string, User>();
@@ -220,6 +226,30 @@ export class MemoryStore implements Store {
     return Promise.resolve(this.withSeats(table));
   }
 
+  listPastTables(userId: string, page: { offset: number; limit: number }): Promise<PastTable[]> {
+    const past = [...this.tables.values()]
+      .filter((t) => isPast(t) && this.seatOf(t.id, userId) !== undefined)
+      .sort(
+        (a, b) =>
+          (b.endedAt?.getTime() ?? 0) - (a.endedAt?.getTime() ?? 0) || b.id.localeCompare(a.id),
+      )
+      .slice(page.offset, page.offset + page.limit);
+    return Promise.resolve(
+      past.map((t) => ({ ...this.withSeats(t), result: copy(this.results.get(t.id) ?? null) })),
+    );
+  }
+
+  listPlayedResults(userId: string): Promise<PlayedResult[]> {
+    const played: PlayedResult[] = [];
+    for (const table of this.tables.values()) {
+      const seat = this.seatOf(table.id, userId);
+      const result = this.results.get(table.id);
+      if (table.status !== 'finished' || seat === undefined || !result) continue;
+      played.push({ gameVersionId: table.gameVersionId, seat, winners: [...result.winners] });
+    }
+    return Promise.resolve(played);
+  }
+
   takeSeat(tableId: string, seat: number, userId: string): Promise<void> {
     if (this.seats.some((s) => s.tableId === tableId && (s.seat === seat || s.userId === userId))) {
       return Promise.reject(new ConflictError('Seat taken, or already seated'));
@@ -303,6 +333,10 @@ export class MemoryStore implements Store {
       }
     }
     return Promise.resolve(idle);
+  }
+
+  private seatOf(tableId: string, userId: string): number | undefined {
+    return this.seats.find((s) => s.tableId === tableId && s.userId === userId)?.seat;
   }
 
   private findByEmail(email: string): User | undefined {

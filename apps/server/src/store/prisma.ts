@@ -9,6 +9,8 @@ import {
   type LoginToken,
   type NewTable,
   type NewVariant,
+  type PastTable,
+  type PlayedResult,
   type Result,
   type Session,
   type Store,
@@ -278,6 +280,44 @@ export class PrismaStore implements Store {
     return toTable(
       await this.db.table.update({ where: { id }, data: patch, include: tableInclude }),
     );
+  }
+
+  async listPastTables(
+    userId: string,
+    page: { offset: number; limit: number },
+  ): Promise<PastTable[]> {
+    const rows = await this.db.table.findMany({
+      where: {
+        OR: [{ status: 'finished' }, { status: 'abandoned', startedAt: { not: null } }],
+        seats: { some: { userId } },
+      },
+      include: { ...tableInclude, result: true },
+      orderBy: [{ endedAt: { sort: 'desc', nulls: 'last' } }, { id: 'desc' }],
+      skip: page.offset,
+      take: page.limit,
+    });
+    return rows.map((row) => ({
+      ...toTable(row),
+      result: row.result && {
+        winners: row.result.winners,
+        scores: row.result.scores as unknown as Scores,
+      },
+    }));
+  }
+
+  async listPlayedResults(userId: string): Promise<PlayedResult[]> {
+    const seats = await this.db.seat.findMany({
+      where: { userId, table: { status: 'finished', result: { isNot: null } } },
+      select: {
+        seat: true,
+        table: { select: { gameVersionId: true, result: { select: { winners: true } } } },
+      },
+    });
+    return seats.map((s) => ({
+      gameVersionId: s.table.gameVersionId,
+      seat: s.seat,
+      winners: s.table.result?.winners ?? [],
+    }));
   }
 
   async takeSeat(tableId: string, seat: number, userId: string): Promise<void> {
