@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { formatIssues, type GameFile, validate } from '@card-table/engine';
 import bridgeJson from '../bridge.json';
 import crazyEightsJson from '../crazy-eights.json';
@@ -34,5 +35,17 @@ export const builtInGames = {
 } as const satisfies Record<string, GameFile>;
 
 export type BuiltInGameName = keyof typeof builtInGames;
+
+/**
+ * Each built-in game's rulebook, from the `<name>.rules.md` file next to its game file.
+ * Rules use a small subset of Markdown: `#` and `##` headings, paragraphs,
+ * `- ` bullet lists and `**bold**` (see docs/decisions.md, "Rulebook").
+ */
+export const builtInRules = Object.fromEntries(
+  Object.keys(builtInGames).map((name) => [
+    name,
+    readFileSync(new URL(`../${name}.rules.md`, import.meta.url), 'utf8').replace(/\r\n/g, '\n'),
+  ]),
+) as Record<BuiltInGameName, string>;
 
 export { builtInBots } from './bots';
