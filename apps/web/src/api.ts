@@ -59,6 +59,10 @@ export const api = {
   signOut: () => request<{ ok: true }>('POST', '/auth/logout'),
 
   games: () => request<{ games: GameSummary[] }>('GET', '/games').then((r) => r.games),
+  rules: (slug: string) =>
+    request<{ rules: string }>('GET', `/games/${encodeURIComponent(slug)}/rules`).then(
+      (r) => r.rules,
+    ),
   createTable: (game: string, options: Record<string, OptionValue>, playerCount: number) =>
     request<{ table: TableInfo }>('POST', '/tables', { game, options, playerCount }).then(
       (r) => r.table,

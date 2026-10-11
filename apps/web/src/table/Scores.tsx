@@ -207,21 +207,28 @@ export function Dialog({
   title,
   onClose,
   children,
+  closeLabel = 'Continue',
+  startAtTop = false,
 }: {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  closeLabel?: string;
+  /** Focus the title rather than the button, so long content opens at its start. */
+  startAtTop?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
     if (typeof dialog.showModal === 'function') dialog.showModal();
     else dialog.setAttribute('open', '');
+    if (startAtTop) titleRef.current?.focus();
     return () => {
       if (typeof dialog.close === 'function') dialog.close();
     };
-  }, []);
+  }, [startAtTop]);
   return (
     <dialog
       ref={ref}
@@ -233,11 +240,13 @@ export function Dialog({
         if (!ref.current?.open) onClose();
       }}
     >
-      <h2 id="dialog-title">{title}</h2>
+      <h2 id="dialog-title" ref={titleRef} tabIndex={startAtTop ? -1 : undefined}>
+        {title}
+      </h2>
       {children}
       <form method="dialog" className="dialog-actions">
-        <button type="submit" className="primary" autoFocus>
-          Continue
+        <button type="submit" className="primary" autoFocus={!startAtTop}>
+          {closeLabel}
         </button>
       </form>
     </dialog>

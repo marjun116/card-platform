@@ -83,9 +83,12 @@ export function Library() {
                     .join(' · ')}
                 </p>
               )}
-              <Link to={`/games/${game.slug}/new`} className="button primary">
-                New table
-              </Link>
+              <p className="actions">
+                <Link to={`/games/${game.slug}/new`} className="button primary">
+                  New table
+                </Link>
+                <Link to={`/games/${game.slug}/rules`}>Rules</Link>
+              </p>
             </li>
           ))}
         </ul>

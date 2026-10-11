@@ -1,3 +1,4 @@
+import type { OptionDef, OptionValue } from '@card-table/engine';
 import type { GameStats, GameSummary, PastGame } from '@card-table/server/protocol';
 
 /** "2–6 players", "4 players, 2 teams" or "2–4 players, partners with 4". */
@@ -38,4 +39,13 @@ export function finalScoresText(game: PastGame): string {
 /** "Spades: 3 played, 1 won". */
 export function statsText(stats: GameStats): string {
   return `${stats.game.name}: ${stats.played} played, ${stats.won} won`;
+}
+
+/** A house rule's value as the lobby shows it: its label, or On/Off, or the value. */
+export function optionText(value: OptionValue, def: OptionDef | undefined): string {
+  const label = def?.labels?.[String(value)];
+  if (label) return label;
+  if (value === true) return 'On';
+  if (value === false) return 'Off';
+  return String(value);
 }

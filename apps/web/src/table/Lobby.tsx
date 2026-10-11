@@ -1,19 +1,12 @@
-import type { OptionDef, OptionValue } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
 import { useState } from 'react';
 import { api } from '../api';
+import { RulesDialog } from '../components/Rules';
 import { SaveVariant } from '../components/Variants';
+import { optionText } from '../gameText';
 import { useLoad } from '../useLoad';
 import type { Outgoing, TableConnection } from './connection';
 import { humanize } from './zones';
-
-function optionText(value: OptionValue, def: OptionDef | undefined): string {
-  const label = def?.labels?.[String(value)];
-  if (label) return label;
-  if (value === true) return 'On';
-  if (value === false) return 'Off';
-  return String(value);
-}
 
 /** Team number for a seat, if the game has teams. */
 function teamOf(table: Pick<TableInfo, 'teams'>, seat: number): number | null {
@@ -67,6 +60,7 @@ export function Lobby({
       : undefined;
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [showRules, setShowRules] = useState(false);
 
   const run = async (...messages: Outgoing[]) => {
     setBusy(true);
@@ -233,7 +227,11 @@ export function Lobby({
         ) : (
           <span className="muted">Waiting for the host to start the game.</span>
         )}
+        <button type="button" onClick={() => setShowRules(true)}>
+          Rules
+        </button>
       </div>
+      {showRules && <RulesDialog table={table} onClose={() => setShowRules(false)} />}
     </div>
   );
 }

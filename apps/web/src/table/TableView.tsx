@@ -8,6 +8,7 @@ import type { ErrorCode, TableInfo } from '@card-table/server/protocol';
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, type MenuItem } from '../components/Menu';
+import { RulesDialog } from '../components/Rules';
 import { useHeaderSlot } from '../headerSlot';
 import { DecisionPanel, HandActions } from './ActionBar';
 import type { GameMessage, TableConnection } from './connection';
@@ -62,6 +63,7 @@ export function TableView({
   const [moveError, setMoveError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showRules, setShowRules] = useState(false);
   const [showLastTrick, setShowLastTrick] = useState(false);
   // Rounds already summarised; a new entry in the history opens the round summary.
   const [roundsSeen, setRoundsSeen] = useState(view.history.length);
@@ -145,6 +147,7 @@ export function TableView({
     ...(view.history.length > 0
       ? [{ label: 'Every round', onSelect: () => setShowHistory(true) }]
       : []),
+    { label: 'Rules', onSelect: () => setShowRules(true) },
   ];
   const gameBar = (
     <div className="game-bar">
@@ -165,6 +168,9 @@ export function TableView({
         >
           {panelOpen ? 'Hide scores' : 'Scores'}
         </button>
+        <button type="button" className="small wide-only" onClick={() => setShowRules(true)}>
+          Rules
+        </button>
         {isHost && (
           <span className="wide-only game-host">
             <button
@@ -179,9 +185,7 @@ export function TableView({
             </button>
           </span>
         )}
-        {menuItems.length > 0 && (
-          <Menu className="phone-only" label="Game menu" buttonText="⋯" items={menuItems} />
-        )}
+        <Menu className="phone-only" label="Game menu" buttonText="⋯" items={menuItems} />
       </div>
     </div>
   );
@@ -392,6 +396,7 @@ export function TableView({
           />
         </Dialog>
       )}
+      {showRules && <RulesDialog table={table} onClose={() => setShowRules(false)} />}
       {showHistory && !newRound && (
         <Dialog title="Every round" onClose={() => setShowHistory(false)}>
           <HistoryTable history={view.history} teams={view.teams} names={names} />

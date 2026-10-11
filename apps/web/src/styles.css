@@ -409,6 +409,39 @@ kbd {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
 }
 
+/* ---- rulebook ---- */
+
+.rules-text {
+  line-height: 1.55;
+}
+.rules-text h2,
+.rules-text h3 {
+  margin: 1.2em 0 0.4em;
+}
+.rules-text ul {
+  padding-left: 1.3em;
+}
+.rules-text li + li {
+  margin-top: 0.3em;
+}
+.at-this-table {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.6em 1em;
+  margin-bottom: 1em;
+}
+.at-this-table h3 {
+  margin: 0.2em 0 0.4em;
+}
+.at-this-table ul {
+  margin: 0 0 0.5em;
+  padding-left: 1.3em;
+}
+.at-this-table .changed {
+  font-weight: 400;
+  color: var(--muted);
+}
+
 /* ---- past games ---- */
 
 .past-games {
