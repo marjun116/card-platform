@@ -141,6 +141,19 @@ export interface TableInfo {
   botsAllowed: boolean;
 }
 
+/**
+ * A saved variant, as GET /api/variants/... sends it. Anyone with the code
+ * may see it. Options and player count already fit the game's current file.
+ */
+export interface VariantInfo {
+  code: string;
+  name: string;
+  game: { slug: string; name: string };
+  options: Record<string, OptionValue>;
+  playerCount: number;
+  owner: { id: string; displayName: string };
+}
+
 export type ErrorCode =
   | 'BAD_MESSAGE'
   | 'WRONG_STATUS'

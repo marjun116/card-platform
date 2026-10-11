@@ -8,13 +8,14 @@
  *   GET  /api/tables/:code           a table's lobby info
  *   GET  /api/tables/:code/ws        the table's WebSocket (see protocol.ts)
  */
-import { createGame, IllegalMoveError, type OptionValue, SetupError } from '@card-table/engine';
+import type { OptionValue } from '@card-table/engine';
 import type { WebSocket } from '@fastify/websocket';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { newInviteCode } from '../auth/tokens';
 import type { Deps } from '../deps';
-import { type GameCatalog, playerCounts } from '../games/catalog';
+import type { GameCatalog } from '../games/catalog';
+import { checkSettings } from '../games/settings';
 import { ConflictError, type Table, type User } from '../store/types';
 import { clientMessageSchema, type TableInfo } from './protocol';
 import { send, sendError, tableInfo, type TableRoom } from './room';
@@ -47,25 +48,14 @@ export function tableRoutes(
     const body = createBody.safeParse(request.body);
     if (!body.success) return reply.code(400).send({ error: 'Invalid table settings' });
 
-    // Built-in games only for now; custom games (signed-in creators only) come in Phase 6.
-    const game = catalog.builtIn(body.data.game);
-    if (!game) return reply.code(404).send({ error: `There is no game "${body.data.game}"` });
-    const counts = playerCounts(game.file);
-    const playerCount = body.data.playerCount ?? counts[0] ?? 0;
-    if (!counts.includes(playerCount)) {
-      return reply.code(400).send({ error: `${game.name} is for ${counts.join(', ')} players` });
-    }
-
-    // Dealing a throwaway game checks the options and fills in defaults.
-    let options: Record<string, OptionValue>;
-    try {
-      options = createGame(game.file, body.data.options ?? {}, playerCount, 'check').options;
-    } catch (error) {
-      if (error instanceof SetupError || error instanceof IllegalMoveError) {
-        return reply.code(400).send({ error: error.message });
-      }
-      throw error;
-    }
+    const settings = checkSettings(
+      catalog,
+      body.data.game,
+      body.data.options,
+      body.data.playerCount,
+    );
+    if ('error' in settings) return reply.code(settings.status).send({ error: settings.error });
+    const { game, options, playerCount } = settings;
 
     const table = await createWithFreshCode(user, game.id, options, playerCount);
     return reply.code(201).send({ table: await infoFor(table) });

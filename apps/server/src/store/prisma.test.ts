@@ -22,7 +22,7 @@ describe.skipIf(!url)('PrismaStore (TEST_DATABASE_URL)', () => {
 
   storeContract(async () => {
     await db.$executeRawUnsafe(
-      'TRUNCATE "Result", "MoveLog", "Seat", "Table", "GameVersion", "GameDefinition", ' +
+      'TRUNCATE "Variant", "Result", "MoveLog", "Seat", "Table", "GameVersion", "GameDefinition", ' +
         '"LoginToken", "Session", "User" CASCADE',
     );
     return new PrismaStore(db);

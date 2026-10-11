@@ -22,6 +22,7 @@ model User {
   seats        Seat[]
   hostedTables Table[]          @relation("host")
   games        GameDefinition[]
+  variants     Variant[]
 }
 
 /// A signed-in browser. `id` is the SHA-256 of the cookie token; the token itself is never stored.
@@ -52,6 +53,7 @@ model GameDefinition {
   ownerId  String?
   owner    User?         @relation(fields: [ownerId], references: [id])
   versions GameVersion[]
+  variants Variant[]
 }
 
 /// One revision of a game file. Tables pin the version they were created with.
@@ -133,4 +135,22 @@ model Result {
   /// Final scores, as returned by the engine's getScores().
   scores  Json
   table   Table  @relation(fields: [tableId], references: [id], onDelete: Cascade)
+}
+
+/// A saved set of house rules for a game, like "Grandma's Spades". Saved per game, not per
+/// version: options are fitted to the current game file whenever it's used.
+model Variant {
+  id           String         @id @default(cuid())
+  /// Short code for share links. Having it is what lets you see the variant.
+  code         String         @unique
+  ownerId      String
+  definitionId String
+  name         String
+  options      Json
+  playerCount  Int
+  createdAt    DateTime       @default(now())
+  owner        User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  definition   GameDefinition @relation(fields: [definitionId], references: [id])
+
+  @@index([ownerId])
 }

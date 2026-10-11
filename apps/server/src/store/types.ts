@@ -89,6 +89,30 @@ export interface NewTable {
   seed: string;
 }
 
+/** A saved set of house rules for a game; see the Variant model in schema.prisma. */
+export interface Variant {
+  id: string;
+  code: string;
+  ownerId: string;
+  ownerName: string;
+  definitionId: string;
+  /** The game's slug. */
+  slug: string;
+  name: string;
+  options: Record<string, OptionValue>;
+  playerCount: number;
+  createdAt: Date;
+}
+
+export interface NewVariant {
+  code: string;
+  ownerId: string;
+  definitionId: string;
+  name: string;
+  options: Record<string, OptionValue>;
+  playerCount: number;
+}
+
 /** What changes along with a saved move. */
 export interface AfterMove {
   toAct: number[];
@@ -115,7 +139,7 @@ export interface Store {
   getUserByEmail(email: string): Promise<User | null>;
   updateUser(id: string, patch: { displayName?: string; email?: string }): Promise<User>;
   /**
-   * Moves `fromId`'s seats and hosted tables to `intoId` and signs `fromId` out
+   * Moves `fromId`'s seats, hosted tables and variants to `intoId` and signs `fromId` out
    * everywhere. Seats at tables where `intoId` already sits stay with `fromId`.
    */
   mergeUser(fromId: string, intoId: string): Promise<void>;
@@ -159,6 +183,14 @@ export interface Store {
   takeSeat(tableId: string, seat: number, userId: string): Promise<void>;
   leaveSeat(tableId: string, seat: number): Promise<void>;
   setNudged(tableId: string, seat: number, at: Date): Promise<void>;
+
+  // Variants
+  /** Throws ConflictError if the code is taken. */
+  createVariant(data: NewVariant): Promise<Variant>;
+  getVariantByCode(code: string): Promise<Variant | null>;
+  /** The user's variants, newest first. */
+  listVariants(ownerId: string): Promise<Variant[]>;
+  deleteVariant(id: string): Promise<void>;
 
   // Moves and results
   /** Saves move number `seq` and the table changes it causes, all or nothing. */

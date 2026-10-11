@@ -8,12 +8,14 @@ import {
   type IdleTurn,
   type LoginToken,
   type NewTable,
+  type NewVariant,
   type Result,
   type Session,
   type Store,
   type Table,
   type TablePatch,
   type User,
+  type Variant,
 } from './types';
 
 const tableInclude = {
@@ -47,6 +49,28 @@ function toTable(row: TableRow): Table {
       isBot: s.user.isBot,
       lastNudgeAt: s.lastNudgeAt,
     })),
+  };
+}
+
+const variantInclude = {
+  owner: { select: { displayName: true } },
+  definition: { select: { slug: true } },
+} as const satisfies Prisma.VariantInclude;
+
+type VariantRow = Prisma.VariantGetPayload<{ include: typeof variantInclude }>;
+
+function toVariant(row: VariantRow): Variant {
+  return {
+    id: row.id,
+    code: row.code,
+    ownerId: row.ownerId,
+    ownerName: row.owner.displayName,
+    definitionId: row.definitionId,
+    slug: row.definition.slug,
+    name: row.name,
+    options: row.options as Record<string, OptionValue>,
+    playerCount: row.playerCount,
+    createdAt: row.createdAt,
   };
 }
 
@@ -102,6 +126,7 @@ export class PrismaStore implements Store {
         data: { userId: intoId },
       });
       await tx.table.updateMany({ where: { hostId: fromId }, data: { hostId: intoId } });
+      await tx.variant.updateMany({ where: { ownerId: fromId }, data: { ownerId: intoId } });
       await tx.session.deleteMany({ where: { userId: fromId } });
     });
   }
@@ -268,6 +293,35 @@ export class PrismaStore implements Store {
 
   async setNudged(tableId: string, seat: number, at: Date): Promise<void> {
     await this.db.seat.updateMany({ where: { tableId, seat }, data: { lastNudgeAt: at } });
+  }
+
+  async createVariant(data: NewVariant): Promise<Variant> {
+    const row = await conflictOnDuplicate(
+      this.db.variant.create({
+        data: { ...data, options: json(data.options) },
+        include: variantInclude,
+      }),
+      'Variant code already in use',
+    );
+    return toVariant(row);
+  }
+
+  async getVariantByCode(code: string): Promise<Variant | null> {
+    const row = await this.db.variant.findUnique({ where: { code }, include: variantInclude });
+    return row && toVariant(row);
+  }
+
+  async listVariants(ownerId: string): Promise<Variant[]> {
+    const rows = await this.db.variant.findMany({
+      where: { ownerId },
+      include: variantInclude,
+      orderBy: { createdAt: 'desc' },
+    });
+    return rows.map(toVariant);
+  }
+
+  async deleteVariant(id: string): Promise<void> {
+    await this.db.variant.deleteMany({ where: { id } });
   }
 
   async recordMove(tableId: string, seq: number, move: Move, after: AfterMove): Promise<void> {

@@ -8,15 +8,18 @@ import {
   type IdleTurn,
   type LoginToken,
   type NewTable,
+  type NewVariant,
   type Result,
   type Session,
   type Store,
   type Table,
   type TablePatch,
   type User,
+  type Variant,
 } from './types';
 
 type StoredTable = Omit<Table, 'seats'>;
+type StoredVariant = Omit<Variant, 'ownerName' | 'slug'>;
 interface StoredSeat {
   tableId: string;
   seat: number;
@@ -35,6 +38,7 @@ export class MemoryStore implements Store {
   private seats: StoredSeat[] = [];
   private moves = new Map<string, Move[]>();
   private results = new Map<string, Result>();
+  private variants = new Map<string, StoredVariant>();
 
   createUser(data: { displayName: string; email?: string | null }): Promise<User> {
     if (data.email && this.findByEmail(data.email)) {
@@ -87,6 +91,9 @@ export class MemoryStore implements Store {
     }
     for (const table of this.tables.values()) {
       if (table.hostId === fromId) table.hostId = intoId;
+    }
+    for (const variant of this.variants.values()) {
+      if (variant.ownerId === fromId) variant.ownerId = intoId;
     }
     return this.deleteUserSessions(fromId);
   }
@@ -232,6 +239,32 @@ export class MemoryStore implements Store {
     return Promise.resolve();
   }
 
+  createVariant(data: NewVariant): Promise<Variant> {
+    if ([...this.variants.values()].some((v) => v.code === data.code)) {
+      return Promise.reject(new ConflictError('Variant code already in use'));
+    }
+    const variant: StoredVariant = { ...copy(data), id: randomUUID(), createdAt: new Date() };
+    this.variants.set(variant.id, variant);
+    return Promise.resolve(this.fullVariant(variant));
+  }
+
+  getVariantByCode(code: string): Promise<Variant | null> {
+    const variant = [...this.variants.values()].find((v) => v.code === code);
+    return Promise.resolve(variant ? this.fullVariant(variant) : null);
+  }
+
+  listVariants(ownerId: string): Promise<Variant[]> {
+    const mine = [...this.variants.values()]
+      .filter((v) => v.ownerId === ownerId)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    return Promise.resolve(mine.map((v) => this.fullVariant(v)));
+  }
+
+  deleteVariant(id: string): Promise<void> {
+    this.variants.delete(id);
+    return Promise.resolve();
+  }
+
   recordMove(tableId: string, seq: number, move: Move, after: AfterMove): Promise<void> {
     const table = this.tables.get(tableId);
     if (!table) return Promise.reject(new Error(`No table ${tableId}`));
@@ -274,6 +307,17 @@ export class MemoryStore implements Store {
 
   private findByEmail(email: string): User | undefined {
     return [...this.users.values()].find((u) => u.email === email);
+  }
+
+  private fullVariant(variant: StoredVariant): Variant {
+    const slug = [...this.versions.values()].find(
+      (v) => v.definitionId === variant.definitionId,
+    )?.slug;
+    return copy({
+      ...variant,
+      ownerName: this.users.get(variant.ownerId)?.displayName ?? '?',
+      slug: slug ?? '?',
+    });
   }
 
   private withSeats(table: StoredTable): Table {

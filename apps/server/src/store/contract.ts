@@ -57,8 +57,8 @@ export function storeContract(makeStore: () => Promise<Store>): void {
       );
     });
 
-    it('merges a guest into an account, keeping seats that would clash', async () => {
-      const { table } = await newTable();
+    it('merges a guest into an account, keeping seats that would clash, with their variants', async () => {
+      const { table, game } = await newTable();
       const { table: other } = await newTable('XYZ789');
       const guest = await store.createUser({ displayName: 'Gus' });
       const account = await store.createUser({ displayName: 'Ann', email: 'ann@example.com' });
@@ -72,8 +72,18 @@ export function storeContract(makeStore: () => Promise<Store>): void {
         lastSeenAt: new Date(),
       });
 
+      const variant = await store.createVariant({
+        code: 'VAR1',
+        ownerId: guest.id,
+        definitionId: game.definitionId,
+        name: 'Ours',
+        options: {},
+        playerCount: 4,
+      });
+
       await store.mergeUser(guest.id, account.id);
 
+      expect((await store.getVariantByCode(variant.code))?.ownerId).toBe(account.id);
       expect((await store.getTable(table.id))?.seats[0]?.userId).toBe(account.id);
       const otherSeats = (await store.getTable(other.id))?.seats.map((s) => s.userId);
       expect(otherSeats).toEqual([guest.id, account.id]);
@@ -181,6 +191,59 @@ export function storeContract(makeStore: () => Promise<Store>): void {
       expect(v2.version).toBe(2);
       expect(v2.definitionId).toBe(v1.definitionId);
       expect((await store.getGameVersion(v1.id))?.file).toEqual(spades);
+    });
+  });
+
+  describe('variants', () => {
+    it('saves, lists, finds by code and deletes variants', async () => {
+      const { host, game } = await newTable();
+      const other = await store.createUser({ displayName: 'Other' });
+      const first = await store.createVariant({
+        code: 'V1',
+        ownerId: host.id,
+        definitionId: game.definitionId,
+        name: "Grandma's Spades",
+        options: { nil: false, targetScore: 300 },
+        playerCount: 4,
+      });
+      expect(first).toMatchObject({
+        code: 'V1',
+        ownerId: host.id,
+        ownerName: 'Host',
+        slug: 'spades',
+        name: "Grandma's Spades",
+        options: { nil: false, targetScore: 300 },
+        playerCount: 4,
+      });
+      // A moment later, so the newest-first order is certain.
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      const second = await store.createVariant({
+        code: 'V2',
+        ownerId: host.id,
+        definitionId: game.definitionId,
+        name: 'Quick game',
+        options: {},
+        playerCount: 4,
+      });
+      await expect(
+        store.createVariant({
+          code: 'V1',
+          ownerId: other.id,
+          definitionId: game.definitionId,
+          name: 'Clash',
+          options: {},
+          playerCount: 4,
+        }),
+      ).rejects.toThrow(ConflictError);
+
+      expect(await store.getVariantByCode('V1')).toEqual(first);
+      expect(await store.getVariantByCode('nope')).toBeNull();
+      expect((await store.listVariants(host.id)).map((v) => v.code)).toEqual(['V2', 'V1']);
+      expect(await store.listVariants(other.id)).toEqual([]);
+
+      await store.deleteVariant(second.id);
+      expect(await store.getVariantByCode('V2')).toBeNull();
+      expect((await store.listVariants(host.id)).map((v) => v.code)).toEqual(['V1']);
     });
   });
 
