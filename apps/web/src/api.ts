@@ -3,7 +3,13 @@
  * Vite forwards to the Fastify server during development.
  */
 import type { OptionValue } from '@card-table/engine';
-import type { GameSummary, TableInfo, VariantInfo } from '@card-table/server/protocol';
+import type {
+  GameStats,
+  GameSummary,
+  PastGame,
+  TableInfo,
+  VariantInfo,
+} from '@card-table/server/protocol';
 
 export interface User {
   id: string;
@@ -62,6 +68,11 @@ export const api = {
     request<{ table: TableInfo }>('GET', `/tables/${encodeURIComponent(code)}`).then(
       (r) => r.table,
     ),
+
+  /** Games you sat at that are over, newest first; `more` says if there's another page. */
+  history: (offset = 0) =>
+    request<{ games: PastGame[]; more: boolean }>('GET', `/history?offset=${offset}`),
+  stats: () => request<{ stats: GameStats[] }>('GET', '/stats').then((r) => r.stats),
 
   saveVariant: (
     game: string,

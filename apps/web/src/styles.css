@@ -409,6 +409,24 @@ kbd {
   grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
 }
 
+/* ---- past games ---- */
+
+.past-games {
+  grid-column: 1 / -1;
+}
+.stats-line {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 0.6em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2em 1.2em;
+  color: var(--muted);
+}
+.outcome {
+  font-weight: 600;
+}
+
 /* ---- saved variants ---- */
 
 .my-variants,
