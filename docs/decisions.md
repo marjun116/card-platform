@@ -958,3 +958,22 @@ General parts of the game format, added because bridge needed them; none mention
   rummy, gin rummy, euchre, Oh Hell, cribbage, pinochle, canasta and bridge.
 - Each game's file, house rules, scenario and simulation tests are done; the real
   playtests are tracked as a separate list in the Phase 5 checklist.
+
+## 2026-10-10: Saved variants
+
+- **A variant** is a game's house rules and player count saved under a name ("Grandma's
+  Spades"). It belongs to the game, not to one version of its file. Whenever a variant is
+  read, its options are fitted to the game's current file: options the game no longer has are
+  dropped, and a value that's no longer allowed (or a player count) goes back to the default.
+  Saving checks the settings exactly as creating a table does (`games/settings.ts`).
+- **Anyone can save**, guests included; a guest's variants move to their account when they
+  sign in, like their seats and tables. Up to 50 each.
+- **Sharing** works like invite links: each variant has a 10-character code, and having the
+  link (`/games/<slug>/new?variant=<code>`) is what lets you see it. A shared link fills in
+  the create-table page; the person can change anything, and can save their own copy, but
+  can't change yours.
+- **No editing.** A variant can be deleted (by the person who saved it) and saved again. Links
+  to a deleted variant say so and start from the standard rules.
+- **Where:** the create-table page has "Start from" (standard rules or your variants for that
+  game) and "Save as variant"; the lobby has "Save as variant" under its house rules; the
+  Games page lists "Your variants" with New table, Copy link and Delete.
