@@ -228,5 +228,30 @@
   "endCondition": {
     "when": "anyTeam.score >= options.targetScore",
     "winner": "highestScore"
-  }
+  },
+  "display": [
+    {
+      "label": "Trump",
+      "value": "state.trump",
+      "labels": {
+        "spades": "♠ Spades",
+        "hearts": "♥ Hearts",
+        "diamonds": "♦ Diamonds",
+        "clubs": "♣ Clubs"
+      }
+    },
+    { "label": "Called by", "value": "state.maker", "format": "player" },
+    {
+      "label": "Going alone",
+      "value": "state.alone",
+      "labels": { "true": "Yes" },
+      "if": "state.alone == true"
+    },
+    {
+      "label": "Defending alone",
+      "value": "state.defenderAlone",
+      "labels": { "true": "Yes" },
+      "if": "state.defenderAlone == true"
+    }
+  ]
 }

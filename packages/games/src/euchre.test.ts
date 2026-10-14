@@ -10,6 +10,7 @@ import {
   getLegalMoves,
   type Move,
   type OptionValue,
+  viewFor,
 } from '@card-table/engine';
 import { hand, id, play, withZones } from '@card-table/engine/testing';
 import { describe, expect, it } from 'vitest';
@@ -95,6 +96,20 @@ describe('euchre: making trump', () => {
     s = applyMove(s, { player: d, type: 'discard', card: id('9D'), to: 'kitty' });
     expect(phase(s)).toBe('play');
     expect(s.cursor.current).toBe(a);
+  });
+
+  it('shows trump and who called it on the table once trump is made', () => {
+    const { state, a, b, c, d } = table(MARCH, '10H');
+    expect(viewFor(state, a).display).toEqual([]);
+    let s = play(state, choose(a, 'pass'), choose(b, 'orderUp'), choose(b, 'alone'));
+    expect(viewFor(s, c).display).toEqual([
+      { label: 'Trump', value: '♥ Hearts' },
+      { label: 'Called by', value: b, format: 'player' },
+      { label: 'Going alone', value: 'Yes' },
+    ]);
+    // The dealer is b's partner, so sits out; play starts straight away.
+    expect(phase(s)).toBe('play');
+    expect(viewFor(s, d).display[0]).toEqual({ label: 'Trump', value: '♥ Hearts' });
   });
 
   it('then offers any other suit, and throws the hand in if everyone passes twice', () => {
