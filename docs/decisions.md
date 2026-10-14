@@ -329,6 +329,13 @@ Agreed before building `apps/web`.
   scores and log fold away behind a "Scores" button, and your hand and buttons stay pinned to
   the bottom of the screen. The hand overlaps more as it grows so 13 cards fit at phone width;
   past that it scrolls sideways.
+- **The table screen fits the window** (2026-10-14, after a euchre playtest where the hand and
+  Play button were below the fold on a laptop). On every screen size the game page is exactly
+  one window tall: the table shrinks to whatever room is left after the header and your
+  hand, and the scores and log scroll beside it. Your hand and buttons are always on screen.
+  Only a window too short for the table's minimum height (300px, 380px from 7 players)
+  scrolls, and then your hand stays pinned to the bottom. On short laptop windows (under
+  760px tall) the cards in your hand are a little smaller.
 
 ## 2026-10-07: Tables with more than 4 players
 
