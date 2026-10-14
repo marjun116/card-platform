@@ -100,6 +100,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ id, type: z.literal('removeBot'), seat }),
   /** Host, during the game: a bot takes over from a player who isn't connected. */
   z.strictObject({ id, type: z.literal('replaceWithBot'), seat }),
+  /** You've closed the last round's scores, so the bots can carry on. */
+  z.strictObject({ id, type: z.literal('roundSeen') }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -139,6 +141,11 @@ export interface TableInfo {
   seats: SeatInfo[];
   /** Bots can take seats (built-in games only). */
   botsAllowed: boolean;
+  /**
+   * Seats still looking at the scores of the round that just ended. Bots wait
+   * until every one of them has closed the scores (or left the table).
+   */
+  readingScores: number[];
 }
 
 /**

@@ -38,6 +38,7 @@ function tableInfo(players: number): TableInfo {
       bot: false,
     })),
     botsAllowed: true,
+    readingScores: [],
   };
 }
 
@@ -183,13 +184,34 @@ describe('TableView', () => {
       createGame(spades, { mercyRule: false }, 4, 'view-round'),
       (s) => s.cursor.tricks === 12 && s.trick?.plays.length === 3,
     );
-    const { update } = show(almost, 0);
+    const { update, connection } = show(almost, 0);
     expect(screen.queryByText('Round 1 scores')).toBeNull();
     const seat = almost.cursor.current;
     const last = gameMessage(almost, seat).legalMoves[0] as Move;
     update(applyMove(almost, last));
     expect(screen.getByText('Round 1 scores')).toBeTruthy();
     expect(screen.getByRole('table', { name: 'Round 1 results' })).toBeTruthy();
+
+    // Closing it tells the server, so the bots can carry on.
+    expect(connection.send).not.toHaveBeenCalled();
+    const dialog = document.querySelector('dialog') as HTMLDialogElement;
+    dialog.removeAttribute('open');
+    fireEvent(dialog, new Event('close'));
+    expect(connection.send).toHaveBeenCalledWith({ type: 'roundSeen' });
+    expect(screen.queryByText('Round 1 scores')).toBeNull();
+  });
+
+  it('says who the bots are waiting on while someone reads the round scores', () => {
+    const state = createGame(spades, {}, 4, 'view-reading');
+    // A bot is to act; the viewer and one other person have the scores open.
+    const bot = state.cursor.current;
+    const [viewer = 0, reader = 0] = [0, 1, 2, 3].filter((s) => s !== bot);
+    const base = tableInfo(4);
+    const seats = base.seats.map((s) => ({ ...s, bot: s.seat === bot }));
+    show(state, viewer, { table: { ...base, seats, readingScores: [viewer, reader] } });
+    expect(
+      screen.getByText(`Waiting for ${NAMES[reader] ?? ''} to close the round scores…`),
+    ).toBeTruthy();
   });
 
   it('announces the latest move for screen readers', () => {

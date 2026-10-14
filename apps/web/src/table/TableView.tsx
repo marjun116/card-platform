@@ -118,11 +118,16 @@ export function TableView({
     .filter(Boolean)
     .join('. ');
 
+  // Bots wait while anyone still has the last round's scores open; say who, not the bot.
+  const readers = table.readingScores.filter((seat) => seat !== view.you);
+  const botsWaiting = readers.length > 0 && toAct.some((seat) => table.seats[seat]?.bot === true);
   const status = paused
     ? 'The host paused the game.'
     : yourTurn
       ? turnPrompt(controls, names)
-      : `Waiting for ${toAct.map(names).join(', ') || 'the next round'}…`;
+      : botsWaiting
+        ? `Waiting for ${readers.map(names).join(', ')} to close the round scores…`
+        : `Waiting for ${toAct.map(names).join(', ') || 'the next round'}…`;
 
   const others = view.players.filter((p) => p.id !== view.you);
   // A finished trick stays on the table until the next one starts, so everyone can see
@@ -389,7 +394,11 @@ export function TableView({
       {newRound && (
         <Dialog
           title={`Round ${newRound.round} scores`}
-          onClose={() => setRoundsSeen(view.history.length)}
+          onClose={() => {
+            setRoundsSeen(view.history.length);
+            // The bots wait until everyone has closed the scores.
+            send({ type: 'roundSeen' });
+          }}
         >
           <RoundTable
             result={newRound}

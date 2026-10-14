@@ -40,6 +40,7 @@ const table: TableInfo = {
     bot: false,
   })),
   botsAllowed: true,
+  readingScores: [],
 };
 
 const rules =

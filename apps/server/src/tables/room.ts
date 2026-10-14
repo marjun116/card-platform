@@ -51,6 +51,11 @@ export class TableRoom {
   private closed = false;
   /** The next bot move, waiting out the pause before bots play. */
   private botTimer: NodeJS.Timeout | null = null;
+  /**
+   * Players looking at the scores of the round that just ended (see TableInfo).
+   * Not saved: after a restart nobody has the scores open, so bots carry on.
+   */
+  private readingScores = new Set<number>();
 
   private constructor(
     private readonly deps: Deps,
@@ -114,7 +119,15 @@ export class TableRoom {
 
   disconnect(socket: WebSocket): Promise<void> {
     return this.enqueue(() => {
-      for (const c of this.connections) if (c.socket === socket) this.connections.delete(c);
+      let userId: string | null = null;
+      for (const c of this.connections) {
+        if (c.socket !== socket) continue;
+        this.connections.delete(c);
+        userId = c.userId;
+      }
+      // Someone who has left the table isn't looking at the scores any more.
+      const seat = userId === null || this.isConnected(userId) ? null : this.seatOf(userId);
+      if (seat !== null && this.readingScores.delete(seat)) this.scheduleBots();
       this.broadcastTable();
       return Promise.resolve();
     });
@@ -146,7 +159,12 @@ export class TableRoom {
   }
 
   info(): TableInfo {
-    return tableInfo(this.table, this.game, (userId) => this.isConnected(userId));
+    return tableInfo(
+      this.table,
+      this.game,
+      (userId) => this.isConnected(userId),
+      [...this.readingScores].sort((a, b) => a - b),
+    );
   }
 
   // ---- bots ----
@@ -156,8 +174,9 @@ export class TableRoom {
     return botFor(this.game);
   }
 
-  /** A bot seat whose turn it is, if any. */
+  /** A bot seat whose turn it is, if any. None while someone is reading the round's scores. */
   private botToAct(): number | null {
+    if (this.readingScores.size > 0) return null;
     const state = this.state;
     if (!state || this.table.status !== 'playing' || this.closed) return null;
     const bots = new Set(this.table.seats.filter((s) => s.isBot).map((s) => s.seat));
@@ -231,6 +250,8 @@ export class TableRoom {
         return this.removeBot(user, message.seat);
       case 'replaceWithBot':
         return this.replaceWithBot(user, message.seat);
+      case 'roundSeen':
+        return this.roundSeen(user);
     }
   }
 
@@ -353,12 +374,29 @@ export class TableRoom {
     this.state = next;
     await this.reloadTable();
 
-    this.sendGameToAll();
-    if (over) {
-      this.broadcastTable();
-      this.sendOver();
+    // A round just ended: everyone at the table is shown its scores, and the bots wait
+    // until they've all closed them (see roundSeen).
+    const roundEnded = next.history.length > state.history.length;
+    if (roundEnded && !over) {
+      this.readingScores = new Set(
+        this.table.seats.filter((s) => !s.isBot && this.isConnected(s.userId)).map((s) => s.seat),
+      );
     }
+
+    this.sendGameToAll();
+    if (over || this.readingScores.size > 0) this.broadcastTable();
+    if (over) this.sendOver();
     this.scheduleBots();
+  }
+
+  /** A player closed the round's scores; once everyone has, the bots carry on. */
+  private roundSeen(user: User): Promise<void> {
+    const seat = this.requireSeat(user);
+    if (this.readingScores.delete(seat)) {
+      this.broadcastTable();
+      this.scheduleBots();
+    }
+    return Promise.resolve();
   }
 
   private async nudge(user: User, target: number): Promise<void> {
@@ -580,6 +618,7 @@ export function tableInfo(
   table: Table,
   game: GameVersion,
   isConnected: (userId: string) => boolean,
+  readingScores: number[] = [],
 ): TableInfo {
   return {
     code: table.inviteCode,
@@ -599,6 +638,7 @@ export function tableInfo(
       };
     }),
     botsAllowed: botFor(game) !== null,
+    readingScores,
   };
 }
 

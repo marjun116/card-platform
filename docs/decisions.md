@@ -1044,3 +1044,10 @@ General parts of the game format, added because bridge needed them; none mention
   the one top card of a top-card-only zone); otherwise the line just says where the cards
   came from. The simulation's hidden-card check leaves `cardEvents` out, since those cards
   were public when they moved even if they're in a hand now.
+- **Bots wait while round scores are open.** When a round ends (and the game goes on), every
+  connected person at the table is shown the round's scores, and the server holds the bots
+  until each of them has closed it (client message `roundSeen`) or left the table. There is
+  no time limit, as with a person's turn (decided by Arjun). People can still move while
+  others read. Who's still reading is in the table info (`readingScores`), so others see
+  "Waiting for Ana to close the round scores…" rather than "Waiting for Bot 2…". Not
+  saved: after a server restart nobody has the scores open, so the bots carry on.

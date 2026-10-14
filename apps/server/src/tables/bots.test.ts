@@ -39,20 +39,29 @@ async function hostedTable() {
 
 /**
  * Plays the host's turns with random legal moves while the bots play theirs,
- * until the game ends. Returns the last game message.
+ * closing each round's scores as a person would, until the game ends. Returns
+ * the last game message.
  */
 async function playAgainstBots(client: TestClient, seed: string): Promise<GameMessage> {
   const rng = seedRng(seed);
   let next = 0;
+  let rounds = 0;
   for (let guard = 0; guard < 5000; guard++) {
     const game = await client.waitFor(
       (m): m is GameMessage =>
         m.type === 'game' &&
         m.seq >= next &&
-        (m.view.status === 'over' || m.legalMoves.some((l) => l.type !== 'lookAtHand')),
+        (m.view.status === 'over' ||
+          m.view.history.length > rounds ||
+          m.legalMoves.some((l) => l.type !== 'lookAtHand')),
       `seat 0's turn after move ${next}`,
     );
     if (game.view.status === 'over') return game;
+    if (game.view.history.length > rounds) {
+      rounds = game.view.history.length;
+      await client.ok({ type: 'roundSeen' });
+      continue;
+    }
     const moves = game.legalMoves.filter((m) => m.type !== 'lookAtHand');
     const move = moves[randomInt(rng, moves.length)] as Move;
     await client.ok({ type: 'move', seq: game.seq, move });
@@ -120,6 +129,82 @@ describe('bots at a table', () => {
     expect(await client.request({ type: 'nudge', seat: botSeat })).toMatchObject({
       code: 'NOT_THEIR_TURN',
     });
+  });
+});
+
+describe('bots after a round ends', () => {
+  /** Host and three bots, played (randomly by the host) until the first round is over. */
+  async function firstRoundOver(seed: string) {
+    const { client, code } = await hostedTable();
+    for (const seat of [1, 2, 3]) await client.ok({ type: 'addBot', seat });
+    await client.ok({ type: 'start' });
+    const rng = seedRng(seed);
+    let next = 0;
+    for (let guard = 0; guard < 500; guard++) {
+      const game = await client.waitFor(
+        (m): m is GameMessage =>
+          m.type === 'game' &&
+          m.seq >= next &&
+          (m.view.history.length > 0 || m.legalMoves.some((l) => l.type !== 'lookAtHand')),
+        `seat 0's turn after move ${next}`,
+      );
+      if (game.view.history.length > 0) {
+        // While the scores are open the host may still play, but the bots wait.
+        let seq = game.seq;
+        while (client.lastGame?.legalMoves.some((l) => l.type !== 'lookAtHand')) {
+          const moves = client.lastGame.legalMoves.filter((m) => m.type !== 'lookAtHand');
+          await client.ok({ type: 'move', seq, move: moves[randomInt(rng, moves.length)] as Move });
+          seq = (await client.game(seq + 1)).seq;
+        }
+        return { client, code, seq };
+      }
+      const moves = game.legalMoves.filter((m) => m.type !== 'lookAtHand');
+      await client.ok({
+        type: 'move',
+        seq: game.seq,
+        move: moves[randomInt(rng, moves.length)] as Move,
+      });
+      next = game.seq + 1;
+    }
+    throw new Error('The round never ended');
+  }
+
+  /** Gives the bots time to move, if they were going to. */
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 50));
+
+  it('wait until everyone has closed the round scores', async () => {
+    const { client, seq } = await firstRoundOver('reading');
+    expect(client.lastTable?.readingScores).toEqual([0]);
+    await settle();
+    expect(client.lastGame?.seq).toBe(seq);
+
+    const from = client.mark();
+    await client.ok({ type: 'roundSeen' });
+    await client.table((t) => t.readingScores.length === 0, 'scores closed', from);
+    await client.game(seq + 1);
+  });
+
+  it('carry on when the player reading the scores leaves the table', async () => {
+    const { client, code, seq } = await firstRoundOver('leaving');
+    // Someone else still has the table open (with nobody there, bots wait anyway).
+    const other = await guest(server.app, 'Other');
+    clients.push(await TestClient.connect(baseUrl, code, other.token, 'Other'));
+    await client.close();
+    clients.splice(clients.indexOf(client), 1);
+    const saved = await server.store.getTableByInviteCode(code);
+    for (let tries = 0; tries < 100; tries++) {
+      if ((await server.store.listMoves(saved?.id as string)).length > seq) return;
+      await settle();
+    }
+    throw new Error("The bots didn't carry on");
+  });
+
+  it('only take roundSeen from a seated player', async () => {
+    const { code } = await hostedTable();
+    const other = await guest(server.app, 'Other');
+    const otherClient = await TestClient.connect(baseUrl, code, other.token, 'Other');
+    clients.push(otherClient);
+    expect(await otherClient.request({ type: 'roundSeen' })).toMatchObject({ code: 'NOT_SEATED' });
   });
 });
 
