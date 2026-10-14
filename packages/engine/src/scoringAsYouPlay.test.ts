@@ -185,7 +185,7 @@ describe('checking the new blocks', () => {
       'phases[0] ("play").actions[0].effects[0].label: "label" only goes with score',
     );
     expect(errors(playEffects([{ to: 'played', score: 1 }]))).toContain(
-      'phases[0] ("play").actions[0].effects[0].to: "to" only goes with returnCards',
+      'phases[0] ("play").actions[0].effects[0].to: "to" only goes with returnCards or giveCards',
     );
     expect(errors(playEffects([{ score: 'pile.nope' }]))).toEqual([
       expect.stringContaining('A zone has no "nope"'),

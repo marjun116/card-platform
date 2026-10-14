@@ -79,7 +79,7 @@ describe('euchre: the deal', () => {
 });
 
 describe('euchre: making trump', () => {
-  it('lets players order up (the dealer picks up); the dealer then takes the card and discards', () => {
+  it('lets players order up (the dealer picks up); the dealer is handed the card and discards', () => {
     const { state, a, b, c, d } = table(MARCH, '10H');
     expect(state.cursor.current).toBe(a);
     expect(values(state, a)).toEqual(['orderUp', 'pass']);
@@ -90,9 +90,12 @@ describe('euchre: making trump', () => {
     // The maker decides whether to go alone, then the dealer exchanges.
     expect(values(s, d)).toEqual(['alone', 'withPartner']);
     s = applyMove(s, choose(d, 'withPartner'));
+    // No click to take the card: the dealer already has it, and only has to discard.
     expect(phase(s)).toBe('exchange');
-    s = applyMove(s, { player: d, type: 'draw', from: 'upcard' });
     expect(hand(s, d)).toContain(id('10H'));
+    expect(s.zones.upcard).toEqual([]);
+    expect(getLegalMoves(s, d).every((m) => m.type === 'discard')).toBe(true);
+    expect(s.cardEvents.at(-1)).toMatchObject({ kind: 'given', player: d, cards: [id('10H')] });
     s = applyMove(s, { player: d, type: 'discard', card: id('9D'), to: 'kitty' });
     expect(phase(s)).toBe('play');
     expect(s.cursor.current).toBe(a);
@@ -101,7 +104,7 @@ describe('euchre: making trump', () => {
   it('shows trump and who called it on the table once trump is made', () => {
     const { state, a, b, c, d } = table(MARCH, '10H');
     expect(viewFor(state, a).display).toEqual([]);
-    let s = play(state, choose(a, 'pass'), choose(b, 'orderUp'), choose(b, 'alone'));
+    const s = play(state, choose(a, 'pass'), choose(b, 'orderUp'), choose(b, 'alone'));
     expect(viewFor(s, c).display).toEqual([
       { label: 'Trump', value: '♥ Hearts' },
       { label: 'Called by', value: b, format: 'player' },
@@ -141,13 +144,12 @@ describe('euchre: making trump', () => {
 
 describe('euchre: play and scoring', () => {
   const orderAndExchange = (t: ReturnType<typeof table>, alone: boolean) =>
-    play(
-      t.state,
-      choose(t.a, 'orderUp'),
-      choose(t.a, alone ? 'alone' : 'withPartner'),
-      { player: t.d, type: 'draw', from: 'upcard' },
-      { player: t.d, type: 'discard', card: id('9D'), to: 'kitty' },
-    );
+    play(t.state, choose(t.a, 'orderUp'), choose(t.a, alone ? 'alone' : 'withPartner'), {
+      player: t.d,
+      type: 'discard',
+      card: id('9D'),
+      to: 'kitty',
+    });
 
   it('scores 2 for taking all five tricks', () => {
     const t = table(MARCH, '10H');

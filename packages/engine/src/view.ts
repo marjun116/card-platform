@@ -10,6 +10,7 @@ import {
   type GameState,
   parseZoneKey,
   type RoundResult,
+  type CardEvent,
   type ScoreEvent,
   type TrickState,
   zoneDef,
@@ -83,6 +84,8 @@ export interface PlayerView {
   history: RoundResult[];
   /** Points scored during rounds (`score` effects), oldest first, to show in the log. */
   scoreEvents: ScoreEvent[];
+  /** Cards turned up in the deal or given out by effects, oldest first, for the log. */
+  cardEvents: CardEvent[];
   /**
    * Values the game shows on the table (`display`), e.g. { label: "Count", value: 23 }.
    * With `format`, the value is a seat or team number to show as names.
@@ -313,6 +316,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     roundStart: state.roundStart,
     history: state.history,
     scoreEvents: state.scoreEvents,
+    cardEvents: state.cardEvents,
     display: displayValues(state),
     notes: [...state.notes],
     choiceLabels: choiceLabelsOf(state.file),

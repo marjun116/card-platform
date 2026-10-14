@@ -18,6 +18,7 @@ export { randomInt, seedRng } from './rng';
 export { ExprError, GameFileError, IllegalMoveError, SetupError } from './errors';
 export type { BidValue, Move, MoveType, PlayerId, ZoneKey } from './game/move';
 export type {
+  CardEvent,
   GameState,
   PlayerState,
   RoundResult,

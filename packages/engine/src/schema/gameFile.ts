@@ -182,6 +182,12 @@ export const effectSchema = z.strictObject({
   into: name.optional(),
   /** Gives each card in this shared zone back to the player who played it, into `to`. */
   returnCards: name.optional(),
+  /**
+   * Gives every card in this shared zone to the player (the acting player, or in a
+   * phase's `start`, the player who starts it), into `to`; e.g. euchre's dealer
+   * taking the upcard.
+   */
+  giveCards: name.optional(),
   to: name.optional(),
   /**
    * Another player (a seat expression) answers a question with one of
@@ -340,6 +346,11 @@ export const phaseSchema = z.strictObject({
   actions: z.array(actionSchema).min(1).optional(),
   turn: z.array(turnStepSchema).min(1).optional(),
   afterTrick: z.array(effectSchema).optional(),
+  /**
+   * Effects run as the phase begins, before anyone moves. `player` is the player
+   * who starts the phase.
+   */
+  start: z.array(effectSchema).min(1).optional(),
   /**
    * One seat plays for another during this phase, e.g. bridge's declarer for
    * the dummy: { "seat": "state.dummy", "by": "state.declarer" }. On the

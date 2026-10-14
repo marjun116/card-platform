@@ -1019,3 +1019,28 @@ General parts of the game format, added because bridge needed them; none mention
   from the standard game). The Games page links to a page per game (`/games/<slug>/rules`)
   with the written rules only.
 - The written rules for all eleven games are first drafts, to be reviewed on the site.
+
+## 2026-10-14: Euchre playtest fixes
+
+- **A finished trick stays on the table** (winner highlighted) until the next card is led,
+  so the last card played can be seen without reading the log. "Last trick" only appears
+  once the next trick has started.
+- **Euchre shows trump and who called it** in the middle of the table (game file `display`):
+  "Trump: ♥ Hearts", "Called by", and "Going alone" / "Defending alone" when they apply.
+  Bridge already shows its contract; spades' trump is always spades. Oh Hell and pinochle
+  don't show trump yet (not changed; to look at during the playtest).
+- **`giveCards` effect**: `{ "giveCards": "upcard", "to": "hand" }` gives every card in a
+  shared zone to the player (`to` defaults to `hand`).
+- **A phase's `start` effects** run as it begins, for the player who starts it, before anyone
+  moves. Only effects that finish straight away are allowed (no choose, ask, score,
+  layOutMelds, nextPlayer, skip or reverse). Euchre's exchange phase uses
+  `"start": [{ "if": "player.isDealer", "giveCards": "upcard" }]`, so the dealer is handed
+  the upcard and only has to discard (before, they had to click it after picking it up).
+  If the dealer sits out (partner alone), they get nothing, as before.
+- **The log names cards turned up and given out.** The engine notes each card turned up in
+  the deal (`setup.flip`) and each `giveCards` (`state.cardEvents`, in the view as
+  `cardEvents`), and the log shows "Turned up: Jack of hearts" and "Raj picked up Jack of
+  hearts". A card is named only if everyone could see it where it was (a face-up zone, or
+  the one top card of a top-card-only zone); otherwise the line just says where the cards
+  came from. The simulation's hidden-card check leaves `cardEvents` out, since those cards
+  were public when they moved even if they're in a hand now.

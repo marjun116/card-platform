@@ -1,5 +1,12 @@
 /** Words for moves: button labels, the game log and screen reader announcements. */
-import type { BidValue, Move, PlayerView, PublicMove, ScoreEvent } from '@card-table/engine';
+import type {
+  BidValue,
+  CardEvent,
+  Move,
+  PlayerView,
+  PublicMove,
+  ScoreEvent,
+} from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
 import { cardFromId, shortLabel, spokenLabel, SUIT_SYMBOL, suitName } from './cards';
 import { humanize, parseZoneKey } from './zones';
@@ -207,7 +214,15 @@ export function logLines(view: PlayerView, names: SeatNames): string[] {
   for (const event of view.scoreEvents) {
     scoredAfter.set(event.at, [...(scoredAfter.get(event.at) ?? []), event]);
   }
-  const scores = (at: number) => (scoredAfter.get(at) ?? []).map((e) => describeScore(e, names));
+  const cardsAfter = new Map<number, CardEvent[]>();
+  for (const event of view.cardEvents) {
+    cardsAfter.set(event.at, [...(cardsAfter.get(event.at) ?? []), event]);
+  }
+  // What happened after the first `at` moves: points scored, then cards turned up or given.
+  const scores = (at: number) => [
+    ...(scoredAfter.get(at) ?? []).map((e) => describeScore(e, names)),
+    ...(cardsAfter.get(at) ?? []).flatMap((e) => describeCards(e, names) ?? []),
+  ];
   const lines = scores(0);
   view.log.forEach((move, i) => {
     // Arranging cards isn't news for anyone else, so it stays out of the log.
@@ -217,6 +232,17 @@ export function logLines(view: PlayerView, names: SeatNames): string[] {
     lines.push(...scores(i + 1));
   });
   return lines;
+}
+
+/**
+ * "Turned up: Jack of hearts" or "Raj picked up Jack of hearts". A card turned up
+ * where nobody could see it isn't news, so it has no line.
+ */
+export function describeCards(event: CardEvent, names: SeatNames): string | null {
+  const cards = event.cards.map((id) => cardText(id, true)).join(', ');
+  if (event.kind === 'turnedUp') return cards ? `Turned up: ${cards}` : null;
+  const who = event.player === null ? 'Someone' : names(event.player);
+  return cards ? `${who} picked up ${cards}` : `${who} took ${pileText(event.zone)}`;
 }
 
 /** "Ana" for a one-player team, otherwise "Team 1 (You & Sam)". */

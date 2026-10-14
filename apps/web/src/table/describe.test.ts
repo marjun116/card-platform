@@ -1,7 +1,17 @@
 import type { TableInfo } from '@card-table/server/protocol';
 import { describe, expect, it } from 'vitest';
 import { cardFromId, cardImage, isRed, shortLabel, spokenLabel } from './cards';
-import { bidLabel, describeMove, describeScore, moveLabel, seatNames, seatStats } from './describe';
+import type { CardEvent, PlayerView } from '@card-table/engine';
+import {
+  bidLabel,
+  describeCards,
+  describeMove,
+  describeScore,
+  logLines,
+  moveLabel,
+  seatNames,
+  seatStats,
+} from './describe';
 
 const table = {
   seats: [
@@ -118,6 +128,48 @@ describe('describeScore', () => {
     expect(describeScore({ ...event, label: 'Aces around', points: 10, into: 'meld' }, names)).toBe(
       'Ana: Aces around for 10 (meld)',
     );
+  });
+});
+
+describe('cards turned up and given out', () => {
+  const turned: CardEvent = {
+    round: 1,
+    at: 0,
+    kind: 'turnedUp',
+    zone: 'upcard',
+    player: null,
+    cards: ['JH.0'],
+  };
+  const given: CardEvent = { ...turned, at: 4, kind: 'given', player: 0 };
+
+  it('names the card when everyone saw it', () => {
+    expect(describeCards(turned, names)).toBe('Turned up: Jack of hearts');
+    expect(describeCards(given, names)).toBe('Ana picked up Jack of hearts');
+    expect(describeCards({ ...given, player: 2 }, names)).toBe('You picked up Jack of hearts');
+  });
+
+  it("says only where cards came from when they weren't seen", () => {
+    expect(describeCards({ ...turned, cards: [] }, names)).toBeNull();
+    expect(describeCards({ ...given, cards: [], zone: 'kitty' }, names)).toBe('Ana took the kitty');
+  });
+
+  it('puts them in the log after the move that led to them', () => {
+    const pass = (player: number) => ({ player, type: 'choose' as const, value: 'pass' });
+    const view = {
+      log: [pass(1), pass(0), pass(1), pass(0)],
+      scoreEvents: [],
+      cardEvents: [turned, given],
+      choiceLabels: {},
+      bidLabels: {},
+    } as unknown as PlayerView;
+    expect(logLines(view, names)).toEqual([
+      'Turned up: Jack of hearts',
+      'Seat 2 chose: Pass',
+      'Ana chose: Pass',
+      'Seat 2 chose: Pass',
+      'Ana chose: Pass',
+      'Ana picked up Jack of hearts',
+    ]);
   });
 });
 

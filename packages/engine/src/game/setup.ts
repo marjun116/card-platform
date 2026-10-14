@@ -14,6 +14,7 @@ import {
   nextActive,
   type TeamState,
   teamZoneKey,
+  noteCards,
   zoneCards,
   zoneKey,
 } from './state';
@@ -60,6 +61,7 @@ export function startGame(
     vars: {},
     playedBy: {},
     scoreEvents: [],
+    cardEvents: [],
     roundStartScores: [],
     round: 1,
     dealer: randomInt(rng, playerCount),
@@ -297,6 +299,7 @@ export function startRound(state: GameState): void {
       card = source.pop() ?? card;
     }
     zoneCards(state, zoneKey(state, flip.to, null)).push(card);
+    noteCards(state, 'turnedUp', flip.to, null, [card]);
     if (flip.set) applySet(state, flip.set, { card });
   }
 

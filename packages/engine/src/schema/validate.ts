@@ -620,6 +620,22 @@ class Checker {
       }
     }
 
+    (phase.start ?? []).forEach((effect, i) => {
+      const at = [...path, 'start', i];
+      this.checkEffect(effect, at, PLAYER, false);
+      // Nothing that waits for a player or scores: the phase hasn't really begun yet.
+      const waits = [
+        effect.choose && 'choose',
+        effect.ask !== undefined && 'ask',
+        effect.score !== undefined && 'score',
+        effect.layOutMelds && 'layOutMelds',
+        effect.nextPlayer && 'nextPlayer',
+        effect.skip && 'skip',
+        effect.reverse && 'reverse',
+      ].find((v): v is string => typeof v === 'string');
+      if (waits) this.error(at, `${waits} can't be used in a phase's "start"`);
+    });
+
     for (const [zone, policy] of Object.entries(phase.whenEmpty ?? {})) {
       this.zone(zone, [...path, 'whenEmpty', zone], { per: 'any' });
       const reshuffles =
@@ -777,6 +793,7 @@ class Checker {
       effect.sitOut !== undefined && 'sitOut',
       effect.score !== undefined && 'score',
       effect.returnCards && 'returnCards',
+      effect.giveCards && 'giveCards',
     ].filter((v): v is string => typeof v === 'string');
     if (verbs.length === 0) this.error(path, "This effect doesn't do anything");
     if (verbs.length > 1) {
@@ -785,8 +802,8 @@ class Checker {
 
     if (effect.of && !effect.moveTrick)
       this.error([...path, 'of'], '"of" only goes with moveTrick');
-    if (effect.to && !effect.returnCards)
-      this.error([...path, 'to'], '"to" only goes with returnCards');
+    if (effect.to && !effect.returnCards && !effect.giveCards)
+      this.error([...path, 'to'], '"to" only goes with returnCards or giveCards');
     if (effect.label && effect.score === undefined)
       this.error([...path, 'label'], '"label" only goes with score');
     if (effect.into && effect.score === undefined)
@@ -806,6 +823,16 @@ class Checker {
     if (effect.returnCards) {
       this.zone(effect.returnCards, [...path, 'returnCards'], { per: 'shared' });
       this.zone(effect.to ?? 'hand', [...path, 'to'], { per: 'player' });
+    }
+    if (effect.giveCards) {
+      this.zone(effect.giveCards, [...path, 'giveCards'], { per: 'shared' });
+      this.zone(effect.to ?? 'hand', [...path, 'to'], { per: 'player' });
+      if (!ctx.player) {
+        this.error(
+          path,
+          "giveCards needs a player: use it in an action's effects or a phase's start",
+        );
+      }
     }
     if ((effect.resolveTrick || effect.moveTrick || effect.winnerLeads) && !afterTrick) {
       this.error(path, `${verbs[0] ?? 'This'} only works in a trick phase's "afterTrick"`);

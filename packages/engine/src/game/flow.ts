@@ -336,6 +336,8 @@ export function enterPhase(state: GameState, index: number): void {
   };
   state.trick = null;
   if (isTrickPhase(phase)) startTrick(state, first);
+  // The validator only allows effects here that finish straight away (no choices or points).
+  if (phase.start) runEffects(state, phase.start, { player: first }, 'endTurn');
 }
 
 /**

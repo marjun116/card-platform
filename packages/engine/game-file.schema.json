@@ -780,6 +780,13 @@
             "$ref": "#/$defs/__schema18"
           }
         },
+        "start": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema18"
+          }
+        },
         "control": {
           "type": "object",
           "properties": {
@@ -1450,6 +1457,9 @@
           "$ref": "#/$defs/__schema8"
         },
         "returnCards": {
+          "$ref": "#/$defs/__schema8"
+        },
+        "giveCards": {
           "$ref": "#/$defs/__schema8"
         },
         "to": {

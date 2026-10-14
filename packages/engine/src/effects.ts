@@ -11,6 +11,7 @@ import {
   type AfterAction,
   type GameState,
   nextActive,
+  noteCards,
   type PlayerState,
   type TeamState,
   trumpSuit,
@@ -87,6 +88,12 @@ export function runEffects(
     if (effect.breakSuit) state.vars[`${effect.breakSuit}Broken`] = true;
     if (effect.sitOut !== undefined) sitOut(state, effect.sitOut, ctx);
     if (effect.returnCards) returnCards(state, effect.returnCards, effect.to ?? 'hand');
+    if (effect.giveCards) {
+      if (ctx.player === undefined) {
+        throw new GameFileError('"giveCards" needs a player to give the cards to');
+      }
+      giveCards(state, effect.giveCards, effect.to ?? 'hand', ctx.player);
+    }
     if (effect.score !== undefined) {
       if (ctx.player === undefined) {
         throw new GameFileError('"score" can only be used in an action\'s effects');
@@ -119,6 +126,15 @@ function returnCards(state: GameState, from: string, to: string): void {
     }
     zoneCards(state, zoneKey(state, to, owner)).push(card);
   }
+  source.length = 0;
+}
+
+/** Gives every card in a shared pile to a player, into their `to` zone. */
+function giveCards(state: GameState, from: string, to: string, player: number): void {
+  const source = zoneCards(state, zoneKey(state, from, null));
+  if (source.length === 0) return;
+  noteCards(state, 'given', from, player, source);
+  zoneCards(state, zoneKey(state, to, player)).push(...source);
   source.length = 0;
 }
 

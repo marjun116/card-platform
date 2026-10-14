@@ -111,6 +111,24 @@ export interface ScoreEvent {
   into: string | null;
 }
 
+/**
+ * Cards that moved without a player's move: turned up in the deal (setup.flip), or
+ * given by a `giveCards` effect. Shown in the game log. A card is listed only if
+ * everyone could see it, so this never gives away a hidden card.
+ */
+export interface CardEvent {
+  round: number;
+  /** Moves in the log when it happened, to place it among the moves. */
+  at: number;
+  kind: 'turnedUp' | 'given';
+  /** The zone the cards were turned up into, or given from. */
+  zone: string;
+  /** Who was given the cards; null for cards turned up. */
+  player: PlayerId | null;
+  /** The cards, if everyone could see them; otherwise empty. */
+  cards: CardId[];
+}
+
 /** A decision the engine is waiting on before the turn can continue. */
 export type Pending =
   | {
@@ -164,6 +182,8 @@ export interface GameState {
   playedBy: Record<CardId, PlayerId>;
   /** Points scored during rounds (`score` effects), oldest first. Public. */
   scoreEvents: ScoreEvent[];
+  /** Cards turned up or given out (see CardEvent), oldest first. Public. */
+  cardEvents: CardEvent[];
   /** Each team's score when this round began, so the round summary counts every point. */
   roundStartScores: number[];
   round: number;
@@ -206,6 +226,30 @@ export function zoneKey(state: GameState, name: string, player: PlayerId | null)
     return `${name}@t${teamOf(state, player)}`;
   }
   return name;
+}
+
+/**
+ * Notes cards that moved without a player's move (see CardEvent). `cards` were on
+ * top of the shared zone `zone` (turned up into it, or given from it); they are
+ * listed only if everyone could see them there.
+ */
+export function noteCards(
+  state: GameState,
+  kind: CardEvent['kind'],
+  zone: string,
+  player: PlayerId | null,
+  cards: readonly Card[],
+): void {
+  const { visibility } = zoneDef(state, zone);
+  const seen = visibility === 'all' || (visibility === 'topCardOnly' && cards.length === 1);
+  state.cardEvents.push({
+    round: state.round,
+    at: state.log.length,
+    kind,
+    zone,
+    player,
+    cards: seen ? cards.map((c) => c.id) : [],
+  });
 }
 
 export function teamZoneKey(name: string, team: number): ZoneKey {
@@ -331,6 +375,7 @@ export function draft(state: GameState): GameState {
     playedBy: { ...state.playedBy },
     // Entries are never changed once added.
     scoreEvents: [...state.scoreEvents],
+    cardEvents: [...state.cardEvents],
     roundStartScores: [...state.roundStartScores],
     cursor: { ...state.cursor, turns: [...state.cursor.turns] },
     trick: copyTrick(state.trick),
