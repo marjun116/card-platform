@@ -121,6 +121,23 @@ describe('TableView', () => {
     }
   });
 
+  it('keeps a finished trick on the table until the next card is led', () => {
+    const done = playUntil(
+      createGame(spades, {}, 4, 'view-last-trick'),
+      (s) => s.lastTrick !== null && (s.trick?.plays.length ?? 0) === 0,
+    );
+    const viewer = done.cursor.current;
+    const { update } = show(done, viewer);
+    const trick = within(screen.getByRole('group', { name: 'Last trick' }));
+    expect(trick.getAllByRole('img', { name: /^\w+: / })).toHaveLength(4);
+    expect(screen.queryByRole('button', { name: 'Last trick' })).toBeNull();
+
+    const led = playUntil(done, (s) => (s.trick?.plays.length ?? 0) === 1);
+    update(led);
+    expect(screen.getByRole('group', { name: 'Current trick' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Last trick' })).toBeTruthy();
+  });
+
   it('builds a pass from selected cards (hearts-like passing)', () => {
     const state = createGame(passing, {}, 4, 'view-pass');
     const seat = state.cursor.current;

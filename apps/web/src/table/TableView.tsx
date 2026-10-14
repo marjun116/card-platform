@@ -125,7 +125,11 @@ export function TableView({
       : `Waiting for ${toAct.map(names).join(', ') || 'the next round'}…`;
 
   const others = view.players.filter((p) => p.id !== view.you);
-  const trickToShow = showLastTrick && view.lastTrick ? view.lastTrick : view.trick;
+  // A finished trick stays on the table until the next one starts, so everyone can see
+  // the last card played and who won it.
+  const trickStarted = (view.trick?.plays.length ?? 0) > 0;
+  const trickToShow =
+    view.lastTrick && (showLastTrick || !trickStarted) ? view.lastTrick : view.trick;
   const hostEnd = () => {
     if (window.confirm('End this game for everyone? The result won’t be recorded.')) {
       send({ type: 'end' });
@@ -299,7 +303,7 @@ export function TableView({
               onMove={act}
             />
           </div>
-          {view.lastTrick && view.lastTrick !== view.trick && (
+          {view.lastTrick && trickStarted && (
             <button
               type="button"
               className="small last-trick"
