@@ -313,10 +313,6 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       very light colour and hard to make out against the green table.
 - [ ] **Table: the table grows after you play your last card.** Once your hand is empty, the
       table gets taller, which is jarring. Its size should stay the same.
-- [ ] **Pre-play (feature request):** where it makes sense for the game (trick-taking games,
-      say), let you choose your next card before your turn, and play it automatically when
-      your turn comes if it's still legal. Decide which games get it, and how you see and
-      cancel a pre-played card.
 
 ## Phase 6: Custom game creation and sharing
 
@@ -408,6 +404,10 @@ Harden the platform for strangers, not just family. Several items here involve l
 - [ ] Trademark check on the platform name and on game names (avoid branded games)
 - [ ] Cost plan: hosting plus AI calls per custom game, and how the platform will pay for them (free tier limits, subscription, ads)
 - [ ] Simple analytics: tables started, games finished, custom games created
+- [ ] Pre-play: where it makes sense for the game (trick-taking games, say), let you choose
+      your next card before your turn, and play it automatically when your turn comes if
+      it's still legal. Decide which games get it, and how you see and cancel a pre-played
+      card.
 - [ ] Closed beta with friends and family, then a wider invite-only beta
 - [ ] Landing page, help pages and a feedback form
 
