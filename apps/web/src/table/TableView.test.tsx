@@ -214,6 +214,28 @@ describe('TableView', () => {
     expect(dialog()).toBeNull();
   });
 
+  it('stays on the finished table until you ask for the results', () => {
+    // Only the status matters here: a game that has just ended.
+    const end: GameState = { ...createGame(spades, {}, 4, 'view-over'), status: 'over' };
+    const onShowResults = vi.fn();
+    render(
+      <TableView
+        table={{ ...tableInfo(4), status: 'finished' }}
+        game={gameMessage(end, 0)}
+        connection={fakeConnection() as unknown as TableConnection}
+        error={null}
+        nudgedBy={null}
+        isHost
+        onShowResults={onShowResults}
+      />,
+    );
+    expect(screen.getByText('The game is over.')).toBeTruthy();
+    // The host can't pause or end a game that's over.
+    expect(screen.queryByRole('button', { name: 'Pause' })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'See results' }));
+    expect(onShowResults).toHaveBeenCalledTimes(1);
+  });
+
   it('shows no Last trick button in games without tricks', () => {
     show(createGame(miniRummy, {}, 2, 'view-no-tricks'), 0);
     expect(screen.queryByRole('button', { name: /trick$/ })).toBeNull();

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { api } from '../api';
 import { useSession } from '../useSession';
@@ -43,6 +44,14 @@ function TableScreen({ code }: { code: string }) {
   const { user } = useSession();
   const { connection, snapshot } = useTable(code);
   const { table, game, status } = snapshot;
+  // A game that ends while you're playing stays on screen, so you can look over the
+  // table, until you choose to see the results. One that was already over goes straight
+  // to them.
+  const [watchedEnd, setWatchedEnd] = useState(false);
+  const [resultsShown, setResultsShown] = useState(false);
+  if (!watchedEnd && (table?.status === 'playing' || table?.status === 'paused')) {
+    setWatchedEnd(true);
+  }
 
   const banner =
     status === 'reconnecting' ? (
@@ -94,7 +103,10 @@ function TableScreen({ code }: { code: string }) {
     );
   } else if (!game) {
     body = <p className="page muted">Dealing…</p>;
-  } else if (table.status === 'finished' || table.status === 'abandoned') {
+  } else if (
+    table.status === 'abandoned' ||
+    (table.status === 'finished' && (resultsShown || !watchedEnd))
+  ) {
     body = <GameOver table={table} game={game} over={snapshot.over} />;
   } else {
     body = (
@@ -105,6 +117,7 @@ function TableScreen({ code }: { code: string }) {
         error={snapshot.error}
         nudgedBy={snapshot.nudgedBy}
         isHost={isHost}
+        onShowResults={() => setResultsShown(true)}
       />
     );
   }

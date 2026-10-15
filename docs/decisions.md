@@ -348,6 +348,12 @@ Agreed before building `apps/web`.
   "Dealer" in the same colour among the seat's details. It's an outline, not the border, so
   it shows alongside the yellow border of whoever's turn it is. When you're the dealer, the
   line under the table says "You're the dealer."
+- **Looking at the table before moving on** (2026-10-15, after a playtest). The round scores
+  pop-up has "Hide to see the table", which leaves "Round 2 is over." with Show scores and
+  Continue under the table; Continue counts as closing the scores. A game that ends while
+  you're playing stays on the table ("The game is over." with See results) until you ask
+  for the results; a table that was already over when you opened it goes straight to them,
+  and so does one the host ended early.
 
 ## 2026-10-07: Tables with more than 4 players
 

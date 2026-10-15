@@ -42,6 +42,7 @@ export function TableView({
   error,
   nudgedBy,
   isHost,
+  onShowResults,
 }: {
   table: TableInfo;
   game: GameMessage;
@@ -49,6 +50,8 @@ export function TableView({
   error: { code: ErrorCode; message: string } | null;
   nudgedBy: number | null;
   isHost: boolean;
+  /** Once the game is over: go on to the results, when the player is ready. */
+  onShowResults?: () => void;
 }) {
   const { view, legalMoves, toAct, seq } = game;
   const names = useMemo(() => seatNames(table, view.you), [table, view.you]);
@@ -84,6 +87,7 @@ export function TableView({
     // The next hand is dealt (and the bots go on) once everyone has closed the scores.
     send({ type: 'roundSeen' });
   };
+  const over = view.status === 'over';
 
   const yourTurn = toAct.includes(view.you);
   const showTricks = view.trickZones.length > 0;
@@ -139,15 +143,17 @@ export function TableView({
   const readers = table.readingScores.filter((seat) => seat !== view.you);
   const dealWaiting = view.status === 'betweenRounds';
   const botsWaiting = toAct.some((seat) => table.seats[seat]?.bot === true);
-  const status = paused
-    ? 'The host paused the game.'
-    : yourTurn
-      ? turnPrompt(controls, names)
-      : readers.length > 0 && (dealWaiting || botsWaiting)
-        ? `Waiting for ${readers.map(names).join(', ')} to close the round scores…`
-        : dealWaiting
-          ? 'The next hand is dealt once everyone has closed the round scores.'
-          : `Waiting for ${toAct.map(names).join(', ') || 'the next round'}…`;
+  const status = over
+    ? 'The game is over.'
+    : paused
+      ? 'The host paused the game.'
+      : yourTurn
+        ? turnPrompt(controls, names)
+        : readers.length > 0 && (dealWaiting || botsWaiting)
+          ? `Waiting for ${readers.map(names).join(', ')} to close the round scores…`
+          : dealWaiting
+            ? 'The next hand is dealt once everyone has closed the round scores.'
+            : `Waiting for ${toAct.map(names).join(', ') || 'the next round'}…`;
 
   const others = view.players.filter((p) => p.id !== view.you);
   // A finished trick stays on the table until the next one starts, so everyone can see
@@ -168,7 +174,7 @@ export function TableView({
   // The game's name, round and buttons go in the site header, not a second bar.
   const header = useHeaderSlot();
   const menuItems: MenuItem[] = [
-    ...(isHost
+    ...(isHost && !over
       ? [
           {
             label: paused ? 'Resume' : 'Pause',
@@ -204,7 +210,7 @@ export function TableView({
         <button type="button" className="small wide-only" onClick={() => setShowRules(true)}>
           Rules
         </button>
-        {isHost && (
+        {isHost && !over && (
           <span className="wide-only game-host">
             <button
               type="button"
@@ -398,7 +404,17 @@ export function TableView({
               </button>
             </>
           ) : (
-            <strong>{status}</strong>
+            <>
+              <strong>{status}</strong>
+              {over && onShowResults && (
+                <>
+                  {' '}
+                  <button type="button" className="small primary" onClick={onShowResults}>
+                    See results
+                  </button>
+                </>
+              )}
+            </>
           )}
           <span className="muted">
             {view.dealer === view.you && " You're the dealer."}
