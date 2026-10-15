@@ -522,11 +522,24 @@ kbd {
 .seat-list li.mine {
   font-weight: 600;
 }
+/* Every seat row is one button tall, whatever it holds, so adding a bot or taking a seat
+   never changes the list's height (and nothing below it jumps). The buttons stay on one
+   line; a long name is cut short instead. */
 .seat-actions {
   display: flex;
   gap: 0.4em;
-  flex-wrap: wrap;
   justify-content: end;
+  align-items: center;
+  min-height: 40px;
+}
+.seat-actions button {
+  white-space: nowrap;
+}
+.seat-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .presence {
   display: inline-block;
