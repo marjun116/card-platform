@@ -106,6 +106,15 @@ describe('euchre: making trump', () => {
     expect(s.cursor.current).toBe(a);
   });
 
+  it('turns the upcard down, off the table, once everyone has passed it', () => {
+    const { state, a, b, c, d } = table(MARCH, '10H');
+    const s = play(state, choose(a, 'pass'), choose(b, 'pass'), choose(c, 'pass'));
+    expect(viewFor(s, d).offTable).toEqual([]);
+    const turned = applyMove(s, choose(d, 'pass'));
+    expect(phase(turned)).toBe('nameTrump');
+    expect(viewFor(turned, a).offTable).toEqual(['kitty', 'upcard']);
+  });
+
   it('shows trump and who called it on the table once trump is made', () => {
     const { state, a, b, c, d } = table(MARCH, '10H');
     expect(viewFor(state, a).display).toEqual([]);

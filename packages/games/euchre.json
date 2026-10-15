@@ -59,9 +59,13 @@
       "shared": true,
       "visibility": "none",
       "countVisible": true,
-      "showOnTable": "state.maker == null"
+      "showOnTable": "state.maker == null && state.turnedDown != true"
     },
-    "upcard": { "shared": true, "visibility": "all", "showOnTable": "state.maker == null" },
+    "upcard": {
+      "shared": true,
+      "visibility": "all",
+      "showOnTable": "state.maker == null && state.turnedDown != true"
+    },
     "trick": { "shared": true, "visibility": "all" },
     "won": { "per": "team", "visibility": "none", "countVisible": true }
   },
@@ -123,6 +127,7 @@
       "if": "state.maker == null",
       "order": "leftOfDealer",
       "rounds": 1,
+      "start": [{ "set": { "state.turnedDown": true } }],
       "until": "state.maker != null",
       "actions": [
         {

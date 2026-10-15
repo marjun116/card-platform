@@ -1110,3 +1110,13 @@ General parts of the game format, added because bridge needed them; none mention
   table was deleted"; their connection closes and doesn't reconnect.
 - `DELETE /api/tables/:code` (host only). If the table is open, the deletion runs in its
   room's queue, after any move already being saved.
+
+## 2026-10-15: Euchre's turned-down upcard and the bowers in your hand
+
+- **Once everyone passes the upcard, it's turned down and leaves the table**, along with the
+  kitty, as they already do once trump is made. Asked for by Arjun. The `nameTrump` phase
+  sets `state.turnedDown` when it starts; both zones' `showOnTable` checks it. The log still
+  says what the upcard was, and that suit still can't be named.
+- **Once trump is chosen, your hand sorts the bowers in with trump**: the left bower, then the
+  right, at the top of trump. The view now carries `trump` (suit, and whether bowers apply)
+  so the client can sort without knowing the game's rules.

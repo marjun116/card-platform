@@ -336,6 +336,9 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
 - [x] **Euchre: the bowers stay in their printed suits once trump is chosen.** After trump is
       made, your hand should re-sort so both bowers sit with trump (left bower, then right
       bower, at the top), instead of the left bower staying among its printed suit.
+- [x] **Euchre: the upcard stays face up after everyone passes it.** Once the first round of
+      bidding goes all the way round, the upcard should be turned down so no one can see it,
+      and the kitty and upcard taken off the middle of the table (as they are during play).
 
 ## Phase 6: Custom game creation and sharing
 
