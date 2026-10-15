@@ -302,7 +302,7 @@ only offered for built-in games, never custom ones.
 
 Found while playing. Fix one at a time; tick each off when it's fixed.
 
-- [ ] **Lobby: "Sit here" / "Move here" buttons spill out of the seat list's card.** In the
+- [x] **Lobby: "Sit here" / "Move here" buttons spill out of the seat list's card.** In the
       lobby seat list, the seat buttons extend past the edge of the panel they're in. (Likely
       since seat rows were kept to one line on 2026-10-15, so the buttons no longer wrap.)
 - [ ] **Euchre: the game info in the middle of the table moves when cards are played.**
