@@ -2,7 +2,7 @@
 import { applyMove } from '../api';
 import { type Card, isRank, isSuit, jokerCard, type Suit, suitedCard } from '../cards/card';
 import type { Move, PlayerId } from '../game/move';
-import { enterPhase, settle } from '../game/flow';
+import { dealNextRound, enterPhase, settle } from '../game/flow';
 import { draft, type GameState } from '../game/state';
 
 const SUIT_BY_LETTER: Record<string, Suit> = {
@@ -58,7 +58,7 @@ export function withZones(
 
 /** Applies moves in order. */
 export function play(state: GameState, ...moves: Move[]): GameState {
-  return moves.reduce(applyMove, state);
+  return moves.reduce((next, move) => applyMove(next, move), state);
 }
 
 export const current = (state: GameState): PlayerId =>
@@ -76,6 +76,8 @@ export function restartPhase(state: GameState): GameState {
   const next = draft(state);
   enterPhase(next, next.cursor.phase);
   settle(next);
+  // A round that ends straight away is dealt straight away, as applyMove does.
+  if (next.status === 'betweenRounds') dealNextRound(next);
   return next;
 }
 

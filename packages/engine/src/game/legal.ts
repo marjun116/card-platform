@@ -46,7 +46,7 @@ export function candidates(
   player: PlayerId,
   opts: CandidateOptions = {},
 ): Candidate[] {
-  if (state.status === 'over' || !isPlaying(state.players[player])) return [];
+  if (state.status !== 'inProgress' || !isPlaying(state.players[player])) return [];
   const found: Candidate[] = [];
 
   if (state.pending) {
@@ -152,7 +152,7 @@ export interface Control {
 
 /** Who plays for whom in the current phase, or null if nobody does. */
 export function controlOf(state: GameState): Control | null {
-  if (state.status === 'over') return null;
+  if (state.status !== 'inProgress') return null;
   const control = currentPhase(state).control;
   if (!control) return null;
   const scope = buildScope(state);

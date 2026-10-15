@@ -154,6 +154,28 @@ describe('TableView', () => {
     expect(button().getAttribute('aria-pressed')).toBe('false');
   });
 
+  it('keeps the finished round on the table until the next deal, and says who it waits for', () => {
+    // Spades, just before the move that ends the first round.
+    let state = createGame(spades, {}, 4, 'view-hold');
+    const firstMove = (s: GameState): Move => {
+      const move = gameMessage(s, s.cursor.current).legalMoves[0];
+      if (!move) throw new Error('Nobody can move');
+      return move;
+    };
+    while (applyMove(state, firstMove(state)).history.length === 0) {
+      state = applyMove(state, firstMove(state));
+    }
+    const held = applyMove(state, firstMove(state), { holdNextRound: true });
+    show(held, 0, { table: { ...tableInfo(4), readingScores: [1] } });
+    expect(screen.getByRole('group', { name: 'Last trick' })).toBeTruthy();
+    expect(screen.getByText(`Waiting for ${NAMES[1]} to close the round scores…`)).toBeTruthy();
+    cleanup();
+    show(held, 0);
+    expect(
+      screen.getByText('The next hand is dealt once everyone has closed the round scores.'),
+    ).toBeTruthy();
+  });
+
   it('shows no Last trick button in games without tricks', () => {
     show(createGame(miniRummy, {}, 2, 'view-no-tricks'), 0);
     expect(screen.queryByRole('button', { name: /trick$/ })).toBeNull();

@@ -11,10 +11,12 @@ import {
   askBot,
   type Bot,
   createGame,
+  dealNextRound,
   type GameState,
   getLegalMoves,
   getScores,
   IllegalMoveError,
+  isBetweenRounds,
   isGameOver,
   type Move,
   playersToAct,
@@ -118,7 +120,7 @@ export class TableRoom {
   }
 
   disconnect(socket: WebSocket): Promise<void> {
-    return this.enqueue(() => {
+    return this.enqueue(async () => {
       let userId: string | null = null;
       for (const c of this.connections) {
         if (c.socket !== socket) continue;
@@ -127,9 +129,8 @@ export class TableRoom {
       }
       // Someone who has left the table isn't looking at the scores any more.
       const seat = userId === null || this.isConnected(userId) ? null : this.seatOf(userId);
-      if (seat !== null && this.readingScores.delete(seat)) this.scheduleBots();
+      if (seat !== null && this.readingScores.delete(seat)) await this.dealWhenRead();
       this.broadcastTable();
-      return Promise.resolve();
     });
   }
 
@@ -371,7 +372,8 @@ export class TableRoom {
     const free = move.type === 'arrange' || move.type === 'sortHand';
     let next: GameState;
     try {
-      next = applyMove(state, move);
+      // A round that ends waits for its next deal until everyone has closed its scores.
+      next = applyMove(state, move, { holdNextRound: true });
     } catch (error) {
       if (error instanceof IllegalMoveError) throw new RoomError('ILLEGAL_MOVE', error.message);
       throw error;
@@ -382,7 +384,9 @@ export class TableRoom {
     // The move exactly as the engine accepted it.
     const saved = next.log[next.log.length - 1] as Move;
     await this.deps.store.recordMove(this.table.id, state.log.length, saved, {
-      toAct: playersToAct(next),
+      // Who acts once the next round is dealt, as a restart (which replays without
+      // holding the deal) would have it.
+      toAct: playersToAct(isBetweenRounds(next) ? dealNextRound(next) : next),
       // Arranging doesn't change whose turn it is, so the idle timer keeps running.
       turnSince: over ? null : free ? this.table.turnSince : now,
       ...(over && {
@@ -401,27 +405,52 @@ export class TableRoom {
       );
     }
 
+    // Nobody here to read the scores (only bots, say): deal straight away.
+    if (this.readingScores.size === 0 && isBetweenRounds(next)) {
+      this.state = dealNextRound(next);
+    }
+
     this.sendGameToAll();
     if (over || this.readingScores.size > 0) this.broadcastTable();
     if (over) this.sendOver();
     this.scheduleBots();
   }
 
-  /** A player closed the round's scores; once everyone has, the bots carry on. */
-  private roundSeen(user: User): Promise<void> {
+  /**
+   * Once everyone has closed the round's scores, deals the next round, tells everyone
+   * and lets the bots carry on. The turn's clock starts at the deal.
+   */
+  private async dealWhenRead(): Promise<void> {
+    const state = this.state;
+    if (this.readingScores.size > 0 || !state || !isBetweenRounds(state)) {
+      this.scheduleBots();
+      return;
+    }
+    const next = dealNextRound(state);
+    this.table = await this.deps.store.updateTable(this.table.id, {
+      toAct: playersToAct(next),
+      turnSince: this.deps.now(),
+    });
+    this.state = next;
+    this.sendGameToAll();
+    this.scheduleBots();
+  }
+
+  /** A player closed the round's scores; once everyone has, the next round is dealt. */
+  private async roundSeen(user: User): Promise<void> {
     const seat = this.requireSeat(user);
     if (this.readingScores.delete(seat)) {
+      await this.dealWhenRead();
       this.broadcastTable();
-      this.scheduleBots();
     }
-    return Promise.resolve();
   }
 
   private async nudge(user: User, target: number): Promise<void> {
     this.requireStatus('playing', 'Nudges only work while the game is being played');
     const from = this.requireSeat(user);
     const seat = this.table.seats.find((s) => s.seat === target);
-    if (!seat || target === from || !this.table.toAct.includes(target)) {
+    const dealing = this.state !== null && isBetweenRounds(this.state);
+    if (!seat || target === from || dealing || !this.table.toAct.includes(target)) {
       throw new RoomError('NOT_THEIR_TURN', "It isn't that player's turn");
     }
     if (seat.isBot) throw new RoomError('NOT_THEIR_TURN', "Bots don't need nudging");

@@ -85,6 +85,21 @@ export async function playRandomly(
   let made = 0;
   for (;;) {
     const view = players[0]?.client.lastGame;
+    if (view?.view.status === 'betweenRounds' && made < maxMoves) {
+      // Everyone closes the round's scores, and then the next round is dealt.
+      const marks = players.map((p) => p.client.mark());
+      await Promise.all(players.map((p) => p.client.ok({ type: 'roundSeen' })));
+      await Promise.all(
+        players.map((p, i) =>
+          p.client.waitFor(
+            (m) => m.type === 'game' && m.view.status !== 'betweenRounds',
+            'the next deal',
+            marks[i],
+          ),
+        ),
+      );
+      continue;
+    }
     if (!view || view.toAct.length === 0 || made >= maxMoves) return made;
     const actor = players[view.toAct[0] as number] as Player;
     const game = actor.client.lastGame;

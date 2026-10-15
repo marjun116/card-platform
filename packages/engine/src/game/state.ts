@@ -194,7 +194,12 @@ export interface GameState {
   pending: Pending | null;
   /** The game uses `hasLookedAtHand` (blind bids), so hands start hidden from their owners. */
   lookRequired: boolean;
-  status: 'inProgress' | 'over';
+  /**
+   * `betweenRounds`: a round has been scored and the next one isn't dealt yet. Only
+   * when the caller asked to hold the deal (see applyMove); nobody can move until
+   * dealNextRound.
+   */
+  status: 'inProgress' | 'betweenRounds' | 'over';
   winners: PlayerId[];
   /** Words shown with the result (`endCondition.notes`), once the game is over. */
   notes: string[];

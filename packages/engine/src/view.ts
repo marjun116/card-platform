@@ -39,7 +39,7 @@ export interface PlayerView {
   game: string;
   round: number;
   dealer: PlayerId;
-  status: 'inProgress' | 'over';
+  status: 'inProgress' | 'betweenRounds' | 'over';
   winners: PlayerId[];
   options: Record<string, OptionValue>;
   players: {

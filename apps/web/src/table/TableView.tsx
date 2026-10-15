@@ -126,16 +126,20 @@ export function TableView({
     .filter(Boolean)
     .join('. ');
 
-  // Bots wait while anyone still has the last round's scores open; say who, not the bot.
+  // The next hand is dealt (and bots wait) once everyone has closed the last round's
+  // scores; say who's still reading, not who's next.
   const readers = table.readingScores.filter((seat) => seat !== view.you);
-  const botsWaiting = readers.length > 0 && toAct.some((seat) => table.seats[seat]?.bot === true);
+  const dealWaiting = view.status === 'betweenRounds';
+  const botsWaiting = toAct.some((seat) => table.seats[seat]?.bot === true);
   const status = paused
     ? 'The host paused the game.'
     : yourTurn
       ? turnPrompt(controls, names)
-      : botsWaiting
+      : readers.length > 0 && (dealWaiting || botsWaiting)
         ? `Waiting for ${readers.map(names).join(', ')} to close the round scores…`
-        : `Waiting for ${toAct.map(names).join(', ') || 'the next round'}…`;
+        : dealWaiting
+          ? 'The next hand is dealt once everyone has closed the round scores.'
+          : `Waiting for ${toAct.map(names).join(', ') || 'the next round'}…`;
 
   const others = view.players.filter((p) => p.id !== view.you);
   // A finished trick stays on the table until the next one starts, so everyone can see

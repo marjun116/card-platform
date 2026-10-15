@@ -1,6 +1,6 @@
 /** The engine's public API. Every function is pure: inputs are never changed. */
 import { GameFileError, IllegalMoveError } from './errors';
-import { performMove, settle } from './game/flow';
+import { dealNextRound as deal, performMove, settle } from './game/flow';
 import { findCandidate, getLegalMoves, stableCandidates } from './game/legal';
 import type { Move, PlayerId } from './game/move';
 import { startGame } from './game/setup';
@@ -36,9 +36,21 @@ export function createGame(
   return startGame(file, options, playerCount, seed);
 }
 
+export interface ApplyOptions {
+  /**
+   * When the move ends a round, stop once it's scored, with the round's cards still
+   * on the table (status `betweenRounds`), instead of dealing the next one straight
+   * away; dealNextRound deals it. Either way the game goes on identically.
+   */
+  holdNextRound?: boolean;
+}
+
 /** Returns the state after the move. Throws IllegalMoveError if the move isn't legal now. */
-export function applyMove(state: GameState, move: Move): GameState {
+export function applyMove(state: GameState, move: Move, options: ApplyOptions = {}): GameState {
   if (state.status === 'over') throw new IllegalMoveError('The game is over');
+  if (state.status === 'betweenRounds') {
+    throw new IllegalMoveError("The next round hasn't been dealt yet");
+  }
   const player = state.players[move.player];
   if (!player) throw new IllegalMoveError(`There is no player ${move.player}`);
 
@@ -65,6 +77,22 @@ export function applyMove(state: GameState, move: Move): GameState {
   // Store the legal move exactly as the engine generated it.
   performMove(next, candidate, candidate.move);
   settle(next);
+  if (next.status === 'betweenRounds' && !options.holdNextRound) deal(next);
+  return next;
+}
+
+/** True when a round has been scored and the next one is waiting to be dealt. */
+export function isBetweenRounds(state: GameState): boolean {
+  return state.status === 'betweenRounds';
+}
+
+/** Deals the next round of a game held between rounds (see ApplyOptions.holdNextRound). */
+export function dealNextRound(state: GameState): GameState {
+  if (state.status !== 'betweenRounds') {
+    throw new IllegalMoveError("The game isn't waiting for the next round");
+  }
+  const next = draft(state);
+  deal(next);
   return next;
 }
 
@@ -87,5 +115,8 @@ export function replay(
   seed: string,
   moves: readonly Move[],
 ): GameState {
-  return moves.reduce(applyMove, createGame(file, options, playerCount, seed));
+  return moves.reduce(
+    (state, move) => applyMove(state, move),
+    createGame(file, options, playerCount, seed),
+  );
 }

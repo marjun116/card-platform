@@ -186,7 +186,7 @@ export function settle(state: GameState): void {
     if (guard > MAX_MOVES_PER_ROUND) {
       throw new GameFileError('The game keeps skipping players without anyone able to move');
     }
-    if (state.status === 'over' || state.pending) return;
+    if (state.status !== 'inProgress' || state.pending) return;
     const phase = currentPhase(state);
     const cursor = state.cursor;
 
@@ -385,6 +385,15 @@ function endRound(state: GameState): void {
   // Everyone is back for the next round (the deal passes over nobody who sat out).
   for (const player of state.players) player.sittingOut = false;
   if (over) return;
+  // The round's cards stay where they are until the next deal (see dealNextRound).
+  state.status = 'betweenRounds';
+}
+
+/**
+ * Deals the next round of a game that is between rounds, and plays on until
+ * someone has a decision to make.
+ */
+export function dealNextRound(state: GameState): void {
   if (state.round >= MAX_ROUNDS) {
     throw new GameFileError(`The game didn't end after ${MAX_ROUNDS} rounds`);
   }
@@ -401,5 +410,7 @@ function endRound(state: GameState): void {
   } else if (!state.players[state.dealer]?.active) {
     state.dealer = nextActive(state, state.dealer, 1);
   }
+  state.status = 'inProgress';
   startRound(state);
+  settle(state);
 }

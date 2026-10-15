@@ -1,9 +1,12 @@
 // Public API of the rules engine.
 export {
   applyMove,
+  type ApplyOptions,
   createGame,
+  dealNextRound,
   getLegalMoves,
   getScores,
+  isBetweenRounds,
   isGameOver,
   playersToAct,
   replay,

@@ -4,7 +4,15 @@
  * a legal state. A failure reports the seed and move number, so the exact
  * game can be replayed with `replay(file, options, players, seed, moves)`.
  */
-import { applyMove, createGame, getLegalMoves, playersToAct, replay, viewFor } from '../api';
+import {
+  applyMove,
+  createGame,
+  dealNextRound,
+  getLegalMoves,
+  playersToAct,
+  replay,
+  viewFor,
+} from '../api';
 import { isRevealed } from '../view';
 import type { Bot } from '../bots/types';
 import { askBot, botSeat } from '../bots/input';
@@ -62,6 +70,11 @@ export interface SimulationOptions {
   hiddenCardCheckEvery?: number;
   /** Extra checks after every move; throw to fail. */
   check?: (state: GameState, moveNumber: number) => void;
+  /**
+   * Play as the server does: hold each new deal after a round is scored, then deal
+   * it (see ApplyOptions.holdNextRound). The game must come out exactly the same.
+   */
+  holdNextRound?: boolean;
 }
 
 export class SimulationError extends Error {
@@ -93,6 +106,7 @@ export function simulateGame(
     maxMoves = 20_000,
     hiddenCardCheckEvery = 10,
     check,
+    holdNextRound = false,
   }: SimulationOptions = {},
 ): SimulationResult {
   const rng = seedRng(`moves:${seed}`);
@@ -112,6 +126,11 @@ export function simulateGame(
 
   while (state.status !== 'over') {
     if (moves.length >= maxMoves) fail(`The game didn't finish within ${maxMoves} moves`);
+    if (state.status === 'betweenRounds') {
+      if (playersToAct(state).length > 0) fail('Someone can move before the next deal');
+      state = dealNextRound(state);
+      continue;
+    }
     const actors = playersToAct(state);
     if (actors.length !== 1) fail(`Expected exactly one player to act, got [${actors.join(', ')}]`);
     const actor = actors[0] as PlayerId;
@@ -127,7 +146,7 @@ export function simulateGame(
       fail(`The strategy chose a move that isn't legal: ${JSON.stringify(move)}`);
     }
     try {
-      state = applyMove(state, move);
+      state = applyMove(state, move, { holdNextRound });
     } catch (error) {
       moves.push(move);
       fail(`applyMove failed: ${String(error)}`);

@@ -1063,6 +1063,16 @@ General parts of the game format, added because bridge needed them; none mention
   others read. Who's still reading is in the table info (`readingScores`), so others see
   "Waiting for Ana to close the round scores…" rather than "Waiting for Bot 2…". Not
   saved: after a server restart nobody has the scores open, so the bots carry on.
+- **The next hand waits for the round scores too** (2026-10-15, decided by Arjun after a
+  playtest where the new hand and euchre's upcard showed behind the scores). The server plays
+  moves with `applyMove(state, move, { holdNextRound: true })`: a move that ends a round
+  stops once it's scored, with status `betweenRounds`, the last trick still on the table and
+  nobody able to move (no nudges either). When everyone has closed the scores (or left),
+  the server calls `dealNextRound`. People can no longer move while others read. The deal
+  isn't a move, so nothing extra is saved: replaying a game deals straight away and comes
+  out exactly the same (a simulation of every built-in game checks this), and the saved
+  "whose turn" is already the new round's. The table says "Waiting for Ana to close the
+  round scores…" meanwhile.
 - **`showOnTable` for shared zones**: `"showOnTable": "state.maker == null"` draws the pile on
   the table only while the expression holds (the view lists the others in `offTable`). The
   cards don't change, and a pile you can use right now is always drawn. Euchre's upcard and

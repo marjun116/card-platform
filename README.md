@@ -89,8 +89,8 @@ check on every push (see `.github/workflows/ci.yml`). CI doesn't need a database
 ## The rules engine
 
 `packages/engine` runs any game described by the JSON game format. Its main functions are
-`createGame`, `getLegalMoves`, `applyMove`, `viewFor`, `isGameOver`, `getScores` and
-`replay` (see `packages/engine/src/index.ts`). Design decisions are in
+`createGame`, `getLegalMoves`, `applyMove`, `dealNextRound`, `viewFor`, `isGameOver`,
+`getScores` and `replay` (see `packages/engine/src/index.ts`). Design decisions are in
 [docs/decisions.md](docs/decisions.md).
 
 | Command (in `packages/engine`) | What it does                                                     |
