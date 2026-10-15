@@ -336,6 +336,11 @@ Agreed before building `apps/web`.
   Only a window too short for the table's minimum height (300px, 380px from 7 players)
   scrolls, and then your hand stays pinned to the bottom. On short laptop windows (under
   760px tall) the cards in your hand are a little smaller.
+- **The game's values have a fixed place** (2026-10-15, after a euchre playtest where trump
+  and "Called by" jumped as cards were played). Values a game shows on the table sit in the
+  bottom-left of the table, in three rows filled top to bottom (then a new column), so a
+  value that comes and goes never moves the others; the "Last trick" button is bottom-right.
+  On phones they sit just under the other players.
 
 ## 2026-10-07: Tables with more than 4 players
 

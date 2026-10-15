@@ -305,7 +305,7 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
 - [x] **Lobby: "Sit here" / "Move here" buttons spill out of the seat list's card.** In the
       lobby seat list, the seat buttons extend past the edge of the panel they're in. (Likely
       since seat rows were kept to one line on 2026-10-15, so the buttons no longer wrap.)
-- [ ] **Euchre: the game info in the middle of the table moves when cards are played.**
+- [x] **Euchre: the game info in the middle of the table moves when cards are played.**
       Trump, "Called by" and the other values shift position once cards land on the table.
       They should stay in one fixed place and be readable whether or not there are cards
       in the middle.

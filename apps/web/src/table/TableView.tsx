@@ -257,28 +257,44 @@ export function TableView({
               />
             ))}
           </div>
+          {/* The game's values (trump, the count) and the last-trick button have a fixed place
+              along the bottom of the table, so they don't move as cards come and go. */}
+          {(view.display.length > 0 || showTricks) && (
+            <div className="felt-footer">
+              {view.display.length > 0 && (
+                <p className="display-values">
+                  {view.display.map((item) => {
+                    const team =
+                      item.format === 'team' && typeof item.value === 'number'
+                        ? view.teams[item.value]
+                        : undefined;
+                    const text =
+                      item.format === 'player' && typeof item.value === 'number'
+                        ? names(item.value)
+                        : team
+                          ? teamName(team, names)
+                          : String(item.value);
+                    return (
+                      <span key={item.label}>
+                        <span className="muted">{item.label}</span> <strong>{text}</strong>
+                      </span>
+                    );
+                  })}
+                </p>
+              )}
+              {view.lastTrick && trickStarted && (
+                <button
+                  type="button"
+                  className="small last-trick"
+                  aria-pressed={showLastTrick}
+                  onClick={() => setShowLastTrick(!showLastTrick)}
+                >
+                  {showLastTrick ? 'Show current trick' : 'Last trick'}
+                </button>
+              )}
+            </div>
+          )}
           <div className="center">
-            {view.display.length > 0 && (
-              <p className="display-values">
-                {view.display.map((item) => {
-                  const team =
-                    item.format === 'team' && typeof item.value === 'number'
-                      ? view.teams[item.value]
-                      : undefined;
-                  const text =
-                    item.format === 'player' && typeof item.value === 'number'
-                      ? names(item.value)
-                      : team
-                        ? teamName(team, names)
-                        : String(item.value);
-                  return (
-                    <span key={item.label}>
-                      <span className="muted">{item.label}</span> <strong>{text}</strong>
-                    </span>
-                  );
-                })}
-              </p>
-            )}
             <div className="center-row">
               {trickToShow && trickToShow.plays.length > 0 && (
                 <Trick
@@ -313,16 +329,6 @@ export function TableView({
               onMove={act}
             />
           </div>
-          {view.lastTrick && trickStarted && (
-            <button
-              type="button"
-              className="small last-trick"
-              aria-pressed={showLastTrick}
-              onClick={() => setShowLastTrick(!showLastTrick)}
-            >
-              {showLastTrick ? 'Show current trick' : 'Last trick'}
-            </button>
-          )}
         </div>
 
         <aside

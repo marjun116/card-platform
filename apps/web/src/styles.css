@@ -981,24 +981,44 @@ kbd {
 .pile-spread .card + .card {
   margin-left: calc(var(--w) * -0.6);
 }
-/* Values the game shows on the table, such as a running count. */
-.display-values {
+/* Along the bottom of the table: values the game shows (trump, a running count) on the
+   left and the last-trick button on the right. They have a fixed place, away from the
+   middle, so they don't move as cards are played or bids are made. */
+.felt-footer {
+  position: absolute;
+  /* Far enough in from the left to clear the table's rounded corner. */
+  left: 72px;
+  right: 16px;
+  bottom: 12px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: end;
   gap: 16px;
+  pointer-events: none;
+}
+.felt-footer > * {
+  pointer-events: auto;
+}
+/* Three fixed rows, filled top to bottom and then in a new column to the right, so a
+   value that comes and goes (such as who picks up the upcard) never moves the others. */
+.display-values {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(3, 1.8rem);
+  align-items: center;
+  column-gap: 24px;
   margin: 0;
+  white-space: nowrap;
 }
 .display-values strong {
-  font-size: 1.4rem;
+  font-size: 1.15rem;
 }
 .result-notes {
   font-size: 1.3rem;
   font-weight: bold;
 }
 .last-trick {
-  position: absolute;
-  right: 16px;
-  bottom: 12px;
+  margin-left: auto;
 }
 
 .side {
@@ -1354,9 +1374,23 @@ kbd {
   .decision-panel {
     max-width: 100%;
   }
-  .last-trick {
+  /* Under the other players, so its first line stays put as values come and go. */
+  .felt-footer {
     position: static;
-    align-self: end;
+    align-items: center;
+    min-height: 32px;
+  }
+  .display-values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 14px;
+    white-space: normal;
+  }
+  .display-values > span {
+    white-space: nowrap;
+  }
+  .display-values strong {
+    font-size: 1rem;
   }
 
   .you-area {
@@ -1370,6 +1404,10 @@ kbd {
 @media (max-width: 700px) {
   .felt.many {
     min-height: 460px;
+  }
+  /* The other players sit around the top, so the values go along the bottom. */
+  .felt.many .felt-footer {
+    order: 1;
   }
   .felt.many .seats {
     position: absolute;
