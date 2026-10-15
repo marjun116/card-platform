@@ -1068,9 +1068,10 @@ General parts of the game format, added because bridge needed them; none mention
   cards don't change, and a pile you can use right now is always drawn. Euchre's upcard and
   kitty leave the table once trump is made, leaving the trick and the game's values.
 - **`dealer` in expressions** is the dealer's seat; a `display` may use it (it's public).
-  Euchre shows "Picks up the upcard: <dealer>" from when the card is ordered up until the
-  exchange, then "Picked up the upcard: <dealer>" for the rest of the hand (nothing if the
-  dealer sits out because their partner went alone).
+  Euchre used it for "Picks up the upcard: <dealer>", but both upcard lines were removed
+  on 2026-10-15 (decided by Arjun after a playtest): it's always the dealer, the dealer's
+  turn badge shows who you're waiting on, and the log records the pickup. The table shows
+  only Trump, Called by and who's going or defending alone.
 
 ## 2026-10-15: Deleting tables
 
