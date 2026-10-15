@@ -89,7 +89,11 @@ describe('euchre: making trump', () => {
     expect(s.vars.trump).toBe('hearts');
     // The maker decides whether to go alone, then the dealer exchanges.
     expect(values(s, d)).toEqual(['alone', 'withPartner']);
+    const upcardLine = (state: GameState) =>
+      viewFor(state, a).display.filter((item) => item.label.includes('upcard'));
+    expect(upcardLine(s)).toEqual([{ label: 'Picks up the upcard', value: d, format: 'player' }]);
     s = applyMove(s, choose(d, 'withPartner'));
+    expect(upcardLine(s)).toEqual([{ label: 'Picked up the upcard', value: d, format: 'player' }]);
     // No click to take the card: the dealer already has it, and only has to discard.
     expect(phase(s)).toBe('exchange');
     expect(hand(s, d)).toContain(id('10H'));

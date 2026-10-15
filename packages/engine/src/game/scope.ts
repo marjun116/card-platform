@@ -512,6 +512,8 @@ export function buildScope(state: GameState, ctx: ScopeContext = {}): Scope {
         return { ...state.options };
       case 'round':
         return state.round;
+      case 'dealer':
+        return state.dealer;
       case 'activePlayers': {
         const active = state.players.filter((p) => p.active);
         return lookupObject((prop) => {

@@ -222,8 +222,8 @@ describe('checking the new blocks', () => {
         display: [{ label: 'Top', value: 'stock.top.rank', if: 'round > 1' }],
       }),
     ).toEqual([
-      'display[0].value: A display can only use state, options and round (so it never shows ' +
-        'hidden cards), not "stock"',
+      'display[0].value: A display can only use state, options, round and dealer (so it never ' +
+        'shows hidden cards), not "stock"',
     ]);
     expect(
       errors({

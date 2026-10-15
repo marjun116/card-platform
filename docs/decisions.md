@@ -1055,3 +1055,7 @@ General parts of the game format, added because bridge needed them; none mention
   the table only while the expression holds (the view lists the others in `offTable`). The
   cards don't change, and a pile you can use right now is always drawn. Euchre's upcard and
   kitty leave the table once trump is made, leaving the trick and the game's values.
+- **`dealer` in expressions** is the dealer's seat; a `display` may use it (it's public).
+  Euchre shows "Picks up the upcard: <dealer>" from when the card is ordered up until the
+  exchange, then "Picked up the upcard: <dealer>" for the rest of the hand (nothing if the
+  dealer sits out because their partner went alone).

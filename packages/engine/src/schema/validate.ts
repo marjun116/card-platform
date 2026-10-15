@@ -209,6 +209,7 @@ const RESERVED = new Set([
   'state',
   'options',
   'round',
+  'dealer',
   'activePlayers',
   'turn',
   'meld',
@@ -1026,7 +1027,7 @@ class Checker {
 
   /**
    * Shown to every player, so a display may only use values everyone already
-   * sees (state, options, round): never a pile, which could hold hidden cards.
+   * sees (state, options, round, dealer): never a pile, which could hold hidden cards.
    */
   private checkDisplay(item: DisplayDef, path: Path): void {
     for (const [key, source] of [
@@ -1040,11 +1041,12 @@ class Checker {
       walk(ast, (node) => {
         if (node.kind === 'name') names.add(node.name);
       });
-      const others = [...names].filter((n) => !['state', 'options', 'round'].includes(n));
+      const public_ = ['state', 'options', 'round', 'dealer'];
+      const others = [...names].filter((n) => !public_.includes(n));
       if (others.length > 0) {
         this.error(
           [...path, key],
-          `A display can only use state, options and round (so it never shows hidden cards), ` +
+          `A display can only use state, options, round and dealer (so it never shows hidden cards), ` +
             `not ${others.map((n) => `"${n}"`).join(', ')}`,
         );
       }
@@ -1166,6 +1168,7 @@ class Checker {
       case 'bid':
         return ctx.bid ? 'value' : unavailable('only a bid action\'s "if" has a bid');
       case 'round':
+      case 'dealer':
         return 'value';
     }
     if (FUNCTIONS.includes(name) || this.playerValueNames().includes(name)) return 'value';
@@ -1186,6 +1189,7 @@ class Checker {
       'state',
       'options',
       'round',
+      'dealer',
       'activePlayers',
       'turn',
       ...FUNCTIONS,

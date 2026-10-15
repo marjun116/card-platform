@@ -197,7 +197,11 @@
       "if": "state.pickUp == true",
       "order": "dealer",
       "rounds": 1,
-      "start": [{ "if": "player.isDealer", "giveCards": "upcard" }],
+      "start": [
+        { "set": { "state.exchanged": true } },
+        { "if": "player.isDealer", "set": { "state.pickedUpBy": "player.id" } },
+        { "if": "player.isDealer", "giveCards": "upcard" }
+      ],
       "actions": [{ "type": "discard", "to": "kitty", "if": "player.isDealer" }]
     },
     {
@@ -244,6 +248,13 @@
       }
     },
     { "label": "Called by", "value": "state.maker", "format": "player" },
+    {
+      "label": "Picks up the upcard",
+      "value": "dealer",
+      "format": "player",
+      "if": "state.pickUp == true && state.exchanged != true"
+    },
+    { "label": "Picked up the upcard", "value": "state.pickedUpBy", "format": "player" },
     {
       "label": "Going alone",
       "value": "state.alone",

@@ -139,3 +139,17 @@ describe('showOnTable', () => {
     ]);
   });
 });
+
+describe('dealer in expressions', () => {
+  it("is the dealer's seat, and a display may show it", () => {
+    const file: GameFile = {
+      ...miniRummy,
+      display: [{ label: 'Dealer', value: 'dealer', format: 'player' }],
+    };
+    expect(validate(file).ok).toBe(true);
+    const state = createGame(file, {}, 2, 'dealer');
+    expect(viewFor(state, 0).display).toEqual([
+      { label: 'Dealer', value: state.dealer, format: 'player' },
+    ]);
+  });
+});
