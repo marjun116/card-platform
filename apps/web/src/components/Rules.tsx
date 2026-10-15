@@ -109,7 +109,13 @@ export function RulesDialog({ table, onClose }: { table: TableInfo; onClose: () 
   const game =
     games.state === 'done' ? games.data.find((g) => g.slug === table.game.slug) : undefined;
   return (
-    <Dialog title={`${table.game.name} rules`} onClose={onClose} closeLabel="Close" startAtTop>
+    <Dialog
+      title={`${table.game.name} rules`}
+      onClose={onClose}
+      closeLabel="Close"
+      startAtTop
+      closeOnOutsideClick
+    >
       <AtThisTable table={table} game={game} />
       <GameRules slug={table.game.slug} level={3} />
     </Dialog>

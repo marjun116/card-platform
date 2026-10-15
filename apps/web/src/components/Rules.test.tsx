@@ -1,5 +1,5 @@
 import type { GameSummary, TableInfo } from '@card-table/server/protocol';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RulesPage } from '../pages/RulesPage';
@@ -98,6 +98,20 @@ describe('RulesDialog', () => {
     expect(await screen.findByRole('heading', { name: 'Play' })).toBeTruthy();
     expect(await screen.findByText('(changed)')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
+  });
+
+  it('closes on a click outside it, but not on one inside it', () => {
+    const onClose = vi.fn();
+    render(<RulesDialog table={table} onClose={onClose} />);
+    const dialog = screen.getByRole('heading', { name: 'Spades rules' }).closest('dialog');
+    if (!dialog) throw new Error('No dialog');
+    // jsdom has no layout: place the dialog by hand.
+    dialog.getBoundingClientRect = () => new DOMRect(100, 100, 400, 300);
+    fireEvent.click(screen.getByRole('heading', { name: 'Spades rules' }));
+    fireEvent.click(dialog, { clientX: 300, clientY: 200 });
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(dialog, { clientX: 20, clientY: 20 });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });
 

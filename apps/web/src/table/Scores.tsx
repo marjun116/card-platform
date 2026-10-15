@@ -209,6 +209,7 @@ export function Dialog({
   children,
   closeLabel = 'Continue',
   startAtTop = false,
+  closeOnOutsideClick = false,
 }: {
   title: string;
   onClose: () => void;
@@ -216,6 +217,8 @@ export function Dialog({
   closeLabel?: string;
   /** Focus the title rather than the button, so long content opens at its start. */
   startAtTop?: boolean;
+  /** A click on the darkened page around the dialog closes it too. */
+  closeOnOutsideClick?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -238,6 +241,21 @@ export function Dialog({
       // meanwhile (React mounts components twice in development).
       onClose={() => {
         if (!ref.current?.open) onClose();
+      }}
+      // A click on the backdrop is reported as a click on the dialog itself, as is one on
+      // its padding, so only a click outside the dialog's box counts.
+      onClick={(event) => {
+        const dialog = ref.current;
+        if (!closeOnOutsideClick || !dialog || event.target !== dialog) return;
+        const box = dialog.getBoundingClientRect();
+        const outside =
+          event.clientX < box.left ||
+          event.clientX > box.right ||
+          event.clientY < box.top ||
+          event.clientY > box.bottom;
+        if (!outside) return;
+        if (typeof dialog.close === 'function') dialog.close();
+        else onClose();
       }}
     >
       <h2 id="dialog-title" ref={titleRef} tabIndex={startAtTop ? -1 : undefined}>

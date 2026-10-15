@@ -313,6 +313,8 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       very light colour and hard to make out against the green table.
 - [x] **Table: the table grows after you play your last card.** Once your hand is empty, the
       table gets taller, which is jarring. Its size should stay the same.
+- [x] **Rules: the rules pop-up only closes with its Close button.** Clicking outside it (on
+      the darkened page around it) should close it too.
 
 ## Phase 6: Custom game creation and sharing
 
