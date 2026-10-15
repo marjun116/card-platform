@@ -298,6 +298,26 @@ only offered for built-in games, never custom ones.
 
 **Done when:** every launch game passes its tests and a real playtest, and you can fill empty seats with bots in built-in games.
 
+## Bugs and playtest feedback
+
+Found while playing. Fix one at a time; tick each off when it's fixed.
+
+- [ ] **Lobby: "Sit here" / "Move here" buttons spill out of the seat list's card.** In the
+      lobby seat list, the seat buttons extend past the edge of the panel they're in. (Likely
+      since seat rows were kept to one line on 2026-10-15, so the buttons no longer wrap.)
+- [ ] **Euchre: the game info in the middle of the table moves when cards are played.**
+      Trump, "Called by" and the other values shift position once cards land on the table.
+      They should stay in one fixed place and be readable whether or not there are cards
+      in the middle.
+- [ ] **Table: the game info labels are too faint on the felt.** "Trump" and "Called by" are a
+      very light colour and hard to make out against the green table.
+- [ ] **Table: the table grows after you play your last card.** Once your hand is empty, the
+      table gets taller, which is jarring. Its size should stay the same.
+- [ ] **Pre-play (feature request):** where it makes sense for the game (trick-taking games,
+      say), let you choose your next card before your turn, and play it automatically when
+      your turn comes if it's still legal. Decide which games get it, and how you see and
+      cancel a pre-played card.
+
 ## Phase 6: Custom game creation and sharing
 
 This is the feature that sets the platform apart. The AI turns typed rules into a game file, asks about every gap, and the validator guarantees that whatever it produces is safe to run.
