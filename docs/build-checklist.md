@@ -320,6 +320,11 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
 - [x] **Table: the "Last trick" button keeps disappearing and coming back.** It vanishes while
       a finished trick is still on the table and reappears when the next card is led, every
       trick, which is jarring.
+- [ ] **Table: the next hand is dealt before you close the round scores.** While the round
+      scores are still open, the new hand (and euchre's upcard) is already on the table behind
+      them. The next deal should wait until you've closed the scores.
+- [ ] **Euchre: "Picked up the upcard" on the table is redundant.** It's always the dealer,
+      and the log already says so. Decide whether to drop it or show something more useful.
 
 ## Phase 6: Custom game creation and sharing
 
