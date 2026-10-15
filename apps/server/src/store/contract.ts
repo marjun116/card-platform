@@ -302,6 +302,32 @@ export function storeContract(makeStore: () => Promise<Store>): void {
       expect(saved?.turnSince).toEqual(since);
     });
 
+    it('deletes a table with its seats, moves and result', async () => {
+      const { host, table } = await newTable();
+      const { table: other } = await newTable('KEEP01');
+      await store.takeSeat(table.id, 0, host.id);
+      await store.takeSeat(other.id, 0, host.id);
+      const scores = { teams: [], players: [] };
+      await store.recordMove(
+        table.id,
+        0,
+        { player: 0, type: 'endTurn' },
+        {
+          toAct: [],
+          turnSince: null,
+          finished: { endedAt: new Date(), result: { winners: [0], scores } },
+        },
+      );
+      await store.deleteTable(table.id);
+      expect(await store.getTable(table.id)).toBeNull();
+      expect(await store.listMoves(table.id)).toEqual([]);
+      expect(await store.getResult(table.id)).toBeNull();
+      expect(await store.listPastTables(host.id, { offset: 0, limit: 10 })).toEqual([]);
+      expect((await store.listOpenTables(host.id)).map((t) => t.id)).toEqual([other.id]);
+      // Deleting it again does nothing.
+      await store.deleteTable(table.id);
+    });
+
     it('finishes a table with its result in the same write', async () => {
       const { host, table } = await newTable();
       const endedAt = new Date();

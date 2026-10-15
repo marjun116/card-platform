@@ -96,6 +96,8 @@ export const api = {
     request<{ variant: VariantInfo }>('GET', `/variants/${encodeURIComponent(code)}`).then(
       (r) => r.variant,
     ),
+  deleteTable: (code: string) =>
+    request<{ ok: true }>('DELETE', `/tables/${encodeURIComponent(code)}`),
   deleteVariant: (code: string) =>
     request<{ ok: true }>('DELETE', `/variants/${encodeURIComponent(code)}`),
 };

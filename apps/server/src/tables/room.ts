@@ -133,6 +133,24 @@ export class TableRoom {
     });
   }
 
+  /**
+   * Deletes the table (after anything already queued, so no move is half saved),
+   * tells everyone connected and closes the room for good.
+   */
+  delete(): Promise<void> {
+    return this.enqueue(async () => {
+      this.closed = true;
+      if (this.botTimer) clearTimeout(this.botTimer);
+      this.botTimer = null;
+      await this.deps.store.deleteTable(this.table.id);
+      for (const c of this.connections) {
+        send(c.socket, { type: 'deleted' });
+        c.socket.close(1000, 'Table deleted');
+      }
+      this.connections.clear();
+    });
+  }
+
   /** Closes the room if nobody is connected. A closed room accepts no more connections. */
   closeIfEmpty(): Promise<boolean> {
     return this.enqueue(() => {

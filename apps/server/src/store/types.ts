@@ -203,6 +203,8 @@ export interface Store {
   takeSeat(tableId: string, seat: number, userId: string): Promise<void>;
   leaveSeat(tableId: string, seat: number): Promise<void>;
   setNudged(tableId: string, seat: number, at: Date): Promise<void>;
+  /** Deletes a table with its seats, moves and result. Does nothing if it's already gone. */
+  deleteTable(id: string): Promise<void>;
 
   // Variants
   /** Throws ConflictError if the code is taken. */

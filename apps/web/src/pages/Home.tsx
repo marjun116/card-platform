@@ -45,30 +45,66 @@ function JoinForm() {
 
 function MyTables({ userId }: { userId: string }) {
   const tables = useLoad(api.myTables, userId);
+  const [deleted, setDeleted] = useState<string[]>([]);
+  const [error, setError] = useState<string | null>(null);
   if (tables.state === 'loading') return <p className="muted">Loading your tables…</p>;
   if (tables.state === 'error') return <p className="error">{tables.message}</p>;
-  if (tables.data.length === 0) {
+  const shown = tables.data.filter((t) => !deleted.includes(t.code));
+  if (shown.length === 0) {
     return <p className="muted">You're not at any tables yet.</p>;
   }
+
+  // Hosts can delete a table; a game in progress ends for everyone and leaves no record.
+  const remove = (table: TableInfo) => {
+    const started = table.status !== 'lobby';
+    const others = table.seats.some((s) => s.user && s.user.id !== userId && !s.bot);
+    const warning = started
+      ? `Delete this ${table.game.name} table? The game ends${others ? ' for everyone' : ''} and won't appear in past games.`
+      : `Delete this ${table.game.name} table?`;
+    if (!window.confirm(warning)) return;
+    setError(null);
+    api
+      .deleteTable(table.code)
+      .then(() => setDeleted([...deleted, table.code]))
+      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : 'Could not delete it'));
+  };
+
   return (
-    <ul className="card-list">
-      {tables.data.map((table) => {
-        const you = table.seats.find((s) => s.user?.id === userId);
-        const players = table.seats.filter((s) => s.user).map((s) => s.user?.displayName);
-        return (
-          <li key={table.code}>
-            <Link to={`/t/${table.code}`} className="list-link">
-              <strong>{table.game.name}</strong>
-              <span>{STATUS[table.status]}</span>
-              <span className="muted">
-                {players.length > 0 ? players.join(', ') : 'No one seated yet'}
-                {you === undefined && table.hostId === userId ? ' · you are hosting' : ''}
-              </span>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+    <>
+      {error && (
+        <p role="alert" className="error">
+          {error}
+        </p>
+      )}
+      <ul className="card-list">
+        {shown.map((table) => {
+          const you = table.seats.find((s) => s.user?.id === userId);
+          const players = table.seats.filter((s) => s.user).map((s) => s.user?.displayName);
+          return (
+            <li key={table.code} className="table-row">
+              <Link to={`/t/${table.code}`} className="list-link">
+                <strong>{table.game.name}</strong>
+                <span>{STATUS[table.status]}</span>
+                <span className="muted">
+                  {players.length > 0 ? players.join(', ') : 'No one seated yet'}
+                  {you === undefined && table.hostId === userId ? ' · you are hosting' : ''}
+                </span>
+              </Link>
+              {table.hostId === userId && (
+                <button
+                  type="button"
+                  className="small danger"
+                  aria-label={`Delete this ${table.game.name} table`}
+                  onClick={() => remove(table)}
+                >
+                  Delete
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }
 

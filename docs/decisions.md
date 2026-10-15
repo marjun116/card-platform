@@ -1059,3 +1059,14 @@ General parts of the game format, added because bridge needed them; none mention
   Euchre shows "Picks up the upcard: <dealer>" from when the card is ordered up until the
   exchange, then "Picked up the upcard: <dealer>" for the rest of the hand (nothing if the
   dealer sits out because their partner went alone).
+
+## 2026-10-15: Deleting tables
+
+- **The host can delete any table they created**, from "Your tables" on the home page (after
+  a confirm). Decided by Arjun.
+- **Deleted means gone**: the table, its seats, moves and result are removed, so a started
+  game disappears from everyone's "Past games" too (decided by Arjun). A game in progress
+  ends for everyone: people with the table open get a `deleted` message and see "This
+  table was deleted"; their connection closes and doesn't reconnect.
+- `DELETE /api/tables/:code` (host only). If the table is open, the deletion runs in its
+  room's queue, after any move already being saved.

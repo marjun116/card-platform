@@ -1,4 +1,4 @@
-import type { GameStats, PastGame } from '@card-table/server/protocol';
+import type { GameStats, PastGame, TableInfo } from '@card-table/server/protocol';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,13 +34,21 @@ function past(code: string, winners: number[], status: PastGame['status'] = 'fin
 
 let pages: Record<number, { games: PastGame[]; more: boolean }>;
 let stats: GameStats[];
+let myTables: TableInfo[];
+let deletedCodes: string[];
 
 beforeEach(() => {
   pages = { 0: { games: [], more: false } };
   stats = [];
-  vi.stubGlobal('fetch', (url: string) => {
+  myTables = [];
+  deletedCodes = [];
+  vi.stubGlobal('fetch', (url: string, init?: RequestInit) => {
     const reply = (data: unknown) => Promise.resolve(new Response(JSON.stringify(data)));
-    if (url === '/api/tables/mine') return reply({ tables: [] });
+    if (init?.method === 'DELETE') {
+      deletedCodes.push(url.split('/').pop() ?? '');
+      return reply({ ok: true });
+    }
+    if (url === '/api/tables/mine') return reply({ tables: myTables });
     if (url === '/api/stats') return reply({ stats });
     const offset = Number(/offset=(\d+)/.exec(url)?.[1] ?? 0);
     return reply(pages[offset] ?? { games: [], more: false });
@@ -67,6 +75,37 @@ async function pastGames() {
   const heading = await screen.findByRole('heading', { name: 'Past games' });
   return within(heading.closest('section') as HTMLElement);
 }
+
+describe('Your tables', () => {
+  const table = (code: string, hostId: string): TableInfo =>
+    ({
+      code,
+      game: { slug: 'euchre', name: 'Euchre', version: 1 },
+      status: 'playing',
+      hostId,
+      seats: [{ seat: 0, user: { id: 'me', displayName: 'Me' }, connected: true, bot: false }],
+    }) as TableInfo;
+
+  it('lets the host delete a table, after checking', async () => {
+    myTables = [table('MINE01', 'me'), table('THEIRS', 'ann')];
+    show();
+    const remove = await screen.findByRole('button', { name: 'Delete this Euchre table' });
+    expect(screen.getAllByRole('button', { name: /^Delete/ })).toHaveLength(1);
+
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValueOnce(false);
+    fireEvent.click(remove);
+    expect(deletedCodes).toEqual([]);
+    confirm.mockReturnValueOnce(true);
+    fireEvent.click(remove);
+    expect(confirm).toHaveBeenLastCalledWith(
+      "Delete this Euchre table? The game ends and won't appear in past games.",
+    );
+    expect(deletedCodes).toEqual(['MINE01']);
+    await vi.waitFor(() =>
+      expect(screen.queryAllByRole('link', { name: /Euchre/ })).toHaveLength(1),
+    );
+  });
+});
 
 describe('Past games', () => {
   it('lists finished games with the outcome and scores, linking to each', async () => {

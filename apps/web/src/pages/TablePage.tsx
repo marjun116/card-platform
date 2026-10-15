@@ -51,6 +51,18 @@ function TableScreen({ code }: { code: string }) {
       </p>
     ) : null;
 
+  if (snapshot.deleted) {
+    return (
+      <div className="page narrow">
+        <h1>This table was deleted</h1>
+        <p>The host deleted it, along with its game.</p>
+        <p>
+          <Link to="/">Go home</Link>
+        </p>
+      </div>
+    );
+  }
+
   if (!table || !user) {
     return (
       <div className="page">

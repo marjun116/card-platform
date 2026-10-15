@@ -57,6 +57,15 @@ function setup() {
 const table = { code: 'ABC', status: 'lobby' } as TableInfo;
 
 describe('TableConnection', () => {
+  it('closes for good, without reconnecting, when the table is deleted', () => {
+    const { connection, socket, timers } = setup();
+    socket().serverOpens();
+    socket().serverSends({ type: 'deleted' });
+    expect(connection.getSnapshot()).toMatchObject({ status: 'closed', deleted: true });
+    socket().drops();
+    expect(timers).toEqual([]);
+  });
+
   it('connects and keeps the latest table info', () => {
     const { connection, socket } = setup();
     expect(connection.getSnapshot().status).toBe('connecting');

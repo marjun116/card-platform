@@ -38,6 +38,19 @@ export class Rooms {
     }
   }
 
+  /** Deletes a table, through its room if someone has it open (see TableRoom.delete). */
+  async delete(table: Table): Promise<void> {
+    const loading = this.loading.get(table.id);
+    if (!loading) {
+      await this.deps.store.deleteTable(table.id);
+      return;
+    }
+    const room = await loading;
+    this.loading.delete(table.id);
+    this.ready.delete(table.id);
+    await room.delete();
+  }
+
   /** Whether the user has this table open right now. */
   isConnected(tableId: string, userId: string): boolean {
     return this.ready.get(tableId)?.isConnected(userId) ?? false;

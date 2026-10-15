@@ -483,6 +483,16 @@ kbd {
   gap: 0.5em 1em;
   padding: 0.6em 0;
 }
+/* One of your tables on the home page: the link fills the row, Delete sits at the end. */
+.table-row {
+  display: flex;
+  align-items: center;
+  gap: 1em;
+}
+.table-row .list-link {
+  flex: 1;
+  min-width: 0;
+}
 .variant-row .actions {
   gap: 0.5em;
 }

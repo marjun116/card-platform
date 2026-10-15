@@ -290,6 +290,14 @@ export class MemoryStore implements Store {
     return Promise.resolve(mine.map((v) => this.fullVariant(v)));
   }
 
+  deleteTable(id: string): Promise<void> {
+    this.tables.delete(id);
+    this.seats = this.seats.filter((s) => s.tableId !== id);
+    this.moves.delete(id);
+    this.results.delete(id);
+    return Promise.resolve();
+  }
+
   deleteVariant(id: string): Promise<void> {
     this.variants.delete(id);
     return Promise.resolve();

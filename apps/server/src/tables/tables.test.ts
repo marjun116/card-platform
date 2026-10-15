@@ -42,6 +42,42 @@ function turn(players: Player[]): { actor: Player; seat: number; others: Player[
   return { actor, seat, others: players.filter((p) => p !== actor) };
 }
 
+describe('deleting a table', () => {
+  const del = (code: string, token?: string) =>
+    server.app.inject({
+      method: 'DELETE',
+      url: `/api/tables/${code}`,
+      ...(token && { headers: withSession(token) }),
+    });
+
+  it('lets only the host delete it, even before anyone has opened it', async () => {
+    const host = await guest(server.app, 'Host');
+    const other = await guest(server.app, 'Other');
+    const code = await createTable(server, host.token);
+    expect((await del(code)).statusCode).toBe(401);
+    expect((await del(code, other.token)).statusCode).toBe(403);
+    expect((await del(code, host.token)).statusCode).toBe(200);
+    expect((await del(code, host.token)).statusCode).toBe(404);
+    expect(await server.store.getTableByInviteCode(code)).toBeNull();
+  });
+
+  it('ends a game in progress for everyone, and takes it off their lists', async () => {
+    const { code, players } = await seated();
+    const [host, guestPlayer] = players as [Player, Player];
+    await playRandomly(players, 'before-delete', { maxMoves: 3 });
+    const from = guestPlayer.client.mark();
+    expect((await del(code, host.token)).statusCode).toBe(200);
+    await guestPlayer.client.waitFor((m) => m.type === 'deleted', 'deleted', from);
+    expect(await server.store.getTableByInviteCode(code)).toBeNull();
+    const mine = await server.app.inject({
+      method: 'GET',
+      url: '/api/tables/mine',
+      headers: withSession(guestPlayer.token),
+    });
+    expect(mine.json<{ tables: TableInfo[] }>().tables).toEqual([]);
+  });
+});
+
 describe('games and tables over HTTP', () => {
   it('lists the built-in games with their options', async () => {
     const res = await server.app.inject({ method: 'GET', url: '/api/games' });

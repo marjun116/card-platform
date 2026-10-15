@@ -7,6 +7,7 @@
  *   POST /api/tables                 create a table
  *   GET  /api/tables/mine            my unfinished tables
  *   GET  /api/tables/:code           a table's lobby info
+ *   DELETE /api/tables/:code         the host deletes a table (and its game) for everyone
  *   GET  /api/tables/:code/ws        the table's WebSocket (see protocol.ts)
  */
 import type { OptionValue } from '@card-table/engine';
@@ -80,6 +81,17 @@ export function tableRoutes(
     const table = await tableFromParams(request);
     if (!table) return reply.code(404).send({ error: 'No table with that code' });
     return { table: await infoFor(table) };
+  });
+
+  app.delete('/api/tables/:code', async (request, reply) => {
+    if (!request.user) return reply.code(401).send({ error: 'Not signed in' });
+    const table = await tableFromParams(request);
+    if (!table) return reply.code(404).send({ error: 'No table with that code' });
+    if (table.hostId !== request.user.id) {
+      return reply.code(403).send({ error: 'Only the host can delete a table' });
+    }
+    await rooms.delete(table);
+    return { ok: true };
   });
 
   app.get(

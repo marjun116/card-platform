@@ -360,6 +360,11 @@ export class PrismaStore implements Store {
     return rows.map(toVariant);
   }
 
+  async deleteTable(id: string): Promise<void> {
+    // Seats, moves and the result go with it (onDelete: Cascade).
+    await this.db.table.deleteMany({ where: { id } });
+  }
+
   async deleteVariant(id: string): Promise<void> {
     await this.db.variant.deleteMany({ where: { id } });
   }

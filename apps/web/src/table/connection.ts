@@ -35,6 +35,8 @@ export interface TableSnapshot {
   error: { code: ErrorCode; message: string } | null;
   /** Seat that last nudged us, until dismissed. */
   nudgedBy: number | null;
+  /** The host deleted the table; the connection is closed for good. */
+  deleted: boolean;
 }
 
 /** An error reply from the server. */
@@ -81,6 +83,7 @@ export class TableConnection {
     over: null,
     error: null,
     nudgedBy: null,
+    deleted: false,
   };
   private readonly listeners = new Set<() => void>();
   private readonly waiting = new Map<number, Waiting>();
@@ -206,6 +209,11 @@ export class TableConnection {
         break;
       case 'nudged':
         this.update({ nudgedBy: message.by });
+        break;
+      case 'deleted':
+        // Nothing to reconnect to.
+        this.close();
+        this.update({ deleted: true });
         break;
       case 'ack':
         this.settle(message.id, null);

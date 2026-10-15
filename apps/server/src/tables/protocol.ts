@@ -220,5 +220,7 @@ export type ServerMessage =
   | { type: 'over'; winners: number[]; scores: Scores }
   /** Someone nudged you: it's your turn. */
   | { type: 'nudged'; by: number }
+  /** The host deleted the table. The server closes the connection straight after. */
+  | { type: 'deleted' }
   | { type: 'ack'; id: MessageId }
   | { type: 'error'; id: MessageId | null; code: ErrorCode; message: string };
