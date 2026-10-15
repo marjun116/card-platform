@@ -60,6 +60,14 @@ forwards `/api/*` requests and table WebSockets to the server. Stop both with Ct
 usual script runner on Windows left hidden Command Prompt windows asking "Terminate batch job
 (Y/N)?" after Ctrl+C, and answering could close the terminal.)
 
+**On Windows, if Ctrl+C asks "Terminate batch job (Y/N)?" and the terminal stops taking
+input**, your `pnpm` command itself goes through a batch file (some Node version managers'
+`pnpm.exe` runs `pnpm.cmd`). Start the apps without pnpm instead; it's the same thing:
+
+```sh
+node dev.ts
+```
+
 ## Test and check
 
 | Command             | What it does                                |

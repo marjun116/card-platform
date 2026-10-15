@@ -430,6 +430,10 @@ Agreed now, built later (see the Phase 5 checklist):
   without errors.
 - Running one app on its own (`pnpm --filter @card-table/server dev`) still uses pnpm's
   script runner and may still ask that question; answering either way is harmless there.
+- 2026-10-15: on Arjun's machine `pnpm` itself is a batch file underneath: nvm's
+  `pnpm.exe` launcher runs `cmd.exe /c pnpm.cmd`, which runs corepack. So `pnpm dev` still
+  asked "Terminate batch job (Y/N)?" after Ctrl+C, fighting PowerShell for input. Nothing in
+  the repo can change that; `node dev.ts` (no pnpm) avoids it, and the README says so.
 
 
 ## 2026-10-08: House rules for every built-in game (Phase 5)
