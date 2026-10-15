@@ -327,6 +327,12 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       and the log already says so. Decide whether to drop it or show something more useful.
 - [x] **Table: who the dealer is isn't clear while bidding.** "Dealer" was only a word among
       the seat's details. The dealer's seat should be outlined in a colour of its own.
+- [ ] **Table: show which card is winning the trick.** While a trick is being played, it's
+      hard to see at a glance which card is currently the strongest. Options to choose from.
+- [ ] **Table: the game jumps straight to the results when it ends.** You should be able to
+      look over the final table first, and go on to the results when you're ready.
+- [x] **Table: the round scores pop-up covers the cards.** It should be possible to tuck it
+      away to look at the table, then bring it back or carry on.
 
 ## Phase 6: Custom game creation and sharing
 

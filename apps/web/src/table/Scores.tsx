@@ -210,6 +210,7 @@ export function Dialog({
   closeLabel = 'Continue',
   startAtTop = false,
   closeOnOutsideClick = false,
+  extraAction,
 }: {
   title: string;
   onClose: () => void;
@@ -219,16 +220,22 @@ export function Dialog({
   startAtTop?: boolean;
   /** A click on the darkened page around the dialog closes it too. */
   closeOnOutsideClick?: boolean;
+  /** A second button beside the close button, which doesn't close the dialog itself. */
+  extraAction?: { label: string; onSelect: () => void };
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
+  // Set while the page takes the dialog away, so that isn't taken for the player closing it.
+  const removing = useRef(false);
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
+    removing.current = false;
     if (typeof dialog.showModal === 'function') dialog.showModal();
     else dialog.setAttribute('open', '');
     if (startAtTop) titleRef.current?.focus();
     return () => {
+      removing.current = true;
       if (typeof dialog.close === 'function') dialog.close();
     };
   }, [startAtTop]);
@@ -240,7 +247,7 @@ export function Dialog({
       // The close event arrives after the fact; ignore it if the dialog was opened again
       // meanwhile (React mounts components twice in development).
       onClose={() => {
-        if (!ref.current?.open) onClose();
+        if (!removing.current && !ref.current?.open) onClose();
       }}
       // A click on the backdrop is reported as a click on the dialog itself, as is one on
       // its padding, so only a click outside the dialog's box counts.
@@ -263,6 +270,11 @@ export function Dialog({
       </h2>
       {children}
       <form method="dialog" className="dialog-actions">
+        {extraAction && (
+          <button type="button" onClick={extraAction.onSelect}>
+            {extraAction.label}
+          </button>
+        )}
         <button type="submit" className="primary" autoFocus={!startAtTop}>
           {closeLabel}
         </button>

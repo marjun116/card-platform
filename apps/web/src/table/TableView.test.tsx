@@ -73,6 +73,17 @@ function show(
 
 const hand = () => within(screen.getByRole('group', { name: /^Your hand/ }));
 
+/** The first legal move of whoever is to act. */
+function firstMove(state: GameState): Move {
+  const move = gameMessage(state, state.cursor.current).legalMoves[0];
+  if (!move) throw new Error('Nobody can move');
+  return move;
+}
+
+/** True when that move would end the round. */
+const applyMoveEndsRound = (state: GameState) =>
+  applyMove(state, firstMove(state)).history.length > state.history.length;
+
 describe('TableView', () => {
   it('offers the bids from the legal moves and sends the one picked (spades)', () => {
     const state = createGame(spades, {}, 4, 'view-bid');
@@ -157,14 +168,7 @@ describe('TableView', () => {
   it('keeps the finished round on the table until the next deal, and says who it waits for', () => {
     // Spades, just before the move that ends the first round.
     let state = createGame(spades, {}, 4, 'view-hold');
-    const firstMove = (s: GameState): Move => {
-      const move = gameMessage(s, s.cursor.current).legalMoves[0];
-      if (!move) throw new Error('Nobody can move');
-      return move;
-    };
-    while (applyMove(state, firstMove(state)).history.length === 0) {
-      state = applyMove(state, firstMove(state));
-    }
+    while (!applyMoveEndsRound(state)) state = applyMove(state, firstMove(state));
     const held = applyMove(state, firstMove(state), { holdNextRound: true });
     show(held, 0, { table: { ...tableInfo(4), readingScores: [1] } });
     expect(screen.getByRole('group', { name: 'Last trick' })).toBeTruthy();
@@ -187,6 +191,27 @@ describe('TableView', () => {
     cleanup();
     show(state, state.dealer);
     expect(screen.getByText(/You're the dealer\./)).toBeTruthy();
+  });
+
+  it('lets you hide the round scores to look at the table, then show them or carry on', () => {
+    const before = playUntil(createGame(spades, {}, 4, 'view-hide'), (s) => applyMoveEndsRound(s));
+    const { connection, update } = show(before, 0);
+    update(applyMove(before, firstMove(before), { holdNextRound: true }));
+    const dialog = () => screen.queryByRole('heading', { name: 'Round 1 scores' });
+    expect(dialog()).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hide to see the table' }));
+    expect(dialog()).toBeNull();
+    expect(screen.getByText('Round 1 is over.')).toBeTruthy();
+    expect(connection.send).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show scores' }));
+    expect(dialog()).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Hide to see the table' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    expect(connection.send).toHaveBeenCalledWith({ type: 'roundSeen' });
+    expect(screen.queryByText('Round 1 is over.')).toBeNull();
+    expect(dialog()).toBeNull();
   });
 
   it('shows no Last trick button in games without tricks', () => {

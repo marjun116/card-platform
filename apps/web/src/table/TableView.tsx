@@ -76,6 +76,14 @@ export function TableView({
   // Rounds already summarised; a new entry in the history opens the round summary.
   const [roundsSeen, setRoundsSeen] = useState(view.history.length);
   const newRound = view.history.length > roundsSeen ? view.history[view.history.length - 1] : null;
+  // The round's scores tucked away to look at the table (until closed or shown again).
+  const [hiddenRound, setHiddenRound] = useState<number | null>(null);
+  const hiddenScores = newRound && hiddenRound === newRound.round ? newRound : null;
+  const closeScores = () => {
+    setRoundsSeen(view.history.length);
+    // The next hand is dealt (and the bots go on) once everyone has closed the scores.
+    send({ type: 'roundSeen' });
+  };
 
   const yourTurn = toAct.includes(view.you);
   const showTricks = view.trickZones.length > 0;
@@ -379,7 +387,19 @@ export function TableView({
           </div>
         )}
         <div className="status-line">
-          <strong>{status}</strong>
+          {hiddenScores ? (
+            <>
+              <strong>Round {hiddenScores.round} is over.</strong>{' '}
+              <button type="button" className="small" onClick={() => setHiddenRound(null)}>
+                Show scores
+              </button>{' '}
+              <button type="button" className="small primary" onClick={closeScores}>
+                Continue
+              </button>
+            </>
+          ) : (
+            <strong>{status}</strong>
+          )}
           <span className="muted">
             {view.dealer === view.you && " You're the dealer."}
             {layout.hand?.view.kind === 'count' && ' Your cards are face down.'}
@@ -417,13 +437,13 @@ export function TableView({
         {announcement}
       </div>
 
-      {newRound && (
+      {newRound && !hiddenScores && (
         <Dialog
           title={`Round ${newRound.round} scores`}
-          onClose={() => {
-            setRoundsSeen(view.history.length);
-            // The bots wait until everyone has closed the scores.
-            send({ type: 'roundSeen' });
+          onClose={closeScores}
+          extraAction={{
+            label: 'Hide to see the table',
+            onSelect: () => setHiddenRound(newRound.round),
           }}
         >
           <RoundTable

@@ -1120,6 +1120,14 @@ kbd {
     --card-w: 62px;
   }
 }
+/* One small button tall, so buttons appearing in it (Continue, See results) don't move
+   your hand. */
+.status-line {
+  min-height: 32px;
+}
+.status-line button {
+  vertical-align: middle;
+}
 .you-area.your-turn .status-line strong {
   background: var(--playable);
   color: #1d1d1b;
@@ -1248,6 +1256,8 @@ kbd {
   margin-top: 1em;
   display: flex;
   justify-content: end;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .round-table,
 .history-table {
