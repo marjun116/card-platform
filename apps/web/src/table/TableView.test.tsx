@@ -131,12 +131,32 @@ describe('TableView', () => {
     const { update } = show(done, viewer);
     const trick = within(screen.getByRole('group', { name: 'Last trick' }));
     expect(trick.getAllByRole('img', { name: /^\w+: / })).toHaveLength(4);
-    expect(screen.queryByRole('button', { name: 'Last trick' })).toBeNull();
+    // The button stays in place, greyed out while the finished trick is on the table.
+    const button = () => screen.getByRole<HTMLButtonElement>('button', { name: /trick$/ });
+    expect(button().textContent).toBe('Last trick');
+    expect(button().disabled).toBe(true);
 
     const led = playUntil(done, (s) => (s.trick?.plays.length ?? 0) === 1);
     update(led);
     expect(screen.getByRole('group', { name: 'Current trick' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Last trick' })).toBeTruthy();
+    expect(button().disabled).toBe(false);
+
+    // Looking back lasts until the next trick is finished.
+    fireEvent.click(button());
+    expect(screen.getByRole('group', { name: 'Last trick' })).toBeTruthy();
+    expect(button().textContent).toBe('Show current trick');
+    const nextDone = playUntil(led, (s) => (s.trick?.plays.length ?? 0) === 0);
+    update(nextDone);
+    expect(button().disabled).toBe(true);
+    expect(button().textContent).toBe('Last trick');
+    update(playUntil(nextDone, (s) => (s.trick?.plays.length ?? 0) === 1));
+    expect(screen.getByRole('group', { name: 'Current trick' })).toBeTruthy();
+    expect(button().getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('shows no Last trick button in games without tricks', () => {
+    show(createGame(miniRummy, {}, 2, 'view-no-tricks'), 0);
+    expect(screen.queryByRole('button', { name: /trick$/ })).toBeNull();
   });
 
   it('leaves off piles the game keeps off the table, unless you can use them', () => {

@@ -340,6 +340,9 @@ Agreed before building `apps/web`.
   and "Called by" jumped as cards were played). Values a game shows on the table sit in the
   bottom-left of the table, in three rows filled top to bottom (then a new column), so a
   value that comes and goes never moves the others; the "Last trick" button is bottom-right.
+  In trick games that button is always there, greyed out while there's nothing else to show
+  (before the first trick ends, and while a finished trick is still on the table), so it
+  doesn't pop in and out every trick.
   On phones they sit just under the other players.
 
 ## 2026-10-07: Tables with more than 4 players

@@ -71,7 +71,8 @@ export function TableView({
   const [showHistory, setShowHistory] = useState(false);
   const [showRules, setShowRules] = useState(false);
   const book = useRulebook(table.game.slug);
-  const [showLastTrick, setShowLastTrick] = useState(false);
+  // Which finished trick you're looking back at, if any (so it ends when the next one does).
+  const [peekedAt, setPeekedAt] = useState<string | null>(null);
   // Rounds already summarised; a new entry in the history opens the round summary.
   const [roundsSeen, setRoundsSeen] = useState(view.history.length);
   const newRound = view.history.length > roundsSeen ? view.history[view.history.length - 1] : null;
@@ -140,6 +141,10 @@ export function TableView({
   // A finished trick stays on the table until the next one starts, so everyone can see
   // the last card played and who won it.
   const trickStarted = (view.trick?.plays.length ?? 0) > 0;
+  // "Last trick" is only useful once the finished trick has made way for the next one.
+  const canPeek = view.lastTrick !== null && trickStarted;
+  const lastTrickKey = view.lastTrick?.plays.map((p) => p.card?.id ?? '?').join(',') ?? '';
+  const showLastTrick = canPeek && peekedAt === lastTrickKey;
   const trickToShow =
     view.lastTrick && (showLastTrick || !trickStarted) ? view.lastTrick : view.trick;
   const hostEnd = () => {
@@ -284,12 +289,15 @@ export function TableView({
                   })}
                 </p>
               )}
-              {view.lastTrick && trickStarted && (
+              {/* Always there in trick games, greyed out when there's nothing else to show,
+                  so it doesn't pop in and out every trick. */}
+              {showTricks && (
                 <button
                   type="button"
                   className="small last-trick"
                   aria-pressed={showLastTrick}
-                  onClick={() => setShowLastTrick(!showLastTrick)}
+                  disabled={!canPeek}
+                  onClick={() => setPeekedAt(showLastTrick ? null : lastTrickKey)}
                 >
                   {showLastTrick ? 'Show current trick' : 'Last trick'}
                 </button>
