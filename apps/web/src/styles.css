@@ -972,6 +972,11 @@ kbd {
   white-space: nowrap;
   font-weight: 600;
 }
+/* While the trick is still being played: quieter than the result. */
+.trick-winner.leading {
+  font-weight: normal;
+  color: var(--felt-muted);
+}
 .piles {
   display: flex;
   gap: 16px;

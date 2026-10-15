@@ -172,7 +172,8 @@ export function Trick({
     >
       {trick.plays.map((play) => {
         const { x, y } = layout.spot(play.player);
-        const won = trick.winner === play.player;
+        // The card taking the trick so far, or the one that took it.
+        const won = trick.leading === play.player;
         const who = names(play.player);
         return (
           <span
@@ -193,10 +194,16 @@ export function Trick({
           </span>
         );
       })}
-      {trick.winner !== null && (
+      {trick.winner !== null ? (
         <span className="trick-winner" role="status">
           {names(trick.winner) === 'You' ? 'You win' : `${names(trick.winner)} wins`} the trick
         </span>
+      ) : (
+        trick.leading !== null && (
+          <span className="trick-winner leading" role="status">
+            {names(trick.leading) === 'You' ? "You're" : `${names(trick.leading)} is`} winning
+          </span>
+        )
       )}
     </div>
   );

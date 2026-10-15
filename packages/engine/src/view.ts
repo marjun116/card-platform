@@ -3,7 +3,8 @@
  * only this to a client, never the full state.
  */
 import type { Card, CardId } from './cards/card';
-import { controlOf, turnSteps } from './game/legal';
+import { controlOf, currentPhase, turnSteps } from './game/legal';
+import { leadingPlayer } from './effects';
 import { checkedGroups, deadwood } from './game/arrangement';
 import type { BidValue, Move, PlayerId, ZoneKey } from './game/move';
 import {
@@ -120,6 +121,11 @@ export interface TrickView {
   leader: PlayerId;
   plays: { player: PlayerId; card: Card | null }[];
   winner: PlayerId | null;
+  /**
+   * Who would take the trick if it ended now (the winner, once it's decided). Null with
+   * no cards played yet, or when some of its cards are hidden from this player.
+   */
+  leading: PlayerId | null;
 }
 
 type Access = 'cards' | 'count' | 'top' | 'hidden';
@@ -220,10 +226,15 @@ export function choiceLabelsOf(file: GameFile): Record<string, string> {
 function trickView(state: GameState, trick: TrickState | null, viewer: PlayerId): TrickView | null {
   if (!trick) return null;
   const visible = access(state, trick.zone, viewer) === 'cards';
+  const rule = currentPhase(state).afterTrick?.find((e) => e.resolveTrick)?.resolveTrick;
+  const leading =
+    trick.winner ??
+    (visible && rule && trick.plays.length > 0 ? leadingPlayer(state, trick, rule) : null);
   return {
     zone: trick.zone,
     leader: trick.leader,
     winner: trick.winner,
+    leading,
     plays: trick.plays.map((p) => ({
       player: p.player,
       card: visible || p.player === viewer ? p.card : null,

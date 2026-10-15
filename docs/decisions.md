@@ -354,6 +354,13 @@ Agreed before building `apps/web`.
   you're playing stays on the table ("The game is over." with See results) until you ask
   for the results; a table that was already over when you opened it goes straight to them,
   and so does one the host ended early.
+- **The card winning the trick is outlined** (2026-10-15, picked by Arjun from four options).
+  Each trick in the view has `leading`: who would take it if it ended now, by the same
+  `resolveTrick` rule that will decide it (the winner once it's decided). It's left out
+  (null) when some of the trick's cards are hidden from that player, so it never gives
+  anything away. The table outlines that card in yellow, as it does the winning card of a
+  finished trick, and says "Ana is winning" under the trick until it becomes "Ana wins the
+  trick". Your hand isn't marked: no hints about which of your cards would win.
 
 ## 2026-10-07: Tables with more than 4 players
 

@@ -133,6 +133,22 @@ describe('TableView', () => {
     }
   });
 
+  it('outlines the card winning the trick so far, and says whose it is', () => {
+    const state = playUntil(
+      createGame(spades, {}, 4, 'view-leading'),
+      (s) => (s.trick?.plays.length ?? 0) === 2,
+    );
+    const viewer = state.cursor.current;
+    show(state, viewer);
+    const leading = gameMessage(state, viewer).view.trick?.leading as number;
+    expect(state.trick?.plays.map((p) => p.player)).toContain(leading);
+    const trick = within(screen.getByRole('group', { name: 'Current trick' }));
+    const card = trick.getByRole('img', { name: /, winning$/ });
+    expect(card.getAttribute('aria-label')).toMatch(new RegExp(`^${NAMES[leading]}: `));
+    expect(card.classList.contains('won')).toBe(true);
+    expect(trick.getByRole('status').textContent).toBe(`${NAMES[leading]} is winning`);
+  });
+
   it('keeps a finished trick on the table until the next card is led', () => {
     const done = playUntil(
       createGame(spades, {}, 4, 'view-last-trick'),

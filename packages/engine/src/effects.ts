@@ -14,11 +14,13 @@ import {
   noteCards,
   type PlayerState,
   type TeamState,
+  type TrickState,
   trumpSuit,
   type VarValue,
   zoneCards,
   zoneKey,
 } from './game/state';
+import type { PlayerId } from './game/move';
 import type { EffectDef } from './game/types';
 import { cardCount, drawCards } from './game/zones';
 import { layOutMelds } from './game/arrangement';
@@ -190,18 +192,27 @@ function toVarValue(value: Value, path: string): VarValue {
   return value;
 }
 
-function resolveTrick(state: GameState, rule: NonNullable<EffectDef['resolveTrick']>): void {
-  const trick = state.trick;
-  if (!trick || trick.plays.length === 0) throw new GameFileError('No trick to resolve');
-  const ranks = state.file.cardOrder?.ranks ?? RANKS;
+export type TrickRule = NonNullable<EffectDef['resolveTrick']>;
+
+/**
+ * Who would take the trick if it ended now, by `rule` (the trick's resolveTrick).
+ * The trick must have at least one card in it.
+ */
+export function leadingPlayer(state: GameState, trick: TrickState, rule: TrickRule): PlayerId {
   const index = trickWinnerIndex(
     trick.plays.map((p) => p.card),
     rule,
     trumpSuit(state),
-    ranks,
+    state.file.cardOrder?.ranks ?? RANKS,
     state.file.cardOrder?.bowers === true,
   );
-  const winner = (trick.plays[index] as { player: number }).player;
+  return (trick.plays[index] as { player: PlayerId }).player;
+}
+
+function resolveTrick(state: GameState, rule: TrickRule): void {
+  const trick = state.trick;
+  if (!trick || trick.plays.length === 0) throw new GameFileError('No trick to resolve');
+  const winner = leadingPlayer(state, trick, rule);
   trick.winner = winner;
   const player = state.players[winner] as PlayerState;
   player.tricks++;

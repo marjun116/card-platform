@@ -73,6 +73,38 @@ describe('viewFor', () => {
     expect(viewFor(state, other).log).toEqual(state.log);
   });
 
+  it('says who is winning the trick so far, by the rule that will decide it', () => {
+    // Tiny Tricks: highest card of the suit led wins. L holds 5S 3S 5H 3H, D 4S 2S 4H 2H.
+    const start = createGame(tinyTricks, {}, 2, 'leading');
+    const L = start.cursor.current;
+    const D = 1 - L;
+    const card = (player: number, spec: string) => ({
+      player,
+      type: 'playToTrick' as const,
+      card: id(spec),
+    });
+    expect(viewFor(start, D).trick?.leading).toBeNull();
+    const led = play(start, card(L, '3H'));
+    expect(viewFor(led, D).trick?.leading).toBe(L);
+    // D's 4H takes it: the finished trick's winner.
+    const done = play(led, card(D, '4H'));
+    expect(viewFor(done, L).lastTrick?.leading).toBe(D);
+    // The higher card of the suit led takes the lead.
+    const next = play(done, card(D, '2S'), card(L, '5S'));
+    expect(viewFor(next, D).lastTrick?.leading).toBe(L);
+  });
+
+  it("doesn't say who is winning a trick whose cards you can't all see", () => {
+    const file: GameFile = {
+      ...tinyTricks,
+      zones: { ...tinyTricks.zones, trick: { shared: true, visibility: 'none' } },
+    };
+    const start = createGame(file, {}, 2, 'leading-hidden');
+    const L = start.cursor.current;
+    const led = play(start, { player: L, type: 'playToTrick', card: id('3H') });
+    expect(viewFor(led, 1 - L).trick?.leading).toBeNull();
+  });
+
   it("lets team members see their team's piles but not the other team's", () => {
     const teamPile = {
       ...spades,
