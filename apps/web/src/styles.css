@@ -1121,11 +1121,13 @@ kbd {
   flex-wrap: wrap;
 }
 
-/* Your hand: overlapping cards, each a button. */
+/* Your hand: overlapping cards, each a button. It stays one card tall when empty, so the
+   table doesn't grow once you've played your last card. */
 .hand {
   flex: none;
   display: flex;
   padding: 22px 8px 6px;
+  min-height: calc(var(--card-w) * 1.5 + 28px);
   overflow-x: auto;
   scrollbar-width: thin;
 }

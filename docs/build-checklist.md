@@ -311,7 +311,7 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       in the middle.
 - [x] **Table: the game info labels are too faint on the felt.** "Trump" and "Called by" are a
       very light colour and hard to make out against the green table.
-- [ ] **Table: the table grows after you play your last card.** Once your hand is empty, the
+- [x] **Table: the table grows after you play your last card.** Once your hand is empty, the
       table gets taller, which is jarring. Its size should stay the same.
 
 ## Phase 6: Custom game creation and sharing
