@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, type MenuItem } from '../components/Menu';
 import { RulesDialog } from '../components/Rules';
+import { rulebookReady, useRulebook } from '../useRulebook';
 import { useHeaderSlot } from '../headerSlot';
 import { DecisionPanel, HandActions } from './ActionBar';
 import type { GameMessage, TableConnection } from './connection';
@@ -69,6 +70,7 @@ export function TableView({
   const [panelOpen, setPanelOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [showRules, setShowRules] = useState(false);
+  const book = useRulebook(table.game.slug);
   const [showLastTrick, setShowLastTrick] = useState(false);
   // Rounds already summarised; a new entry in the history opens the round summary.
   const [roundsSeen, setRoundsSeen] = useState(view.history.length);
@@ -420,7 +422,10 @@ export function TableView({
           />
         </Dialog>
       )}
-      {showRules && <RulesDialog table={table} onClose={() => setShowRules(false)} />}
+      {/* Loaded with the table, so the pop-up opens complete (see the lobby). */}
+      {showRules && rulebookReady(book) && (
+        <RulesDialog table={table} book={book} onClose={() => setShowRules(false)} />
+      )}
       {showHistory && !newRound && (
         <Dialog title="Every round" onClose={() => setShowHistory(false)}>
           <HistoryTable history={view.history} teams={view.teams} names={names} />

@@ -315,6 +315,8 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       table gets taller, which is jarring. Its size should stay the same.
 - [x] **Rules: the rules pop-up only closes with its Close button.** Clicking outside it (on
       the darkened page around it) should close it too.
+- [x] **Rules: the rules pop-up opens half-empty, then jumps.** It shows "Loading the rules…"
+      for a moment and then grows to fit the rules. It should open smoothly, already complete.
 
 ## Phase 6: Custom game creation and sharing
 

@@ -1,10 +1,9 @@
 import type { TableInfo } from '@card-table/server/protocol';
 import { useState } from 'react';
-import { api } from '../api';
 import { RulesDialog } from '../components/Rules';
+import { rulebookReady, useRulebook } from '../useRulebook';
 import { SaveVariant } from '../components/Variants';
 import { optionText } from '../gameText';
-import { useLoad } from '../useLoad';
 import type { Outgoing, TableConnection } from './connection';
 import { humanize } from './zones';
 
@@ -53,7 +52,8 @@ export function Lobby({
   mySeat: number | null;
   isHost: boolean;
 }) {
-  const games = useLoad(api.games, 'games');
+  const book = useRulebook(table.game.slug);
+  const { games } = book;
   const optionDefs =
     games.state === 'done'
       ? games.data.find((g) => g.slug === table.game.slug)?.options
@@ -231,7 +231,11 @@ export function Lobby({
           Rules
         </button>
       </div>
-      {showRules && <RulesDialog table={table} onClose={() => setShowRules(false)} />}
+      {/* The rules are loaded with the lobby; if they're still on their way, the pop-up
+          opens as soon as they arrive rather than empty. */}
+      {showRules && rulebookReady(book) && (
+        <RulesDialog table={table} book={book} onClose={() => setShowRules(false)} />
+      )}
     </div>
   );
 }

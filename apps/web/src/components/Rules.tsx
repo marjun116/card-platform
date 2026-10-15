@@ -5,7 +5,8 @@ import { optionText } from '../gameText';
 import { inlineParts, parseRules } from '../rulesText';
 import { Dialog } from '../table/Scores';
 import { humanize } from '../table/zones';
-import { useLoad } from '../useLoad';
+import { type Loaded, useLoad } from '../useLoad';
+import type { Rulebook } from '../useRulebook';
 
 function Inline({ text }: { text: string }) {
   return (
@@ -98,16 +99,29 @@ export function AtThisTable({ table, game }: { table: TableInfo; game: GameSumma
 /** The written rules of a game, loaded from the server. */
 export function GameRules({ slug, level }: { slug: string; level: 2 | 3 }) {
   const rules = useLoad(() => api.rules(slug), `rules:${slug}`);
+  return <LoadedRules rules={rules} level={level} />;
+}
+
+function LoadedRules({ rules, level }: { rules: Loaded<string>; level: 2 | 3 }) {
   if (rules.state === 'loading') return <p className="muted">Loading the rules…</p>;
   if (rules.state === 'error') return <p className="error">{rules.message}</p>;
   return <RulesText source={rules.data} level={level} />;
 }
 
 /** The rulebook over the table or lobby, without interrupting the game. */
-export function RulesDialog({ table, onClose }: { table: TableInfo; onClose: () => void }) {
-  const games = useLoad(api.games, 'games');
+export function RulesDialog({
+  table,
+  book,
+  onClose,
+}: {
+  table: TableInfo;
+  book: Rulebook;
+  onClose: () => void;
+}) {
   const game =
-    games.state === 'done' ? games.data.find((g) => g.slug === table.game.slug) : undefined;
+    book.games.state === 'done'
+      ? book.games.data.find((g) => g.slug === table.game.slug)
+      : undefined;
   return (
     <Dialog
       title={`${table.game.name} rules`}
@@ -117,7 +131,7 @@ export function RulesDialog({ table, onClose }: { table: TableInfo; onClose: () 
       closeOnOutsideClick
     >
       <AtThisTable table={table} game={game} />
-      <GameRules slug={table.game.slug} level={3} />
+      <LoadedRules rules={book.rules} level={3} />
     </Dialog>
   );
 }

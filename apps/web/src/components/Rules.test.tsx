@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RulesPage } from '../pages/RulesPage';
+import { rulebookReady, useRulebook } from '../useRulebook';
 import { AtThisTable, RulesDialog, RulesText } from './Rules';
 
 afterEach(() => {
@@ -91,23 +92,33 @@ describe('At this table', () => {
   });
 });
 
+/** The rules pop-up as the lobby and table use it: loaded up front, opened once ready. */
+function RulesButton({ onClose = () => undefined }: { onClose?: () => void }) {
+  const book = useRulebook(table.game.slug);
+  return rulebookReady(book) ? <RulesDialog table={table} book={book} onClose={onClose} /> : null;
+}
+
 describe('RulesDialog', () => {
-  it("opens with this table's settings, then the written rules", async () => {
-    render(<RulesDialog table={table} onClose={() => undefined} />);
-    expect(screen.getByRole('heading', { name: 'Spades rules' })).toBeTruthy();
-    expect(await screen.findByRole('heading', { name: 'Play' })).toBeTruthy();
-    expect(await screen.findByText('(changed)')).toBeTruthy();
+  it("opens complete, with this table's settings and the written rules", async () => {
+    render(<RulesButton />);
+    expect(screen.queryByRole('heading', { name: 'Spades rules' })).toBeNull();
+    expect(await screen.findByRole('heading', { name: 'Spades rules' })).toBeTruthy();
+    // Everything is there the moment it opens: no loading message, nothing still to come.
+    expect(screen.queryByText(/Loading/)).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Play' })).toBeTruthy();
+    expect(screen.getByText('(changed)')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
   });
 
-  it('closes on a click outside it, but not on one inside it', () => {
+  it('closes on a click outside it, but not on one inside it', async () => {
     const onClose = vi.fn();
-    render(<RulesDialog table={table} onClose={onClose} />);
-    const dialog = screen.getByRole('heading', { name: 'Spades rules' }).closest('dialog');
+    render(<RulesButton onClose={onClose} />);
+    const title = await screen.findByRole('heading', { name: 'Spades rules' });
+    const dialog = title.closest('dialog');
     if (!dialog) throw new Error('No dialog');
     // jsdom has no layout: place the dialog by hand.
     dialog.getBoundingClientRect = () => new DOMRect(100, 100, 400, 300);
-    fireEvent.click(screen.getByRole('heading', { name: 'Spades rules' }));
+    fireEvent.click(title);
     fireEvent.click(dialog, { clientX: 300, clientY: 200 });
     expect(onClose).not.toHaveBeenCalled();
     fireEvent.click(dialog, { clientX: 20, clientY: 20 });
