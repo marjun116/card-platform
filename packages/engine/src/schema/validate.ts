@@ -397,6 +397,13 @@ class Checker {
           this.checkExpr(zone.reveal, [...path, 'reveal'], zone.per === 'player' ? PLAYER : TEAM);
         }
       }
+      if (zone.showOnTable !== undefined) {
+        if (zone.per) {
+          this.error([...path, 'showOnTable'], '"showOnTable" is only for shared zones');
+        } else {
+          this.checkExpr(zone.showOnTable, [...path, 'showOnTable'], NO_CONTEXT);
+        }
+      }
     }
     const hand = this.file.zones.hand;
     if (!hand || hand.per !== 'player' || hand.melds) {

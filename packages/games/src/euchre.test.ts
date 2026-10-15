@@ -104,12 +104,15 @@ describe('euchre: making trump', () => {
   it('shows trump and who called it on the table once trump is made', () => {
     const { state, a, b, c, d } = table(MARCH, '10H');
     expect(viewFor(state, a).display).toEqual([]);
+    expect(viewFor(state, a).offTable).toEqual([]);
     const s = play(state, choose(a, 'pass'), choose(b, 'orderUp'), choose(b, 'alone'));
     expect(viewFor(s, c).display).toEqual([
       { label: 'Trump', value: '♥ Hearts' },
       { label: 'Called by', value: b, format: 'player' },
       { label: 'Going alone', value: 'Yes' },
     ]);
+    // The upcard and kitty leave the table once trump is made.
+    expect(viewFor(s, c).offTable).toEqual(['kitty', 'upcard']);
     // The dealer is b's partner, so sits out; play starts straight away.
     expect(phase(s)).toBe('play');
     expect(viewFor(s, d).display[0]).toEqual({ label: 'Trump', value: '♥ Hearts' });

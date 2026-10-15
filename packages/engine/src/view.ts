@@ -70,6 +70,8 @@ export interface PlayerView {
   lastTrick: TrickView | null;
   /** Names of the zones tricks are played into, so a client can draw them as tricks, not piles. */
   trickZones: string[];
+  /** Shared zones not drawn on the table right now (their `showOnTable` doesn't hold). */
+  offTable: string[];
   /** A decision the game is waiting on; `card` is shown only to the player deciding. */
   pending: {
     kind: 'chooseSuit' | 'mayPlayDrawnCard' | 'ask';
@@ -165,6 +167,13 @@ function zoneView(cards: Card[], level: Access): ZoneView {
     case 'hidden':
       return { kind: 'hidden' };
   }
+}
+
+function offTable(state: GameState): string[] {
+  const scope = buildScope(state);
+  return Object.entries(state.file.zones)
+    .filter(([, def]) => def.showOnTable && !evaluateCondition(def.showOnTable, scope))
+    .map(([name]) => name);
 }
 
 function trickZones(state: GameState): string[] {
@@ -304,6 +313,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     trick: trickView(state, state.trick, viewer),
     lastTrick: trickView(state, state.lastTrick, viewer),
     trickZones: trickZones(state),
+    offTable: offTable(state),
     pending: pending && {
       kind: pending.kind,
       player: pending.player,

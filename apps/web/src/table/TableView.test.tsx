@@ -139,6 +139,29 @@ describe('TableView', () => {
     expect(screen.getByRole('button', { name: 'Last trick' })).toBeTruthy();
   });
 
+  it('leaves off piles the game keeps off the table, unless you can use them', () => {
+    const file = {
+      ...miniRummy,
+      zones: {
+        ...miniRummy.zones,
+        stock: {
+          shared: true,
+          visibility: 'none' as const,
+          countVisible: true,
+          showOnTable: 'false',
+        },
+      },
+    };
+    const state = createGame(file, {}, 2, 'view-off-table');
+    const waiting = 1 - state.cursor.current;
+    show(state, waiting);
+    expect(screen.queryByLabelText(/^Stock,/)).toBeNull();
+    expect(screen.getByLabelText(/^Discard,/)).toBeTruthy();
+    cleanup();
+    show(state, state.cursor.current);
+    expect(screen.getByLabelText(/^Stock,/)).toBeTruthy();
+  });
+
   it('builds a pass from selected cards (hearts-like passing)', () => {
     const state = createGame(passing, {}, 4, 'view-pass');
     const seat = state.cursor.current;

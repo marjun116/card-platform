@@ -55,6 +55,11 @@ export function TableView({
   const paused = table.status === 'paused';
   // While paused nobody can move, so no controls are shown.
   const controls = useMemo(() => buildControls(paused ? [] : legalMoves), [legalMoves, paused]);
+  // Piles the game keeps off the table for now (euchre's upcard once trump is made),
+  // unless you could use one right now.
+  const piles = layout.piles.filter(
+    (zone) => !view.offTable.includes(zone.name) || controls.byPile.has(zone.name),
+  );
 
   // A selection belongs to the game as it was when it was made; any new move clears it.
   const [selection, setSelection] = useState<{ seq: number; cards: string[] }>({ seq, cards: [] });
@@ -283,9 +288,9 @@ export function TableView({
                   label={trickToShow === view.trick ? 'Current trick' : 'Last trick'}
                 />
               )}
-              {layout.piles.length > 0 && (
+              {piles.length > 0 && (
                 <div className="piles">
-                  {layout.piles.map((zone) => (
+                  {piles.map((zone) => (
                     <Pile
                       key={zone.key}
                       zone={zone}

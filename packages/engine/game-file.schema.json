@@ -295,6 +295,9 @@
           },
           "reveal": {
             "$ref": "#/$defs/__schema3"
+          },
+          "showOnTable": {
+            "$ref": "#/$defs/__schema3"
           }
         },
         "required": [

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { sevensUp, spades, tinyTricks } from './__fixtures__/games';
+import { miniRummy, sevensUp, spades, tinyTricks } from './__fixtures__/games';
+import { validate } from './schema/validate';
 import { id, play } from './testing';
 import { createGame, viewFor } from './api';
 import type { GameState } from './game/state';
+import type { GameFile } from './game/types';
 
 /** Ids of every card in other players' owner-only zones. */
 function othersHiddenCards(state: GameState, viewer: number): string[] {
@@ -96,5 +98,44 @@ describe('viewFor', () => {
     ]);
     expect(view.pending).toBeNull();
     expect(view.lastTrick).toBeNull();
+  });
+});
+
+describe('showOnTable', () => {
+  const withRule = (stock: string): GameFile => ({
+    ...miniRummy,
+    zones: {
+      ...miniRummy.zones,
+      stock: { shared: true, visibility: 'none', countVisible: true, showOnTable: stock },
+    },
+  });
+
+  it('lists shared zones not drawn on the table right now', () => {
+    expect(viewFor(createGame(miniRummy, {}, 2, 'table'), 0).offTable).toEqual([]);
+    const hidden = viewFor(createGame(withRule('round > 1'), {}, 2, 'table'), 0);
+    expect(hidden.offTable).toEqual(['stock']);
+    // Its cards are still there.
+    expect(hidden.zones.stock?.kind).toBe('count');
+    expect(viewFor(createGame(withRule('round == 1'), {}, 2, 'table'), 0).offTable).toEqual([]);
+  });
+
+  it('is only for shared zones, and checks its expression', () => {
+    const errors = (file: unknown) => {
+      const result = validate(file);
+      return result.ok ? [] : result.errors.map((e) => `${e.path}: ${e.message}`);
+    };
+    expect(errors(withRule('round > 1'))).toEqual([]);
+    expect(
+      errors({
+        ...miniRummy,
+        zones: {
+          ...miniRummy.zones,
+          hand: { per: 'player', visibility: 'owner', showOnTable: 'true' },
+        },
+      }),
+    ).toEqual(['zones.hand.showOnTable: "showOnTable" is only for shared zones']);
+    expect(errors(withRule('player.hand.count > 0'))).toEqual([
+      expect.stringContaining('zones.stock.showOnTable'),
+    ]);
   });
 });

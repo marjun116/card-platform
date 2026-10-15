@@ -1051,3 +1051,7 @@ General parts of the game format, added because bridge needed them; none mention
   others read. Who's still reading is in the table info (`readingScores`), so others see
   "Waiting for Ana to close the round scores…" rather than "Waiting for Bot 2…". Not
   saved: after a server restart nobody has the scores open, so the bots carry on.
+- **`showOnTable` for shared zones**: `"showOnTable": "state.maker == null"` draws the pile on
+  the table only while the expression holds (the view lists the others in `offTable`). The
+  cards don't change, and a pile you can use right now is always drawn. Euchre's upcard and
+  kitty leave the table once trump is made, leaving the trick and the game's values.

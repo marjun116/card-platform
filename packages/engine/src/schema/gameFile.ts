@@ -124,6 +124,11 @@ export const zoneSchema = z.strictObject({
    * (`player`, or `team` for a per-team zone).
    */
   reveal: expr.optional(),
+  /**
+   * A shared zone is drawn on the table only while this holds, e.g. euchre's upcard
+   * and kitty until trump is made (`"state.maker == null"`). Its cards don't change.
+   */
+  showOnTable: expr.optional(),
 });
 
 const setValue = z.union([expr, z.number(), z.boolean(), z.null()]);

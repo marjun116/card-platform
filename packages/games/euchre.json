@@ -55,8 +55,13 @@
   },
   "zones": {
     "hand": { "per": "player", "visibility": "owner" },
-    "kitty": { "shared": true, "visibility": "none", "countVisible": true },
-    "upcard": { "shared": true, "visibility": "all" },
+    "kitty": {
+      "shared": true,
+      "visibility": "none",
+      "countVisible": true,
+      "showOnTable": "state.maker == null"
+    },
+    "upcard": { "shared": true, "visibility": "all", "showOnTable": "state.maker == null" },
     "trick": { "shared": true, "visibility": "all" },
     "won": { "per": "team", "visibility": "none", "countVisible": true }
   },
