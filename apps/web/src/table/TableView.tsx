@@ -429,6 +429,7 @@ export function TableView({
           zone={layout.hand?.view ?? null}
           controls={controls}
           arrangement={arrangement}
+          trump={view.trump}
           selected={selected}
           onPress={press}
           onClear={() => setSelection({ seq, cards: [] })}

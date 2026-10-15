@@ -105,6 +105,20 @@ describe('viewFor', () => {
     expect(viewFor(led, 1 - L).trick?.leading).toBeNull();
   });
 
+  it('says which suit is trump and whether the bowers count as trump', () => {
+    expect(viewFor(createGame(spades, {}, 4, 'trump'), 0).trump).toEqual({
+      suit: 'spades',
+      bowers: false,
+    });
+    expect(viewFor(createGame(tinyTricks, {}, 2, 'trump'), 0).trump).toBeNull();
+    // Declared trump (euchre): nothing until it's chosen.
+    const file: GameFile = { ...spades, cardOrder: { trump: 'declared', bowers: true } };
+    const start = createGame(file, {}, 4, 'trump');
+    expect(viewFor(start, 0).trump).toBeNull();
+    const chosen: GameState = { ...start, vars: { ...start.vars, trump: 'hearts' } };
+    expect(viewFor(chosen, 0).trump).toEqual({ suit: 'hearts', bowers: true });
+  });
+
   it("lets team members see their team's piles but not the other team's", () => {
     const teamPile = {
       ...spades,

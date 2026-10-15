@@ -333,6 +333,9 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       look over the final table first, and go on to the results when you're ready.
 - [x] **Table: the round scores pop-up covers the cards.** It should be possible to tuck it
       away to look at the table, then bring it back or carry on.
+- [x] **Euchre: the bowers stay in their printed suits once trump is chosen.** After trump is
+      made, your hand should re-sort so both bowers sit with trump (left bower, then right
+      bower, at the top), instead of the left bower staying among its printed suit.
 
 ## Phase 6: Custom game creation and sharing
 

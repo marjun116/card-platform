@@ -60,9 +60,28 @@ export function cardFromId(id: string): Card | null {
 const SUIT_ORDER = { spades: 0, hearts: 1, clubs: 2, diamonds: 3 } as const;
 const RANK_ORDER = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
-/** Suits grouped, alternating colours, low to high. A display choice only. */
-export function sortHand(cards: readonly Card[]): Card[] {
-  const key = (card: Card) =>
-    isJoker(card) ? 100 : SUIT_ORDER[card.suit] * 20 + RANK_ORDER.indexOf(card.rank);
+const RED: readonly Suit[] = ['hearts', 'diamonds'];
+
+/**
+ * Suits grouped, alternating colours, low to high. A display choice only.
+ * With bowers (euchre), both jacks of trump's colour sit at the top of trump:
+ * the left bower, then the right bower.
+ */
+export function sortHand(
+  cards: readonly Card[],
+  trump: { suit: Suit; bowers: boolean } | null = null,
+): Card[] {
+  const key = (card: Card) => {
+    if (isJoker(card)) return 100;
+    if (
+      trump?.bowers &&
+      card.rank === 'J' &&
+      RED.includes(card.suit) === RED.includes(trump.suit)
+    ) {
+      const right = card.suit === trump.suit;
+      return SUIT_ORDER[trump.suit] * 20 + RANK_ORDER.length + (right ? 1 : 0);
+    }
+    return SUIT_ORDER[card.suit] * 20 + RANK_ORDER.indexOf(card.rank);
+  };
   return [...cards].sort((a, b) => key(a) - key(b) || a.id.localeCompare(b.id));
 }

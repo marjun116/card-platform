@@ -20,10 +20,13 @@ export function Hand({
   onPress,
   onClear,
   arrangement = null,
+  trump = null,
 }: {
   zone: ZoneView | null;
   controls: Controls;
   arrangement?: Arrangement;
+  /** Trump, so euchre's bowers are sorted in with it. */
+  trump?: PlayerView['trump'];
   selected: readonly string[];
   /** A card was pressed (clicked, tapped, Enter or Space). */
   onPress: (card: CardData) => void;
@@ -52,7 +55,7 @@ export function Hand({
   }
 
   const all = zone.kind === 'cards' ? zone.cards : zone.melds.flat();
-  const { cards, groupStarts } = arranged(all, arrangement);
+  const { cards, groupStarts } = arranged(all, arrangement, trump);
   const current = Math.min(focus, cards.length - 1);
   // Dim unusable cards only when some card can be used (not while bidding, say).
   const choosing = controls.byCard.size > 0 || controls.groupCards.size > 0;
@@ -124,8 +127,9 @@ export type Arrangement = PlayerView['arrangement'];
 function arranged(
   cards: readonly CardData[],
   arrangement: Arrangement,
+  trump: PlayerView['trump'],
 ): { cards: CardData[]; groupStarts: Set<number> } {
-  if (!arrangement) return { cards: sortHand(cards), groupStarts: new Set() };
+  if (!arrangement) return { cards: sortHand(cards, trump), groupStarts: new Set() };
   const byId = new Map(cards.map((c) => [c.id, c]));
   const ordered: CardData[] = [];
   const groupStarts = new Set<number>();

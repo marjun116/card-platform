@@ -2,7 +2,7 @@
  * viewFor: the game as one player is allowed to see it. The server sends
  * only this to a client, never the full state.
  */
-import type { Card, CardId } from './cards/card';
+import type { Card, CardId, Suit } from './cards/card';
 import { controlOf, currentPhase, turnSteps } from './game/legal';
 import { leadingPlayer } from './effects';
 import { checkedGroups, deadwood } from './game/arrangement';
@@ -14,6 +14,7 @@ import {
   type CardEvent,
   type ScoreEvent,
   type TrickState,
+  trumpSuit,
   zoneDef,
   zoneKey,
 } from './game/state';
@@ -64,6 +65,11 @@ export interface PlayerView {
     held: Record<string, number>;
   }[];
   vars: GameState['vars'];
+  /**
+   * Trump right now (null before it's chosen, or in games without one). With `bowers`,
+   * the other jack of trump's colour counts as trump (euchre's left bower).
+   */
+  trump: { suit: Suit; bowers: boolean } | null;
   phase: string;
   currentPlayer: PlayerId;
   direction: 1 | -1;
@@ -318,6 +324,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
       held: { ...t.held },
     })),
     vars: { ...state.vars },
+    trump: trumpView(state),
     phase: state.file.phases[state.cursor.phase]?.name ?? '',
     currentPlayer: state.cursor.current,
     direction: state.cursor.direction,
@@ -357,4 +364,9 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
           }
         : null,
   };
+}
+
+function trumpView(state: GameState): PlayerView['trump'] {
+  const suit = trumpSuit(state);
+  return suit && { suit, bowers: state.file.cardOrder?.bowers === true };
 }
