@@ -309,7 +309,7 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       Trump, "Called by" and the other values shift position once cards land on the table.
       They should stay in one fixed place and be readable whether or not there are cards
       in the middle.
-- [ ] **Table: the game info labels are too faint on the felt.** "Trump" and "Called by" are a
+- [x] **Table: the game info labels are too faint on the felt.** "Trump" and "Called by" are a
       very light colour and hard to make out against the green table.
 - [ ] **Table: the table grows after you play your last card.** Once your hand is empty, the
       table gets taller, which is jarring. Its size should stay the same.
