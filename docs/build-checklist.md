@@ -317,6 +317,9 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       the darkened page around it) should close it too.
 - [x] **Rules: the rules pop-up opens half-empty, then jumps.** It shows "Loading the rules…"
       for a moment and then grows to fit the rules. It should open smoothly, already complete.
+- [ ] **Table: the "Last trick" button keeps disappearing and coming back.** It vanishes while
+      a finished trick is still on the table and reappears when the next card is led, every
+      trick, which is jarring.
 
 ## Phase 6: Custom game creation and sharing
 
