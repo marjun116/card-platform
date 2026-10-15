@@ -17,6 +17,8 @@
   /* Quieter text on the table, such as the "Trump" label: still easy to read on green. */
   --felt-muted: #d6e6db;
   --playable: #f0b400;
+  /* The dealer's seat: a colour of its own, so it reads apart from whose turn it is. */
+  --dealer: #8fd0ff;
 
   --suit-red: #c4161c;
   --suit-black: #111111;
@@ -769,6 +771,15 @@ kbd {
 .seat.acting {
   border-color: var(--playable);
 }
+/* An outline, not the border, so a dealer whose turn it is shows both. */
+.seat.dealer {
+  outline: 2px solid var(--dealer);
+  outline-offset: 2px;
+}
+.dealer-tag {
+  color: var(--dealer);
+  font-weight: 700;
+}
 .seat-panel {
   display: flex;
   flex-direction: column;
@@ -1462,6 +1473,14 @@ kbd {
   }
   .felt.many .seat.acting .seat-chip {
     border-color: var(--playable);
+  }
+  /* On phones the chip stands for the seat, so it carries the outline. */
+  .felt.many .seat.dealer {
+    outline: none;
+  }
+  .felt.many .seat.dealer .seat-chip {
+    outline: 2px solid var(--dealer);
+    outline-offset: 1px;
   }
   .chip-line {
     display: flex;

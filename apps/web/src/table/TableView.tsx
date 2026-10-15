@@ -381,6 +381,7 @@ export function TableView({
         <div className="status-line">
           <strong>{status}</strong>
           <span className="muted">
+            {view.dealer === view.you && " You're the dealer."}
             {layout.hand?.view.kind === 'count' && ' Your cards are face down.'}
             {myBid != null && ` Your bid: ${bidWords(myBid, view.bidLabels)}.`}
             {view.control?.seat === view.you && ` ${names(view.control.by)} is playing your cards.`}

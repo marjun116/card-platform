@@ -61,8 +61,8 @@ export function Seat({
   const name = names(seat);
   const stats = seatStats(player, handCount, showTricks, view.bidLabels);
 
+  const dealer = seat === view.dealer;
   const facts = [
-    seat === view.dealer ? 'Dealer' : null,
     partner && view.teams[player.team]?.players.length !== 1 ? 'Partner' : null,
     player?.bid != null ? `Bid ${bidWords(player.bid, view.bidLabels)}` : null,
     playedBy !== null ? `Played by ${playedBy === view.you ? 'you' : names(playedBy)}` : null,
@@ -79,9 +79,9 @@ export function Seat({
 
   return (
     <section
-      className={`seat${acting ? ' acting' : ''}${open ? ' open' : ''}${openCards ? ' has-open-hand' : ''}`}
+      className={`seat${acting ? ' acting' : ''}${dealer ? ' dealer' : ''}${open ? ' open' : ''}${openCards ? ' has-open-hand' : ''}`}
       style={{ ['--x' as string]: x, ['--y' as string]: y, ['--order' as string]: order }}
-      aria-label={`${name}${acting ? ', to play' : ''}`}
+      aria-label={`${name}${dealer ? ', dealer' : ''}${acting ? ', to play' : ''}`}
       onKeyDown={(e) => {
         if (e.key === 'Escape' && open) setOpen(false);
       }}
@@ -130,7 +130,14 @@ export function Seat({
               </span>
             </span>
           )}
-          {facts.length > 0 && <span className="seat-facts">{facts.join(' · ')}</span>}
+          {(dealer || facts.length > 0) && (
+            <span className="seat-facts">
+              {/* Same colour as the outline round the dealer's seat. */}
+              {dealer && <span className="dealer-tag">Dealer</span>}
+              {dealer && facts.length > 0 && ' · '}
+              {facts.join(' · ')}
+            </span>
+          )}
         </div>
         {replaceable && onReplace && (
           <button

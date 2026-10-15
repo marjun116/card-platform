@@ -325,6 +325,8 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       them. The next deal should wait until you've closed the scores.
 - [x] **Euchre: "Picked up the upcard" on the table is redundant.** It's always the dealer,
       and the log already says so. Decide whether to drop it or show something more useful.
+- [x] **Table: who the dealer is isn't clear while bidding.** "Dealer" was only a word among
+      the seat's details. The dealer's seat should be outlined in a colour of its own.
 
 ## Phase 6: Custom game creation and sharing
 

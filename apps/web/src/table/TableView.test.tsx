@@ -176,6 +176,19 @@ describe('TableView', () => {
     ).toBeTruthy();
   });
 
+  it("marks the dealer's seat, or tells you when you're the dealer", () => {
+    const state = createGame(spades, {}, 4, 'view-dealer');
+    const viewer = (state.dealer + 1) % 4;
+    show(state, viewer);
+    const dealer = screen.getByRole('region', { name: `${NAMES[state.dealer]}, dealer` });
+    expect(dealer.classList.contains('dealer')).toBe(true);
+    expect(within(dealer).getByText('Dealer').className).toBe('dealer-tag');
+    expect(screen.queryByText(/You're the dealer/)).toBeNull();
+    cleanup();
+    show(state, state.dealer);
+    expect(screen.getByText(/You're the dealer\./)).toBeTruthy();
+  });
+
   it('shows no Last trick button in games without tricks', () => {
     show(createGame(miniRummy, {}, 2, 'view-no-tricks'), 0);
     expect(screen.queryByRole('button', { name: /trick$/ })).toBeNull();

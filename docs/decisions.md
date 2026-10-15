@@ -344,6 +344,10 @@ Agreed before building `apps/web`.
   (before the first trick ends, and while a finished trick is still on the table), so it
   doesn't pop in and out every trick.
   On phones they sit just under the other players.
+- **The dealer's seat is outlined in light blue** (2026-10-15, after a playtest), with
+  "Dealer" in the same colour among the seat's details. It's an outline, not the border, so
+  it shows alongside the yellow border of whoever's turn it is. When you're the dealer, the
+  line under the table says "You're the dealer."
 
 ## 2026-10-07: Tables with more than 4 players
 
