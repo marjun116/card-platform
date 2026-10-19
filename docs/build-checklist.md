@@ -1,6 +1,6 @@
 # Build checklist
 
-Nine phases take the platform from an empty repo to a public launch, each ending in something you can run and test. Work through them in order; each phase has a checklist, a prompt to paste into Claude Code, and a test for when it's done.
+Nine phases take the platform from an empty repo to a public launch, each ending in something you can run and test. Work through them in order; each phase has a checklist, a prompt to paste into Claude Code, and a test for when it's done. Between Phase 5 and Phase 6, four sections collect work that isn't a phase of its own: bugs and playtest feedback, UI polish, game playtests and the rulebook review.
 
 ## How to work with Claude Code
 
@@ -242,28 +242,17 @@ Add games one at a time, picking each to stretch a different part of the engine.
   - [x] Pinochle
   - [x] Canasta
   - [x] Bridge
-- [ ] Real playtests (with family, on your own devices):
-  - [ ] Hearts
-  - [ ] Crazy eights
-  - [ ] Rummy
-  - [ ] Gin rummy
-  - [ ] Euchre
-  - [ ] Oh Hell
-  - [ ] Cribbage
-  - [ ] Pinochle
-  - [ ] Canasta
-  - [ ] Bridge
-  - [ ] Bots: fill seats with bots, and replace a player who leaves mid-game
+- [x] Real playtests: moved to their own section, "Game playtests", before Phase 6
 - [x] Saved variants: a table's chosen options saved as a named, shareable preset
 - [x] Game history (results are already saved by the server; nothing shows them yet):
   - [x] "Past games" on the home page: game, date, players, final score, and whether you won
   - [x] A past game's page: final scores and every round
   - [x] Simple stats per game: games played and won
-- [ ] Rulebook for each game, readable at any time (plan agreed 2026-10-07, see
+- [x] Rulebook for each game, readable at any time (plan agreed 2026-10-07, see
       `docs/decisions.md`):
   - [x] Written rules for each built-in game (starting with spades): object, setup,
         bidding, play, scoring, and what each house rule does. Draft for review first.
-  - [ ] Review every rulebook on the site, and fix what needs fixing
+  - [x] Reviewing every rulebook: moved to its own section, "Rulebook review", before Phase 6
   - [x] An "At this table" section generated from the table's actual settings (players,
         teams, house rules chosen)
   - [x] A **Rules** button on the table (opens over the game) and in the lobby, plus a
@@ -296,7 +285,7 @@ games (play high to win, low to duck, track which cards are gone). Bots are
 only offered for built-in games, never custom ones.
 ```
 
-**Done when:** every launch game passes its tests and a real playtest, and you can fill empty seats with bots in built-in games.
+**Done when:** every launch game passes its tests, and you can fill empty seats with bots in built-in games. (The real playtests and the rulebook review have their own sections below.)
 
 ## Bugs and playtest feedback
 
@@ -339,6 +328,159 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
 - [x] **Euchre: the upcard stays face up after everyone passes it.** Once the first round of
       bidding goes all the way round, the upcard should be turned down so no one can see it,
       and the kitty and upcard taken off the middle of the table (as they are during play).
+
+## UI polish
+
+The table works; now it should feel good to play. These are the look, motion and feedback
+upgrades agreed on 2026-10-18 (see `docs/decisions.md`, "UI polish"). Everything stays
+generic: effects are triggered by move types and the game file's score and card events,
+never by a game's name, so custom games get them too. No sound.
+
+**Table look**
+
+- [ ] Richer felt: a soft spotlight in the middle, darker edges and a thin wood-coloured rail
+      (CSS only, no images)
+- [ ] Seat avatars (initials in a circle, a colour per seat) and team colours, used the same
+      way at the seats, in the scoreboard, round summary and results
+- [ ] A redrawn card back with a proper pattern and border
+- [ ] A display font for headlines and scores: an openly licensed font file served by our
+      own app (no third-party font service)
+
+**Suits shown everywhere**
+
+- [ ] A suit is always shown with its symbol in its colour: trump, log lines, bridge bids
+      (1♣, 3♥), crazy eights' chosen suit
+- [ ] Trump badge: a large suit symbol in a round badge in a fixed spot on the felt; trump
+      cards in your hand get a small coloured mark in the corner
+- [ ] Naming trump or choosing a suit uses four large suit tiles instead of text buttons
+- [ ] "Led ♠" marker in the middle of the trick while a trick is under way
+- [ ] Cards in text (log, round summary, pop-ups) drawn as small inline cards, with the
+      spoken name kept for screen readers
+
+**Card motion**
+
+- [ ] Playing a card: yours lifts from your hand and slides to its place in the trick; an
+      opponent's slides in from their seat and flips over as it lands
+- [ ] Collecting the trick: a short pause with the winning card outlined, then the cards
+      sweep to the winner's seat and their trick count ticks up
+- [ ] Your hand closes up smoothly when a card leaves; playable cards rise a little on hover
+      with a mouse
+- [ ] Dealing: cards fly from the dealer to every seat at the start of a round (about a
+      second; a tap skips it)
+- [ ] Pile moves: drawing, discarding and melding slide cards between your hand and the pile
+      or meld area; pile counts tick
+- [ ] Passing (hearts): passed cards slide toward the receiver; cards you receive arrive
+      raised with a "from Ana" tag for a few seconds
+- [ ] Flips: euchre's upcard turning down, and cards being turned face up
+- [ ] Rules for all motion: no animation library (CSS and the browser's own animation
+      support); under about 400ms per card; never blocks your next move; other players'
+      moves play in order at a minimum pace so a fast bot's turns don't blur; with "reduce
+      motion" switched on, simple fades instead
+
+**Turns and events**
+
+- [ ] Clearer turns: a soft pulsing glow on the active seat and on your hand area on your
+      turn; the browser tab title becomes "● Your turn" when the tab isn't in front (no
+      countdown timer)
+- [ ] Bid bubbles: a bid pops up as a speech bubble from the seat for a couple of seconds,
+      then joins the seat's details
+- [ ] Points float up from the player when scored during play ("+2 Fifteen", "+50 Meld");
+      scoreboard numbers count up to their new value
+- [ ] Big-moment banners across the felt for named events ("♥ Hearts broken", "Shot the
+      moon!", "Euchred!", "Gin!", "Canasta!"), taken from labels in the game file
+- [ ] A short phone vibration on your turn, where the phone supports it
+
+**End of a round**
+
+- [ ] Round summary redesigned as one card per team, in its colour: bid against tricks
+      taken as a row of dots, a Made or Set badge, where the points came from ("Tricks 60 ·
+      Bags +2 · Nil +100"), and this round's points counting up into the total
+- [ ] Progress bar per team toward the winning score; a small crown for the leader
+- [ ] One or two round highlights ("Raj took 6 tricks", "Ana's nil failed")
+- [ ] Score trend: a small line chart of each team's total in "Every round" (plain SVG)
+- [ ] Show all hands after the round: replay the finished round with every hand face up
+      (server: a round's hands become public once it's over, never before)
+
+**End of the game**
+
+- [ ] Victory screen: a short confetti burst in the team colours (not with "reduce
+      motion"), winners' names in large type, final scores counting up, a podium for three
+      or more teams
+- [ ] A kind message when you lose: "Good game", with your best moment
+- [ ] Game stats: tricks won, bids made per player, the biggest round
+- [ ] Rematch: one button starts a new game with the same players in the same seats
+      (server: new table from an old one, everyone invited back)
+
+**Around the table**
+
+- [ ] Game tiles on Home and Library: an accent colour per game, a small fan of real cards,
+      chips for player count and typical length
+- [ ] Lobby drawn as a table: seats around it, empty ones gently pulsing "Sit here", team
+      colours shown before the game starts
+- [ ] Setting for animation speed (normal, fast, off), saved in the browser
+- [ ] Quick reactions: a fixed set (👍 😮 😂 GG), shown as bubbles at the seat; no free
+      text (server: a new reaction message, rate limited)
+- [ ] A shuffle animation while connecting instead of "Loading…"
+
+```text
+Read CLAUDE.md, docs/decisions.md ("UI polish") and the "UI polish" section
+of docs/build-checklist.md. Build [ITEM OR GROUP].
+
+Keep the table generic: trigger effects from move types, score events and
+card events in the view, never from a game's name. No new dependencies
+without asking (the display font is an approved asset, not a package).
+Every new piece of information must also be in text for screen readers,
+and every animation must have a "reduce motion" fallback. Never reveal a
+card before the server has sent it to this player.
+
+Show me a sketch or a short plan before building anything that changes
+the table's layout.
+```
+
+**Done when:** a full game of spades, hearts and gin rummy on a laptop and a phone shows
+the new look and motion throughout, nothing slows down play, and the game still works with
+"reduce motion" switched on and with a screen reader.
+
+## Game playtests
+
+Real games with family, on your own devices. These can happen in any order and don't block
+other work; note what you find under "Bugs and playtest feedback". (Spades was playtested
+in Phase 4.)
+
+- [ ] Hearts
+- [ ] Crazy eights
+- [ ] Rummy
+- [ ] Gin rummy
+- [ ] Euchre
+- [ ] Oh Hell
+- [ ] Cribbage
+- [ ] Pinochle
+- [ ] Canasta
+- [ ] Bridge
+- [ ] Bots: fill seats with bots, and replace a player who leaves mid-game
+
+**Done when:** every launch game has been played start to finish at least once, and the
+bugs found are fixed.
+
+## Rulebook review
+
+Read every game's rules on the site (Rules on the Games page, or Rules at a table) and note
+anything wrong, unclear or missing. Fixes go in the game's `.rules.md` file in
+`packages/games`.
+
+- [ ] Spades
+- [ ] Hearts
+- [ ] Crazy eights
+- [ ] Rummy
+- [ ] Gin rummy
+- [ ] Euchre
+- [ ] Oh Hell
+- [ ] Cribbage
+- [ ] Pinochle
+- [ ] Canasta
+- [ ] Bridge
+
+**Done when:** every rulebook has been read on the site and its fixes are in.
 
 ## Phase 6: Custom game creation and sharing
 

@@ -1120,3 +1120,36 @@ General parts of the game format, added because bridge needed them; none mention
 - **Once trump is chosen, your hand sorts the bowers in with trump**: the left bower, then the
   right, at the top of trump. The view now carries `trump` (suit, and whether bowers apply)
   so the client can sort without knowing the game's rules.
+
+## 2026-10-18: UI polish (planned before Phase 6)
+
+Agreed with Arjun from a list of proposals; the work is the "UI polish" section of the
+build checklist, done before Phase 6.
+
+- **Still generic.** Animations, banners and floating points are triggered by move types
+  (`playToTrick`, `draw`, `discard`, `pass`, `meld`…) and by the score and card events in
+  the view, never by a game's name, so custom games get them too. Big-moment banners use
+  the labels the game file already gives its events.
+- **No sound.** Sound effects were proposed and left out (decided by Arjun). Turn alerts are
+  visual: a glow, the tab title, and a phone vibration where supported.
+- **Display font: a font file we serve ourselves** (decided by Arjun), openly licensed, for
+  headlines and scores. No third-party font service, so no outside requests while playing.
+- **Server changes included** (decided by Arjun):
+  - **Show all hands after a round.** A round's hands become public only once the round is
+    over, so this never reveals a card during play.
+  - **Rematch.** A new table from a finished one, with the same players invited back to the
+    same seats.
+  - **Quick reactions.** A fixed set (👍 😮 😂 GG) and no free text, so there's nothing to
+    moderate; rate limited like nudges.
+- **Motion rules.** No animation library: CSS and the browser's own animation support.
+  Under about 400ms per card, and never blocking your next move. Other players' moves play
+  in order at a minimum pace, so a fast bot's turns don't blur together. With "reduce
+  motion" switched on, everything becomes a simple fade and there's no confetti. An
+  animation-speed setting (normal, fast, off) is saved in the browser.
+- **Team colours.** Each team gets a colour used the same way at the seats, in the
+  scoreboard, the round summary and the results. Colour is never the only signal: names
+  and labels stay.
+- **Suits always come with their symbol in its colour** wherever a suit is named (trump,
+  the log, bids, suit choices), still red and black only (see "First playtest feedback").
+- **Playtests and the rulebook review have their own sections** in the build checklist,
+  before Phase 6, instead of being inside Phase 5. They don't block other work.
