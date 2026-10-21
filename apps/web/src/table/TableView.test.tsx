@@ -15,6 +15,7 @@ import {
   wildRummy,
 } from '../test/games';
 import { withZones } from '@card-table/engine/testing';
+import { SUIT_SYMBOL } from './cards';
 import type { TableConnection } from './connection';
 import { TableView } from './TableView';
 
@@ -416,6 +417,58 @@ describe('TableView', () => {
   });
 });
 
+describe('TableView: suits', () => {
+  it('shows trump in a badge on the table, and marks trump cards in your hand (spades)', () => {
+    const state = createGame(spades, {}, 4, 'view-trump');
+    show(state, 0);
+    expect(screen.getByRole('img', { name: 'Trump: spades' }).textContent).toContain('♠');
+    const cards = hand().getAllByRole('button');
+    for (const card of cards) {
+      const spade = /of spades/.test(card.getAttribute('aria-label') ?? '');
+      expect(card.getAttribute('aria-label')?.includes(', trump')).toBe(spade);
+      expect(card.querySelector('.trump-mark') !== null).toBe(spade);
+    }
+  });
+
+  it('has no trump badge in games without trump', () => {
+    show(createGame(sevensUp, {}, 3, 'view-no-trump'), 0);
+    expect(screen.queryByRole('img', { name: /^Trump/ })).toBeNull();
+  });
+
+  it('says which suit was led in the middle of the trick, until the trick is won', () => {
+    const state = playUntil(
+      createGame(spades, {}, 4, 'view-led'),
+      (s) => (s.trick?.plays.length ?? 0) === 1,
+    );
+    const led = state.trick?.plays[0]?.card;
+    if (!led || !('suit' in led)) throw new Error('no card led');
+    const { update } = show(state, state.cursor.current);
+    const trick = () => within(screen.getByRole('group', { name: /trick$/ }));
+    // The symbol is drawn; screen readers get the suit's name.
+    expect(trick().getByText('Led').textContent).toBe(`Led ${SUIT_SYMBOL[led.suit]}${led.suit}`);
+    update(playUntil(state, (s) => s.trick?.winner != null || s.trick?.plays.length === 0));
+    expect(trick().queryByText('Led')).toBeNull();
+  });
+
+  it('offers a large tile per suit when choosing one, with its name', () => {
+    const state = playUntil(
+      createGame(sevensUp, {}, 3, 'view-suits'),
+      (s) => s.pending?.kind === 'chooseSuit',
+    );
+    const seat = state.pending?.player as number;
+    const { connection } = show(state, seat);
+    const choice = within(screen.getByRole('group', { name: 'Choose a suit' }));
+    const tiles = choice.getAllByRole('button');
+    expect(tiles.map((t) => t.textContent)).toEqual(['♣Clubs', '♦Diamonds', '♥Hearts', '♠Spades']);
+    fireEvent.click(choice.getByRole('button', { name: 'Hearts' }));
+    expect(connection.move).toHaveBeenCalledWith({
+      player: seat,
+      type: 'chooseSuit',
+      suit: 'hearts',
+    });
+  });
+});
+
 describe('TableView: hands you arrange (wild rummy)', () => {
   function arranged() {
     const base = createGame(wildRummy, {}, 2, 'view-arrange');
@@ -485,8 +538,13 @@ describe('TableView: scoring as cards are played (counting game)', () => {
     // Newest first.
     expect(lines.slice(0, 2)).toEqual([
       `${NAMES[other]}: Pair for 2`,
-      `${NAMES[other]} played 5 of clubs to the pile`,
+      `${NAMES[other]} played 5♣ to the pile`,
     ]);
+    // The card is drawn small in the line, and named in full for screen readers.
+    const played = log.getAllByRole('listitem')[1] as HTMLElement;
+    expect(within(played).getByRole('img', { name: '5 of clubs' }).className).toContain(
+      'inline-card',
+    );
   });
 
   it("shows the game's values on the table", () => {
@@ -603,7 +661,10 @@ describe('a hand played by another seat (bridge-style dummy)', () => {
   it('shows display labels, seats as names, and counters by their labels', () => {
     const { state, declarer } = atDummysTurn();
     show(state, (declarer + 1) % 4);
-    expect(screen.getByText('1♣')).toBeTruthy();
+    // The contract's suit symbol is coloured, inside the value.
+    const contract = screen.getByText('Contract').parentElement as HTMLElement;
+    expect(contract.textContent).toBe('Contract 1♣');
+    expect(within(contract).getByText('♣').className).toBe('suit-pip black');
     const display = screen.getByText('Declarer').parentElement as HTMLElement;
     expect(display.textContent).toContain(NAMES[declarer]);
     cleanup();

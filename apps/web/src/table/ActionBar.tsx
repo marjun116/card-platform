@@ -8,9 +8,10 @@
  */
 import type { Move } from '@card-table/engine';
 import { useState } from 'react';
-import { isRed } from './cards';
+import { isRed, SUIT_SYMBOL, suitName } from './cards';
 import { type BidLabels, bidLabel, type ChoiceLabels, moveLabel, type SeatNames } from './describe';
 import type { Arrangement } from './Hand';
+import { SuitText } from './SuitText';
 import { type Controls, groupHint, hasDecisions, movesForSelection, regroup } from './moves';
 
 interface ButtonProps {
@@ -35,7 +36,7 @@ function moveButton(
       disabled={busy}
       onClick={() => onMove(move)}
     >
-      {label}
+      <SuitText text={label} />
     </button>
   );
 }
@@ -106,14 +107,28 @@ export function DecisionPanel({ controls, ...props }: ButtonProps & { controls: 
       )}
 
       {controls.suits.length > 0 && (
-        <fieldset className="choice-grid">
+        <fieldset className="choice-grid suit-tiles">
           <legend>
             {controls.suits[0]?.move.type === 'declareTrump' ? 'Choose trump' : 'Choose a suit'}
           </legend>
-          {controls.suits.map(({ suit, move }) =>
-            // The symbol is coloured, and the suit's name is always written out too.
-            moveButton(move, props, undefined, `suit-button ${isRed(suit) ? 'red' : 'black'}`),
-          )}
+          {/* A large tile per suit: the symbol in its colour, and the suit's name written out. */}
+          {controls.suits.map(({ suit, move }) => (
+            <button
+              key={suit}
+              type="button"
+              className="suit-tile"
+              disabled={props.busy}
+              onClick={() => props.onMove(move)}
+            >
+              <span
+                className={`suit-tile-symbol ${isRed(suit) ? 'red' : 'black'}`}
+                aria-hidden="true"
+              >
+                {SUIT_SYMBOL[suit]}
+              </span>
+              <span className="suit-tile-name">{suitName(suit)}</span>
+            </button>
+          ))}
         </fieldset>
       )}
 

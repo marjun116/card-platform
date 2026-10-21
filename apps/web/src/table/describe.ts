@@ -6,6 +6,7 @@ import type {
   PlayerView,
   PublicMove,
   ScoreEvent,
+  Suit,
 } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
 import { cardFromId, shortLabel, spokenLabel, SUIT_SYMBOL, suitName } from './cards';
@@ -35,6 +36,46 @@ export function bidWords(value: BidValue, labels: BidLabels = {}): string {
   return Object.hasOwn(labels, String(value))
     ? bidLabel(value, labels)
     : bidLabel(value).toLowerCase();
+}
+
+/**
+ * A line of text in pieces, so the screen can draw cards and suits as pictures
+ * while screen readers (and tests) get plain words: see `lineText`.
+ */
+export type Part = string | { card: string } | { suit: Suit };
+export type Line = Part[];
+
+/** A line from a template: line`${who} played ${card(id)}`. Values may be parts or lines. */
+function line(strings: TemplateStringsArray, ...values: (Part | Line)[]): Line {
+  const parts: Line = [];
+  // Words next to each other join up into one piece.
+  const add = (part: Part) => {
+    const last = parts[parts.length - 1];
+    if (typeof part === 'string' && typeof last === 'string') parts[parts.length - 1] = last + part;
+    else if (part !== '') parts.push(part);
+  };
+  strings.forEach((text, i) => {
+    add(text);
+    const value = values[i];
+    if (value === undefined) return;
+    if (Array.isArray(value)) value.forEach(add);
+    else add(value);
+  });
+  return parts;
+}
+
+/** Parts with a separator between them: "Q♠, 9♥". */
+function joined(parts: Part[], separator = ', '): Line {
+  return parts.flatMap((part, i) => (i === 0 ? [part] : [separator, part]));
+}
+
+/** A line as plain words: cards by their spoken names ("Queen of spades"), suits by name. */
+export function lineText(parts: Line): string {
+  return parts
+    .map((part) =>
+      typeof part === 'string' ? part : 'card' in part ? cardText(part.card, true) : part.suit,
+    )
+    .join('');
 }
 
 /** "Q♠" or "Queen of spades"; card ids always name their card. */
@@ -132,6 +173,16 @@ export function describeMove(
   choices: ChoiceLabels = {},
   bids: BidLabels = {},
 ): string {
+  return lineText(moveLine(move, names, choices, bids));
+}
+
+/** A log line in pieces, so its cards and suits can be drawn. */
+export function moveLine(
+  move: PublicMove,
+  names: SeatNames,
+  choices: ChoiceLabels = {},
+  bids: BidLabels = {},
+): Line {
   // Made for another seat: "Ana (for Raj) played 9 of hearts".
   const who =
     'by' in move && move.by !== undefined
@@ -139,58 +190,58 @@ export function describeMove(
       : names(move.player);
   const their = who === 'You' ? 'your' : 'their';
   if ('hidden' in move) {
-    if (move.type === 'pass') return `${who} passed cards`;
-    if (move.type === 'arrange') return `${who} arranged ${their} cards`;
-    return `${who} ${move.type === 'play' ? 'played' : 'discarded'} a card face down`;
+    if (move.type === 'pass') return line`${who} passed cards`;
+    if (move.type === 'arrange') return line`${who} arranged ${their} cards`;
+    return line`${who} ${move.type === 'play' ? 'played' : 'discarded'} a card face down`;
   }
-  const card = (id: string) => cardText(id, true);
+  const card = (id: string): Part => ({ card: id });
   switch (move.type) {
     case 'playToTrick':
-      return `${who} played ${card(move.card)}`;
+      return line`${who} played ${card(move.card)}`;
     case 'play':
-      return `${who} played ${card(move.card)} to ${pileText(move.to)}`;
+      return line`${who} played ${card(move.card)} to ${pileText(move.to)}`;
     case 'discard':
-      return `${who} discarded ${card(move.card)}`;
+      return line`${who} discarded ${card(move.card)}`;
     case 'layOff':
-      return `${who} laid off ${card(move.card)}`;
+      return line`${who} laid off ${card(move.card)}`;
     case 'draw':
-      return `${who} drew from ${pileText(move.from)}`;
+      return line`${who} drew from ${pileText(move.from)}`;
     case 'pickUpPile':
       if (move.cards) {
-        return `${who} took ${pileText(move.from)}, melding its top card with ${move.cards
-          .map(card)
-          .join(', ')}`;
+        return line`${who} took ${pileText(move.from)}, melding its top card with ${joined(
+          move.cards.map(card),
+        )}`;
       }
       if (move.meld) {
-        return `${who} took ${pileText(move.from)}, adding its top card to a meld`;
+        return line`${who} took ${pileText(move.from)}, adding its top card to a meld`;
       }
-      return `${who} picked up ${pileText(move.from)}`;
+      return line`${who} picked up ${pileText(move.from)}`;
     case 'pass':
-      return `${who} passed ${move.cards.map(card).join(', ')}`;
+      return line`${who} passed ${joined(move.cards.map(card))}`;
     case 'meld':
-      return `${who} melded ${move.cards.map(card).join(', ')}`;
+      return line`${who} melded ${joined(move.cards.map(card))}`;
     case 'bid':
-      return `${who} bid ${bidWords(move.value, bids)}`;
+      return line`${who} bid ${bidWords(move.value, bids)}`;
     case 'passBid':
-      return `${who} passed`;
+      return line`${who} passed`;
     case 'declareTrump':
-      return `${who} made ${move.suit} trump`;
+      return line`${who} made ${{ suit: move.suit }} trump`;
     case 'chooseSuit':
-      return `${who} chose ${move.suit}`;
+      return line`${who} chose ${{ suit: move.suit }}`;
     case 'choose':
-      return `${who} chose: ${choiceText(move.value, choices)}`;
+      return line`${who} chose: ${choiceText(move.value, choices)}`;
     case 'showHand':
       return move.card === null
-        ? `${who} went out`
-        : `${who} went out, discarding ${card(move.card)}`;
+        ? line`${who} went out`
+        : line`${who} went out, discarding ${card(move.card)}`;
     case 'arrange':
-      return `${who} arranged ${their} cards`;
+      return line`${who} arranged ${their} cards`;
     case 'sortHand':
-      return `${who} sorted ${their} cards into melds`;
+      return line`${who} sorted ${their} cards into melds`;
     case 'lookAtHand':
-      return `${who} looked at ${their} cards`;
+      return line`${who} looked at ${their} cards`;
     case 'endTurn':
-      return `${who} ended ${their} turn`;
+      return line`${who} ended ${their} turn`;
   }
 }
 
@@ -204,12 +255,17 @@ export function describeScore(event: ScoreEvent, names: SeatNames): string {
     : `${who} scored ${event.points}${held}`;
 }
 
-/**
- * The game log as lines of text, oldest first: every move worth telling
- * others about, with the points scored along the way placed after the move
- * that scored them.
- */
+/** The game log as plain text, oldest first (see `logEntries`). */
 export function logLines(view: PlayerView, names: SeatNames): string[] {
+  return logEntries(view, names).map(lineText);
+}
+
+/**
+ * The game log in pieces, oldest first: every move worth telling others
+ * about, with the points scored along the way placed after the move that
+ * scored them.
+ */
+export function logEntries(view: PlayerView, names: SeatNames): Line[] {
   const scoredAfter = new Map<number, ScoreEvent[]>();
   for (const event of view.scoreEvents) {
     scoredAfter.set(event.at, [...(scoredAfter.get(event.at) ?? []), event]);
@@ -219,15 +275,18 @@ export function logLines(view: PlayerView, names: SeatNames): string[] {
     cardsAfter.set(event.at, [...(cardsAfter.get(event.at) ?? []), event]);
   }
   // What happened after the first `at` moves: points scored, then cards turned up or given.
-  const scores = (at: number) => [
-    ...(scoredAfter.get(at) ?? []).map((e) => describeScore(e, names)),
-    ...(cardsAfter.get(at) ?? []).flatMap((e) => describeCards(e, names) ?? []),
+  const scores = (at: number): Line[] => [
+    ...(scoredAfter.get(at) ?? []).map((e) => [describeScore(e, names)]),
+    ...(cardsAfter.get(at) ?? []).flatMap((e) => {
+      const parts = cardsLine(e, names);
+      return parts ? [parts] : [];
+    }),
   ];
   const lines = scores(0);
   view.log.forEach((move, i) => {
     // Arranging cards isn't news for anyone else, so it stays out of the log.
     if (move.type !== 'arrange' && move.type !== 'sortHand') {
-      lines.push(describeMove(move, names, view.choiceLabels, view.bidLabels));
+      lines.push(moveLine(move, names, view.choiceLabels, view.bidLabels));
     }
     lines.push(...scores(i + 1));
   });
@@ -239,10 +298,17 @@ export function logLines(view: PlayerView, names: SeatNames): string[] {
  * where nobody could see it isn't news, so it has no line.
  */
 export function describeCards(event: CardEvent, names: SeatNames): string | null {
-  const cards = event.cards.map((id) => cardText(id, true)).join(', ');
-  if (event.kind === 'turnedUp') return cards ? `Turned up: ${cards}` : null;
+  const parts = cardsLine(event, names);
+  return parts && lineText(parts);
+}
+
+function cardsLine(event: CardEvent, names: SeatNames): Line | null {
+  const cards = joined(event.cards.map((id) => ({ card: id })));
+  if (event.kind === 'turnedUp') return cards.length > 0 ? line`Turned up: ${cards}` : null;
   const who = event.player === null ? 'Someone' : names(event.player);
-  return cards ? `${who} picked up ${cards}` : `${who} took ${pileText(event.zone)}`;
+  return cards.length > 0
+    ? line`${who} picked up ${cards}`
+    : line`${who} took ${pileText(event.zone)}`;
 }
 
 /** "Ana" for a one-player team, otherwise "Team 1 (You & Sam)". */

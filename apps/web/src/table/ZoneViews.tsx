@@ -3,6 +3,7 @@ import type { Card as CardData, Move, PlayerView, TrickView, ZoneView } from '@c
 import { useNarrow } from '../useNarrow';
 import { CardBack, CardFace, type CardSize } from './Card';
 import { spokenLabel } from './cards';
+import { SuitSymbol } from './SuitText';
 import { moveLabel, type SeatNames } from './describe';
 import { humanize, type PlacedZone, trickAreaSize, trickLayout, zoneCount } from './zones';
 
@@ -194,6 +195,13 @@ export function Trick({
           </span>
         );
       })}
+      {/* The suit led, in the middle of the trick until the trick is won. */}
+      {trick.winner === null && trick.led && (
+        <span className="trick-led">
+          Led <SuitSymbol suit={trick.led} />
+          <span className="visually-hidden">{trick.led}</span>
+        </span>
+      )}
       {trick.winner !== null ? (
         <span className="trick-winner" role="status">
           {names(trick.winner) === 'You' ? 'You win' : `${names(trick.winner)} wins`} the trick

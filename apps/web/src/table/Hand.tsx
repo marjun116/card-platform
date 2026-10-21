@@ -10,7 +10,7 @@
 import type { Card as CardData, PlayerView, ZoneView } from '@card-table/engine';
 import { type KeyboardEvent, useRef, useState } from 'react';
 import { CardBack, CardFace } from './Card';
-import { sortHand, spokenLabel } from './cards';
+import { isRed, isTrump, sortHand, spokenLabel, SUIT_SYMBOL } from './cards';
 import { type Controls, isCardUsable } from './moves';
 
 export function Hand({
@@ -91,6 +91,7 @@ export function Hand({
         // When hands are arranged, any card can be selected to group it.
         const usable = isCardUsable(controls, card.id) || arrangement !== null;
         const isSelected = selected.includes(card.id);
+        const trumpCard = isTrump(card, trump);
         const state = [
           choosing && isCardUsable(controls, card.id) ? 'playable' : null,
           choosing && !isCardUsable(controls, card.id) ? 'unusable' : null,
@@ -109,11 +110,20 @@ export function Hand({
             tabIndex={i === current ? 0 : -1}
             aria-pressed={isSelected}
             aria-disabled={!usable}
-            aria-label={`${spokenLabel(card)}${choosing && !isCardUsable(controls, card.id) ? ", can't be played now" : ''}`}
+            aria-label={`${spokenLabel(card)}${trumpCard ? ', trump' : ''}${choosing && !isCardUsable(controls, card.id) ? ", can't be played now" : ''}`}
             onFocus={() => setFocus(i)}
             onClick={() => usable && onPress(card)}
           >
             <CardFace card={card} />
+            {/* A small mark in the corner for trump, in trump's colour. */}
+            {trump && trumpCard && (
+              <span
+                className={`trump-mark ${isRed(trump.suit) ? 'red' : 'black'}`}
+                aria-hidden="true"
+              >
+                {SUIT_SYMBOL[trump.suit]}
+              </span>
+            )}
           </button>
         );
       })}

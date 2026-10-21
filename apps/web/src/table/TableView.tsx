@@ -3,7 +3,7 @@
  * the view contains and offers exactly the legal moves the server sent.
  * See docs/decisions.md ("Web client (Phase 4)") for the layout rules.
  */
-import type { Card as CardData, Move } from '@card-table/engine';
+import type { Card as CardData, Move, Suit } from '@card-table/engine';
 import type { ErrorCode, TableInfo } from '@card-table/server/protocol';
 import { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -15,11 +15,13 @@ import { DecisionPanel, HandActions } from './ActionBar';
 import { Avatar } from './Avatar';
 import { seatInitials } from './avatars';
 import type { GameMessage, TableConnection } from './connection';
-import { bidWords, logLines, seatNames, teamName } from './describe';
+import { isRed, SUIT_SYMBOL } from './cards';
+import { bidWords, lineText, logEntries, seatNames, teamName } from './describe';
 import { GroupSummary, Hand } from './Hand';
 import { buildControls, quickMove, turnPrompt } from './moves';
 import { Dialog, HistoryTable, RoundTable, Scoreboard } from './Scores';
 import { Seat } from './Seat';
+import { RichLine, SuitText, SuitWord } from './SuitText';
 import { layoutZones, humanize } from './zones';
 import { Pile, Trick, ZoneDisplay } from './ZoneViews';
 
@@ -35,6 +37,27 @@ function errorText(error: unknown): string {
     return FRIENDLY[code] ?? message;
   }
   return 'Something went wrong. Try again.';
+}
+
+const SUIT_NAMES: Partial<Record<string, Suit>> = {
+  clubs: 'clubs',
+  diamonds: 'diamonds',
+  hearts: 'hearts',
+  spades: 'spades',
+};
+
+/** Trump, in a round badge with a large symbol, always in the same corner of the table. */
+function TrumpBadge({ suit }: { suit: Suit }) {
+  return (
+    <div className="trump-badge" role="img" aria-label={`Trump: ${suit}`}>
+      <span className="trump-badge-label" aria-hidden="true">
+        Trump
+      </span>
+      <span className={`trump-badge-suit ${isRed(suit) ? 'red' : 'black'}`} aria-hidden="true">
+        {SUIT_SYMBOL[suit]}
+      </span>
+    </div>
+  );
 }
 
 export function TableView({
@@ -135,8 +158,9 @@ export function TableView({
     if (card) card.focus({ preventScroll: true });
   };
 
-  const log = useMemo(() => logLines(view, names), [view, names]);
-  const lastLog = log[log.length - 1];
+  const log = useMemo(() => logEntries(view, names), [view, names]);
+  const lastEntry = log[log.length - 1];
+  const lastLog = lastEntry && lineText(lastEntry);
   const announcement = [lastLog ?? null, yourTurn && !paused ? turnPrompt(controls, names) : null]
     .filter(Boolean)
     .join('. ');
@@ -288,8 +312,9 @@ export function TableView({
           </div>
           {/* The game's values (trump, the count) and the last-trick button have a fixed place
               along the bottom of the table, so they don't move as cards come and go. */}
-          {(view.display.length > 0 || showTricks) && (
+          {(view.display.length > 0 || showTricks || view.trump) && (
             <div className="felt-footer">
+              {view.trump && <TrumpBadge suit={view.trump.suit} />}
               {view.display.length > 0 && (
                 <p className="display-values">
                   {view.display.map((item) => {
@@ -303,9 +328,14 @@ export function TableView({
                         : team
                           ? teamName(team, names)
                           : String(item.value);
+                    const suit =
+                      item.format === 'suit' ? SUIT_NAMES[String(item.value)] : undefined;
                     return (
                       <span key={item.label}>
-                        <span className="muted">{item.label}</span> <strong>{text}</strong>
+                        <span className="muted">{item.label}</span>{' '}
+                        <strong>
+                          {suit ? <SuitWord suit={suit} capital /> : <SuitText text={text} />}
+                        </strong>
                       </span>
                     );
                   })}
@@ -387,7 +417,9 @@ export function TableView({
                 .slice(-30)
                 .reverse()
                 .map((line, i) => (
-                  <li key={log.length - i}>{line}</li>
+                  <li key={log.length - i}>
+                    <RichLine line={line} />
+                  </li>
                 ))}
             </ol>
           </section>
@@ -430,7 +462,7 @@ export function TableView({
           <span className="muted">
             {view.dealer === view.you && " You're the dealer."}
             {layout.hand?.view.kind === 'count' && ' Your cards are face down.'}
-            {myBid != null && ` Your bid: ${bidWords(myBid, view.bidLabels)}.`}
+            {myBid != null && <SuitText text={` Your bid: ${bidWords(myBid, view.bidLabels)}.`} />}
             {view.control?.seat === view.you && ` ${names(view.control.by)} is playing your cards.`}
             {showTricks && ` You've won ${view.players[view.you]?.tricks ?? 0}.`}
           </span>

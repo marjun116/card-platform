@@ -1126,6 +1126,23 @@ kbd {
   font-weight: normal;
   color: var(--felt-muted);
 }
+/* "Led ♠", in the middle of the ring of cards while the trick is under way. */
+.trick-led {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.25);
+  color: var(--felt-text);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  pointer-events: none;
+}
 .piles {
   display: flex;
   gap: 16px;
@@ -1156,9 +1173,9 @@ kbd {
 .pile-spread .card + .card {
   margin-left: calc(var(--w) * -0.6);
 }
-/* Along the bottom of the table: values the game shows (trump, a running count) on the
-   left and the last-trick button on the right. They have a fixed place, away from the
-   middle, so they don't move as cards are played or bids are made. */
+/* Along the bottom of the table: the trump badge and the values the game shows (a running
+   count, who called trump) on the left and the last-trick button on the right. They have a
+   fixed place, away from the middle, so they don't move as cards are played or bids are made. */
 .felt-footer {
   position: absolute;
   /* Far enough in from the left to clear the table's rounded corner. */
@@ -1166,7 +1183,7 @@ kbd {
   right: 16px;
   bottom: 12px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: end;
   gap: 16px;
   pointer-events: none;
@@ -1194,6 +1211,32 @@ kbd {
 }
 .last-trick {
   margin-left: auto;
+}
+/* Trump: a large symbol in a white badge with a wooden ring, like the rail. */
+.trump-badge {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow:
+    0 0 0 3px var(--rail-light),
+    0 3px 8px rgb(0 0 0 / 0.35);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.trump-badge-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #5d5d58;
+}
+.trump-badge-suit {
+  font-size: 1.9rem;
 }
 
 .side {
@@ -1321,6 +1364,7 @@ kbd {
   scrollbar-width: thin;
 }
 .hand-card {
+  position: relative;
   padding: 0;
   border: none;
   background: none;
@@ -1342,6 +1386,23 @@ kbd {
 }
 .hand-card.playable {
   transform: translateY(-8px);
+}
+/* Trump: a small mark in the bottom-left corner, which stays in view when cards overlap. */
+.trump-mark {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 1.5px currentColor;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  line-height: 1;
+  pointer-events: none;
 }
 .hand-card.playable .card {
   box-shadow:
@@ -1401,8 +1462,63 @@ kbd {
   display: inline-flex;
   gap: 6px;
 }
-.suit-button {
+/* Naming trump or a suit: four large tiles, white like the cards (in dark mode too). */
+.suit-tiles {
+  gap: 8px;
+}
+.choice-grid .suit-tile {
+  flex-direction: column;
+  gap: 2px;
+  width: 76px;
+  min-height: 84px;
+  padding: 8px 4px 6px;
+  border-radius: 12px;
+  background: #fff;
+  color: #1d1d1b;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.25);
+  transition: transform 120ms ease;
+}
+.suit-tile:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+.suit-tile-symbol {
+  font-size: 2.6rem;
+  line-height: 1;
+}
+.suit-tile-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* ---- suits and cards in text ---- */
+
+/* A suit symbol on a small light chip, so red and black read on any background (the felt,
+   a blue button, dark mode). */
+.suit-pip {
+  display: inline-block;
+  min-width: 1.2em;
+  padding: 0 0.1em;
+  border-radius: 0.3em;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.15);
   font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+}
+.suit-word,
+.inline-card {
+  white-space: nowrap;
+}
+/* A card named in text (the log): rank and suit on a small white card. */
+.inline-card {
+  display: inline-block;
+  padding: 0 0.3em;
+  border: 1px solid #c9c5bb;
+  border-radius: 0.25em;
+  background: #fff;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 0.15);
+  font-weight: 700;
+  line-height: 1.25;
 }
 .hint {
   margin: 0;
@@ -1621,6 +1737,23 @@ kbd {
   .display-values strong {
     font-size: 1rem;
   }
+  .trump-badge {
+    width: 44px;
+    height: 44px;
+  }
+  .trump-badge-label {
+    font-size: 0.5rem;
+  }
+  .trump-badge-suit {
+    font-size: 1.4rem;
+  }
+  .choice-grid .suit-tile {
+    width: 64px;
+    min-height: 72px;
+  }
+  .suit-tile-symbol {
+    font-size: 2.1rem;
+  }
 
   .you-area {
     padding: 6px 8px 12px;
@@ -1744,7 +1877,8 @@ kbd {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .hand-card {
+  .hand-card,
+  .suit-tile {
     transition: none;
   }
   .fade-in {

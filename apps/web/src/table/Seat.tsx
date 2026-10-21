@@ -14,6 +14,7 @@ import { type SeatInitials, teamColour } from './avatars';
 import { CardBack, CardFace } from './Card';
 import { SUITS, sortHand, spokenLabel } from './cards';
 import { bidWords, type SeatNames, seatStats } from './describe';
+import { SuitText } from './SuitText';
 import { type Controls, isCardUsable } from './moves';
 import { ZoneDisplay } from './ZoneViews';
 import { type PlacedZone, seatPosition } from './zones';
@@ -108,7 +109,11 @@ export function Seat({
           <span className="chip-name">{name}</span>
           {handCount !== null && <span className="chip-count">{handCount}</span>}
         </span>
-        {stats.short && <span className="chip-line chip-stats">{stats.short}</span>}
+        {stats.short && (
+          <span className="chip-line chip-stats">
+            <SuitText text={stats.short} />
+          </span>
+        )}
       </button>
 
       <div className={`seat-panel ${popup}`} id={panelId}>
@@ -150,7 +155,7 @@ export function Seat({
                   {/* Same colour as the outline round the dealer's seat. */}
                   {dealer && <span className="dealer-tag">Dealer</span>}
                   {dealer && facts.length > 0 && ' · '}
-                  {facts.join(' · ')}
+                  <SuitText text={facts.join(' · ')} />
                 </span>
               )}
             </div>

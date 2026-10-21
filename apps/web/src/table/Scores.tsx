@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useRef } from 'react';
 import { Avatar, TeamDot } from './Avatar';
 import { type SeatInitials, teamColour } from './avatars';
 import { type BidLabels, bidWords, type SeatNames, teamName } from './describe';
+import { SuitText } from './SuitText';
 import { ZoneDisplay } from './ZoneViews';
 import { humanize, type PlacedZone, zoneCount } from './zones';
 
@@ -64,14 +65,16 @@ export function Scoreboard({
               {/* One-player teams already show their name; their bid and tricks fit on one line. */}
               {(showBids || showTricks) && team.players.length === 1 && (
                 <div className="muted">
-                  {[
-                    showBids
-                      ? `bid ${bidText(view.players[team.players[0] ?? 0]?.bid ?? null, view.bidLabels)}`
-                      : null,
-                    showTricks ? `won ${view.players[team.players[0] ?? 0]?.tricks ?? 0}` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
+                  <SuitText
+                    text={[
+                      showBids
+                        ? `bid ${bidText(view.players[team.players[0] ?? 0]?.bid ?? null, view.bidLabels)}`
+                        : null,
+                      showTricks ? `won ${view.players[team.players[0] ?? 0]?.tricks ?? 0}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  />
                 </div>
               )}
               {(showBids || showTricks) && team.players.length > 1 && (
@@ -82,7 +85,11 @@ export function Scoreboard({
                     return (
                       <li key={seat}>
                         <span>{names(seat)}</span>
-                        {showBids && <span>bid {bidText(player.bid, view.bidLabels)}</span>}
+                        {showBids && (
+                          <span>
+                            bid <SuitText text={bidText(player.bid, view.bidLabels)} />
+                          </span>
+                        )}
                         {showTricks && <span>won {player.tricks}</span>}
                       </li>
                     );
@@ -173,7 +180,11 @@ export function RoundTable({
                   {names(player.id)}
                   {player.eliminated && <span className="muted"> (out)</span>}
                 </th>
-                {showBids && <td>{bidText(player.bid, bidLabels)}</td>}
+                {showBids && (
+                  <td>
+                    <SuitText text={bidText(player.bid, bidLabels)} />
+                  </td>
+                )}
                 {showTricks && <td>{player.tricks}</td>}
                 {i === 0 && (
                   <>

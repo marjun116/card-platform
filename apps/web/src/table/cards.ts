@@ -85,3 +85,10 @@ export function sortHand(
   };
   return [...cards].sort((a, b) => key(a) - key(b) || a.id.localeCompare(b.id));
 }
+
+/** Whether a card is trump: its suit, or with bowers the other jack of trump's colour. */
+export function isTrump(card: Card, trump: { suit: Suit; bowers: boolean } | null): boolean {
+  if (!trump || isJoker(card)) return false;
+  if (card.suit === trump.suit) return true;
+  return trump.bowers && card.rank === 'J' && isRed(card.suit) === isRed(trump.suit);
+}

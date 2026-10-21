@@ -1,6 +1,6 @@
 import type { Card } from '@card-table/engine';
 import { describe, expect, it } from 'vitest';
-import { cardFromId, shortLabel, sortHand } from './cards';
+import { cardFromId, isTrump, shortLabel, sortHand } from './cards';
 
 const hand = (...ids: string[]) => ids.map((id) => cardFromId(`${id}.0`) as Card);
 const labels = (cards: Card[]) => cards.map(shortLabel);
@@ -35,5 +35,24 @@ describe('sortHand', () => {
 
   it('leaves the jacks in their own suits without bowers', () => {
     expect(sortHand(cards, { suit: 'hearts', bowers: false })).toEqual(sortHand(cards));
+  });
+});
+
+describe('isTrump', () => {
+  const card = (id: string) => cardFromId(id) as Card;
+
+  it("is trump's suit, and nothing without trump", () => {
+    const hearts = { suit: 'hearts' as const, bowers: false };
+    expect(isTrump(card('2H.0'), hearts)).toBe(true);
+    expect(isTrump(card('JD.0'), hearts)).toBe(false);
+    expect(isTrump(card('2H.0'), null)).toBe(false);
+    expect(isTrump({ id: 'JOKER.0', joker: true }, hearts)).toBe(false);
+  });
+
+  it("counts the other jack of trump's colour with bowers (euchre)", () => {
+    const hearts = { suit: 'hearts' as const, bowers: true };
+    expect(isTrump(card('JD.0'), hearts)).toBe(true);
+    expect(isTrump(card('JC.0'), hearts)).toBe(false);
+    expect(isTrump(card('QD.0'), hearts)).toBe(false);
   });
 });
