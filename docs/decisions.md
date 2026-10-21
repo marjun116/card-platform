@@ -1153,6 +1153,8 @@ build checklist, done before Phase 6.
   the log, bids, suit choices), still red and black only (see "First playtest feedback").
 - **Playtests and the rulebook review have their own sections** in the build checklist,
   before Phase 6, instead of being inside Phase 5. They don't block other work.
+- **No "best moment" when you lose** (decided by Arjun, 2026-10-20): the losing screen just
+  says "Good game", without picking out a highlight of yours.
 
 ## 2026-10-20: Table look (UI polish)
 
