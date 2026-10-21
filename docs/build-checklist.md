@@ -468,17 +468,17 @@ Read every game's rules on the site (Rules on the Games page, or Rules at a tabl
 anything wrong, unclear or missing. Fixes go in the game's `.rules.md` file in
 `packages/games`.
 
-- [ ] Spades
-- [ ] Hearts
-- [ ] Crazy eights
-- [ ] Rummy
-- [ ] Gin rummy
-- [ ] Euchre
-- [ ] Oh Hell
-- [ ] Cribbage
-- [ ] Pinochle
-- [ ] Canasta
-- [ ] Bridge
+- [x] Spades
+- [x] Hearts
+- [x] Crazy eights
+- [x] Rummy
+- [x] Gin rummy
+- [x] Euchre
+- [x] Oh Hell
+- [x] Cribbage
+- [x] Pinochle
+- [x] Canasta
+- [x] Bridge
 
 **Done when:** every rulebook has been read on the site and its fixes are in.
 
