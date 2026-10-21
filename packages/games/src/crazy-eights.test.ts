@@ -11,6 +11,7 @@ import {
   type Move,
   type OptionValue,
   type Suit,
+  viewFor,
 } from '@card-table/engine';
 import { card as cardOf, hand, id, play, withZones } from '@card-table/engine/testing';
 import { describe, expect, it } from 'vitest';
@@ -109,6 +110,25 @@ describe('crazy eights: playing', () => {
     expect(getLegalMoves(played, a).map((m) => m.type)).toEqual(Array(4).fill('chooseSuit'));
     const chosen = applyMove(played, { player: a, type: 'chooseSuit', suit: 'hearts' });
     expect(playable(chosen, b)).toEqual(ids('2H', '8C'));
+  });
+
+  it('shows the suit named for an 8 on the table, once it has been named', () => {
+    const { state, a, b, playCard } = table(
+      [
+        ['8D', '3C'],
+        ['2H', '5C', '8C'],
+      ],
+      'KS',
+    );
+    expect(viewFor(state, b).display).toEqual([]);
+    const played = applyMove(state, playCard(a, '8D'));
+    expect(viewFor(played, b).display).toEqual([]);
+    const chosen = applyMove(played, { player: a, type: 'chooseSuit', suit: 'hearts' });
+    expect(viewFor(chosen, b).display).toEqual([
+      { label: 'Suit to play', value: 'hearts', format: 'suit' },
+    ]);
+    // Gone once a card other than an 8 is on top.
+    expect(viewFor(applyMove(chosen, playCard(b, '2H')), a).display).toEqual([]);
   });
 
   it("doesn't ask for a suit when the 8 is the last card", () => {

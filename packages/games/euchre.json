@@ -241,16 +241,6 @@
     "winner": "highestScore"
   },
   "display": [
-    {
-      "label": "Trump",
-      "value": "state.trump",
-      "labels": {
-        "spades": "♠ Spades",
-        "hearts": "♥ Hearts",
-        "diamonds": "♦ Diamonds",
-        "clubs": "♣ Clubs"
-      }
-    },
     { "label": "Called by", "value": "state.maker", "format": "player" },
     {
       "label": "Going alone",

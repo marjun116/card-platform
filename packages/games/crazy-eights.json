@@ -102,7 +102,7 @@
       "from": "stock",
       "to": "discard",
       "reflipIf": "options.starterEight == 'reflip' && card.rank == '8'",
-      "set": { "state.activeSuit": "card.suit", "state.penalty": 0 }
+      "set": { "state.activeSuit": "card.suit", "state.penalty": 0, "state.eight": false }
     },
     "dealerRotation": "left"
   },
@@ -130,6 +130,13 @@
               "to": "discard",
               "if": "(card.suit == state.activeSuit || card.rank == discard.top.rank || card.rank == '8') && (state.penalty == 0 || card.rank == '2' || stock.count == 0)",
               "effects": [
+                {
+                  "set": { "state.eight": "card.rank == '8'" }
+                },
+                {
+                  "if": "card.rank == '8' && hand.count > 0",
+                  "set": { "state.activeSuit": null }
+                },
                 {
                   "if": "card.rank == '8' && hand.count > 0",
                   "choose": "suit",
@@ -202,5 +209,13 @@
   "endCondition": {
     "when": "options.targetScore == 'oneHand' || anyPlayer.score >= options.targetScore",
     "winner": "options.scoring == 'penalty' ? 'lowestScore' : 'highestScore'"
-  }
+  },
+  "display": [
+    {
+      "label": "Suit to play",
+      "value": "state.activeSuit",
+      "format": "suit",
+      "if": "state.eight == true"
+    }
+  ]
 }

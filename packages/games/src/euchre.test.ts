@@ -120,8 +120,8 @@ describe('euchre: making trump', () => {
     expect(viewFor(state, a).display).toEqual([]);
     expect(viewFor(state, a).offTable).toEqual([]);
     const s = play(state, choose(a, 'pass'), choose(b, 'orderUp'), choose(b, 'alone'));
+    expect(viewFor(s, c).trump).toEqual({ suit: 'hearts', bowers: true });
     expect(viewFor(s, c).display).toEqual([
-      { label: 'Trump', value: '♥ Hearts' },
       { label: 'Called by', value: b, format: 'player' },
       { label: 'Going alone', value: 'Yes' },
     ]);
@@ -129,7 +129,7 @@ describe('euchre: making trump', () => {
     expect(viewFor(s, c).offTable).toEqual(['kitty', 'upcard']);
     // The dealer is b's partner, so sits out; play starts straight away.
     expect(phase(s)).toBe('play');
-    expect(viewFor(s, d).display[0]).toEqual({ label: 'Trump', value: '♥ Hearts' });
+    expect(viewFor(s, d).trump?.suit).toBe('hearts');
   });
 
   it('then offers any other suit, and throws the hand in if everyone passes twice', () => {
