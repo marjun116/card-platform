@@ -12,6 +12,8 @@ import { RulesDialog } from '../components/Rules';
 import { rulebookReady, useRulebook } from '../useRulebook';
 import { useHeaderSlot } from '../headerSlot';
 import { DecisionPanel, HandActions } from './ActionBar';
+import { Avatar } from './Avatar';
+import { seatInitials } from './avatars';
 import type { GameMessage, TableConnection } from './connection';
 import { bidWords, logLines, seatNames, teamName } from './describe';
 import { GroupSummary, Hand } from './Hand';
@@ -55,6 +57,7 @@ export function TableView({
 }) {
   const { view, legalMoves, toAct, seq } = game;
   const names = useMemo(() => seatNames(table, view.you), [table, view.you]);
+  const initials = useMemo(() => seatInitials(table), [table]);
   const layout = useMemo(() => layoutZones(view), [view]);
   const paused = table.status === 'paused';
   // While paused nobody can move, so no controls are shown.
@@ -266,6 +269,7 @@ export function TableView({
                 table={table}
                 zones={layout.seats.get(player.id) ?? []}
                 names={names}
+                initials={initials}
                 toAct={paused ? [] : toAct}
                 showTricks={showTricks}
                 onNudge={(seat) => send({ type: 'nudge', seat })}
@@ -364,7 +368,13 @@ export function TableView({
           className={`side${panelOpen ? ' open' : ''}`}
           aria-label="Scores and log"
         >
-          <Scoreboard view={view} names={names} teamZones={layout.teams} showTricks={showTricks} />
+          <Scoreboard
+            view={view}
+            names={names}
+            initials={initials}
+            teamZones={layout.teams}
+            showTricks={showTricks}
+          />
           {view.history.length > 0 && (
             <button type="button" className="small" onClick={() => setShowHistory(true)}>
               Every round
@@ -393,6 +403,7 @@ export function TableView({
           </div>
         )}
         <div className="status-line">
+          <Avatar initials={initials(view.you)} team={view.players[view.you]?.team ?? view.you} />
           {hiddenScores ? (
             <>
               <strong>Round {hiddenScores.round} is over.</strong>{' '}
@@ -467,6 +478,7 @@ export function TableView({
             result={newRound}
             teams={view.teams}
             names={names}
+            initials={initials}
             bidLabels={view.bidLabels}
             trackLabels={view.trackLabels}
           />

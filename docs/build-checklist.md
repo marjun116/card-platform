@@ -338,12 +338,12 @@ never by a game's name, so custom games get them too. No sound.
 
 **Table look**
 
-- [ ] Richer felt: a soft spotlight in the middle, darker edges and a thin wood-coloured rail
+- [x] Richer felt: a soft spotlight in the middle, darker edges and a thin wood-coloured rail
       (CSS only, no images)
-- [ ] Seat avatars (initials in a circle, a colour per seat) and team colours, used the same
+- [x] Seat avatars (initials in a circle, a colour per seat) and team colours, used the same
       way at the seats, in the scoreboard, round summary and results
-- [ ] A redrawn card back with a proper pattern and border
-- [ ] A display font for headlines and scores: an openly licensed font file served by our
+- [x] A redrawn card back with a proper pattern and border
+- [x] A display font for headlines and scores: an openly licensed font file served by our
       own app (no third-party font service)
 
 **Suits shown everywhere**

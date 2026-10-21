@@ -1,0 +1,8 @@
+Display font: Playfair Display by Claus Eggers Sørensen and the Playfair Display Project
+Authors, https://github.com/clauseggers/Playfair-Display
+Licensed under the SIL Open Font License 1.1 (OFL.txt in this folder).
+
+Changes for Card Table: only the Latin characters of the bold (700) weight, as a WOFF2
+file (the Fontsource build, @fontsource/playfair-display 5.1.0). Because the licence
+reserves the name "Playfair Display" for unmodified copies, styles.css loads it under the
+name "Table Display".

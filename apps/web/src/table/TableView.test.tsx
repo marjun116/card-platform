@@ -376,6 +376,24 @@ describe('TableView', () => {
     expect(chip.getAttribute('aria-expanded')).toBe('false');
   });
 
+  it('gives every player an avatar in their team colour, hidden from screen readers', () => {
+    const state = createGame(spades, {}, 4, 'view-avatars');
+    show(state, 0);
+    const avatarOf = (name: string) =>
+      screen.getByRole('region', { name: new RegExp(`^${name}`) }).querySelector('.avatar');
+    const sam = avatarOf('Sam');
+    const ana = avatarOf('Ana');
+    expect(sam?.textContent).toBe('S');
+    // Partners share a colour; opponents have another.
+    expect(sam?.getAttribute('style')).toContain('var(--team-0)');
+    expect(ana?.getAttribute('style')).toContain('var(--team-1)');
+    // The letters are decorative (the name is written beside them); the here/away dot isn't.
+    expect(sam?.querySelector('.avatar-letters')?.getAttribute('aria-hidden')).toBe('true');
+    expect(within(sam as HTMLElement).getByRole('img', { name: 'here' })).toBeTruthy();
+    // Your own avatar uses your name, not "You".
+    expect(document.querySelector('.status-line .avatar')?.textContent).toBe('A');
+  });
+
   it('keeps the space under the hand, and puts focus back on the card after Clear', () => {
     const state = playUntil(
       createGame(spades, {}, 4, 'view-clear'),

@@ -9,6 +9,8 @@
 import type { Card as CardData, PlayerView } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
 import { useId, useState } from 'react';
+import { Avatar } from './Avatar';
+import { type SeatInitials, teamColour } from './avatars';
 import { CardBack, CardFace } from './Card';
 import { SUITS, sortHand, spokenLabel } from './cards';
 import { bidWords, type SeatNames, seatStats } from './describe';
@@ -22,6 +24,7 @@ export function Seat({
   table,
   zones,
   names,
+  initials,
   toAct,
   showTricks,
   onNudge,
@@ -35,6 +38,7 @@ export function Seat({
   table: TableInfo;
   zones: PlacedZone[];
   names: SeatNames;
+  initials: SeatInitials;
   toAct: number[];
   showTricks: boolean;
   onNudge: (seat: number) => void;
@@ -61,6 +65,7 @@ export function Seat({
   const name = names(seat);
   const stats = seatStats(player, handCount, showTricks, view.bidLabels);
 
+  const team = player?.team ?? seat;
   const dealer = seat === view.dealer;
   const facts = [
     partner && view.teams[player.team]?.players.length !== 1 ? 'Partner' : null,
@@ -80,7 +85,12 @@ export function Seat({
   return (
     <section
       className={`seat${acting ? ' acting' : ''}${dealer ? ' dealer' : ''}${open ? ' open' : ''}${openCards ? ' has-open-hand' : ''}`}
-      style={{ ['--x' as string]: x, ['--y' as string]: y, ['--order' as string]: order }}
+      style={{
+        ['--x' as string]: x,
+        ['--y' as string]: y,
+        ['--order' as string]: order,
+        ['--team' as string]: teamColour(team),
+      }}
       aria-label={`${name}${dealer ? ', dealer' : ''}${acting ? ', to play' : ''}`}
       onKeyDown={(e) => {
         if (e.key === 'Escape' && open) setOpen(false);
@@ -102,42 +112,49 @@ export function Seat({
       </button>
 
       <div className={`seat-panel ${popup}`} id={panelId}>
-        <div className="seat-head">
-          <span
-            className={`presence ${info?.connected ? 'on' : 'off'}`}
-            role="img"
-            aria-label={info?.connected ? 'here' : 'away'}
-          />
-          <strong className="seat-player">{name}</strong>
-          {acting && <span className="turn-badge">Turn</span>}
-          {acting && info?.user && !info.bot && (
-            <button
-              type="button"
-              className="link-button nudge"
-              aria-label={`Nudge ${name}`}
-              onClick={() => onNudge(seat)}
-            >
-              Nudge
-            </button>
-          )}
-        </div>
-        <div className="seat-body">
-          {handCount !== null && (
-            <span className="stack-count" role="img" aria-label={`${handCount} cards in hand`}>
-              <CardBack size="tiny" />
-              <span className="count" aria-hidden="true">
-                {handCount}
-              </span>
-            </span>
-          )}
-          {(dealer || facts.length > 0) && (
-            <span className="seat-facts">
-              {/* Same colour as the outline round the dealer's seat. */}
-              {dealer && <span className="dealer-tag">Dealer</span>}
-              {dealer && facts.length > 0 && ' · '}
-              {facts.join(' · ')}
-            </span>
-          )}
+        {/* The avatar stands beside the name and details; the here/away dot sits on it. */}
+        <div className="seat-id">
+          <Avatar initials={initials(seat)} team={team}>
+            <span
+              className={`presence ${info?.connected ? 'on' : 'off'}`}
+              role="img"
+              aria-label={info?.connected ? 'here' : 'away'}
+            />
+          </Avatar>
+          <div className="seat-lines">
+            <div className="seat-head">
+              <strong className="seat-player">{name}</strong>
+              {acting && <span className="turn-badge">Turn</span>}
+              {acting && info?.user && !info.bot && (
+                <button
+                  type="button"
+                  className="link-button nudge"
+                  aria-label={`Nudge ${name}`}
+                  onClick={() => onNudge(seat)}
+                >
+                  Nudge
+                </button>
+              )}
+            </div>
+            <div className="seat-body">
+              {handCount !== null && (
+                <span className="stack-count" role="img" aria-label={`${handCount} cards in hand`}>
+                  <CardBack size="tiny" />
+                  <span className="count" aria-hidden="true">
+                    {handCount}
+                  </span>
+                </span>
+              )}
+              {(dealer || facts.length > 0) && (
+                <span className="seat-facts">
+                  {/* Same colour as the outline round the dealer's seat. */}
+                  {dealer && <span className="dealer-tag">Dealer</span>}
+                  {dealer && facts.length > 0 && ' · '}
+                  {facts.join(' · ')}
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         {replaceable && onReplace && (
           <button

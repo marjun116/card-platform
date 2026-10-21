@@ -1,6 +1,8 @@
 /** The scoreboard, round summaries and the history of every round. */
 import type { BidValue, PlayerView, RoundResult } from '@card-table/engine';
 import { type ReactNode, useEffect, useRef } from 'react';
+import { Avatar, TeamDot } from './Avatar';
+import { type SeatInitials, teamColour } from './avatars';
 import { type BidLabels, bidWords, type SeatNames, teamName } from './describe';
 import { ZoneDisplay } from './ZoneViews';
 import { humanize, type PlacedZone, zoneCount } from './zones';
@@ -29,11 +31,13 @@ function signed(n: number): string {
 export function Scoreboard({
   view,
   names,
+  initials,
   teamZones,
   showTricks,
 }: {
   view: PlayerView;
   names: SeatNames;
+  initials: SeatInitials;
   teamZones: Map<number, PlacedZone[]>;
   showTricks: boolean;
 }) {
@@ -46,8 +50,13 @@ export function Scoreboard({
           const mine = team.players.includes(view.you);
           const tracks = tracksText({ ...team.tracks, ...team.held }, view.trackLabels);
           return (
-            <li key={team.id} className={mine ? 'mine' : undefined}>
+            <li
+              key={team.id}
+              className={`team-entry${mine ? ' mine' : ''}`}
+              style={{ ['--team' as string]: teamColour(team.id) }}
+            >
               <div className="team-row">
+                <TeamAvatars team={team} initials={initials} />
                 <span className="team-name">{teamName(team, names)}</span>
                 <span className="team-score">{team.score}</span>
               </div>
@@ -99,11 +108,29 @@ export function Scoreboard({
   );
 }
 
+/** The avatars of a team's players, overlapping a little. */
+export function TeamAvatars({
+  team,
+  initials,
+}: {
+  team: Pick<Team, 'id' | 'players'>;
+  initials: SeatInitials;
+}) {
+  return (
+    <span className="team-avatars">
+      {team.players.map((seat) => (
+        <Avatar key={seat} initials={initials(seat)} team={team.id} size="small" />
+      ))}
+    </span>
+  );
+}
+
 /** One finished round: what each team bid, took and scored. */
 export function RoundTable({
   result,
   teams,
   names,
+  initials,
   bidLabels = {},
   trackLabels = {},
 }: {
@@ -111,6 +138,7 @@ export function RoundTable({
   /** Who is on which team (teams never change during a game). */
   teams: Pick<Team, 'id' | 'players'>[];
   names: SeatNames;
+  initials: SeatInitials;
   bidLabels?: BidLabels;
   trackLabels?: TrackLabels;
 }) {
@@ -133,10 +161,15 @@ export function RoundTable({
         const players = result.players.filter((p) => members.includes(p.id));
         const tracks = tracksText({ ...team.tracks, ...team.held }, trackLabels);
         return (
-          <tbody key={team.id}>
+          <tbody
+            key={team.id}
+            className="team-entry"
+            style={{ ['--team' as string]: teamColour(team.id) }}
+          >
             {players.map((player, i) => (
               <tr key={player.id}>
                 <th scope="row">
+                  <Avatar initials={initials(player.id)} team={team.id} size="small" />{' '}
                   {names(player.id)}
                   {player.eliminated && <span className="muted"> (out)</span>}
                 </th>
@@ -181,7 +214,7 @@ export function HistoryTable({
           <th scope="col">Round</th>
           {teams.map((team) => (
             <th scope="col" key={team.id}>
-              {teamName(team, names)}
+              <TeamDot team={team.id} /> {teamName(team, names)}
             </th>
           ))}
         </tr>

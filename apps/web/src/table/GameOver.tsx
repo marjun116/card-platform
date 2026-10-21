@@ -2,8 +2,9 @@
 import type { TableInfo } from '@card-table/server/protocol';
 import { Link } from 'react-router';
 import type { GameMessage, OverMessage } from './connection';
+import { seatInitials, teamColour } from './avatars';
 import { seatNames, teamName } from './describe';
-import { HistoryTable, RoundTable } from './Scores';
+import { HistoryTable, RoundTable, TeamAvatars } from './Scores';
 
 export function GameOver({
   table,
@@ -16,6 +17,7 @@ export function GameOver({
 }) {
   const { view } = game;
   const names = seatNames(table, view.you);
+  const initials = seatInitials(table);
   const abandoned = table.status === 'abandoned';
   const winners = over?.winners ?? view.winners;
   const youWon = winners.includes(view.you);
@@ -49,9 +51,11 @@ export function GameOver({
           {standings.map((team) => (
             <li
               key={team.id}
-              className={team.players.some((p) => winners.includes(p)) ? 'winner' : undefined}
+              className={`team-entry${team.players.some((p) => winners.includes(p)) ? ' winner' : ''}`}
+              style={{ ['--team' as string]: teamColour(team.id) }}
             >
-              <span>{teamName(team, names)}</span>
+              <TeamAvatars team={team} initials={initials} />
+              <span className="standing-name">{teamName(team, names)}</span>
               <strong>{team.score}</strong>
             </li>
           ))}
@@ -65,6 +69,7 @@ export function GameOver({
             result={lastRound}
             teams={view.teams}
             names={names}
+            initials={initials}
             bidLabels={view.bidLabels}
             trackLabels={view.trackLabels}
           />

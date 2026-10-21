@@ -1153,3 +1153,27 @@ build checklist, done before Phase 6.
   the log, bids, suit choices), still red and black only (see "First playtest feedback").
 - **Playtests and the rulebook review have their own sections** in the build checklist,
   before Phase 6, instead of being inside Phase 5. They don't block other work.
+
+## 2026-10-20: Table look (UI polish)
+
+- **A seat's colour is its team's colour** (decided by Arjun). Partners share a colour; in
+  games where everyone plays alone, each player is their own team, so every seat gets its own
+  colour. The colour comes from the team number in the view (`--team-0` … `--team-7`,
+  reused past eight teams), never from the game. Avatars are the player's initials from
+  their real name ("Raj Patel" → RP, "Bot 3" → B3; yours too, not "You").
+- **Where the colours show:** avatars at the seats and beside your status line, a stripe on
+  each team in the scoreboard, round summary and results, and a dot in "Every round"'s
+  column headings. On phone chips (five or more players) there's no room for an avatar, so
+  the team colour runs down the chip's left edge; the avatar is in the chip's details.
+- **Accessibility:** avatars are decorative (hidden from screen readers) because the name is
+  always written beside them, and team membership is still said in words ("Partner", team
+  names). Every colour is readable behind white initials (at least 4.8:1), and the first two
+  (blue, orange) stay apart for colour-blind players. A white ring keeps avatars apart from
+  the felt.
+- **Display font: Playfair Display** (decided by Arjun), bold, Latin characters only, served
+  from `apps/web/public/fonts` under the name "Table Display" (the licence reserves the
+  original name for unmodified copies). Used for headings, the game title and scores; score
+  digits are all one width so totals don't shift.
+- **Felt, rail and card back are CSS only:** the rail is the felt's border painted with wood
+  gradients (10px, 6px on phones); the card back is a diamond lattice in a white border with
+  an inner frame line, which tiny cards leave out.
