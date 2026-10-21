@@ -348,13 +348,13 @@ never by a game's name, so custom games get them too. No sound.
 
 **Suits shown everywhere**
 
-- [ ] A suit is always shown with its symbol in its colour: trump, log lines, bridge bids
+- [x] A suit is always shown with its symbol in its colour: trump, log lines, bridge bids
       (1♣, 3♥), crazy eights' chosen suit
-- [ ] Trump badge: a large suit symbol in a round badge in a fixed spot on the felt; trump
+- [x] Trump badge: a large suit symbol in a round badge in a fixed spot on the felt; trump
       cards in your hand get a small coloured mark in the corner
-- [ ] Naming trump or choosing a suit uses four large suit tiles instead of text buttons
-- [ ] "Led ♠" marker in the middle of the trick while a trick is under way
-- [ ] Cards in text (log, round summary, pop-ups) drawn as small inline cards, with the
+- [x] Naming trump or choosing a suit uses four large suit tiles instead of text buttons
+- [x] "Led ♠" marker in the middle of the trick while a trick is under way
+- [x] Cards in text (log, round summary, pop-ups) drawn as small inline cards, with the
       spoken name kept for screen readers
 
 **Card motion**

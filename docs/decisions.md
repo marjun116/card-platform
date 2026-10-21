@@ -1179,3 +1179,31 @@ build checklist, done before Phase 6.
 - **Felt, rail and card back are CSS only:** the rail is the felt's border painted with wood
   gradients (10px, 6px on phones); the card back is a diamond lattice in a white border with
   an inner frame line, which tiny cards leave out.
+
+## 2026-10-20: Suits shown everywhere (UI polish)
+
+- **Trump badge: bottom-left of the felt** (decided by Arjun), at the start of the row that
+  already holds the game's values and the "Last trick" button, so nothing else moves. It
+  comes from `view.trump`, so every game with trump gets it (spades, euchre, Oh Hell,
+  pinochle, bridge's suit contracts, custom games); there's none in no-trump or games
+  without trump. This replaces euchre's "Trump" game value (removed from `euchre.json`) and
+  answers the earlier note that Oh Hell and pinochle didn't show trump.
+- **Trump cards in your hand get a mark in every game** (decided by Arjun), even in spades
+  where trump never changes, so it works the same everywhere. The mark sits in the card's
+  bottom-left corner, the part that stays in view when cards overlap. Euchre's left bower
+  counts as trump. Screen readers hear ", trump" after the card.
+- **Suit symbols in text sit on a small white chip** in true red or black, so they read on
+  the felt, on blue buttons and in dark mode. Any ♠♥♦♣ in text is drawn this way (bids such
+  as "1♣", "Play Q♠", the game file's own labels), so custom games get it too.
+- **Cards named in the log are small white cards** ("Raj played [9♥]"); screen readers and
+  announcements still say "9 of hearts". A suit named in the log shows its symbol and name
+  ("made ♥ hearts trump").
+- **Choosing a suit or trump uses four large white tiles** (symbol and name), white in dark
+  mode too, like the cards.
+- **"Led ♠" comes from the server:** the trick in the view now has `led`, the suit the
+  first card counts as, so a left bower leads trump. It's null when the trick's cards are
+  hidden from you.
+- **Crazy eights shows the suit named for an 8** ("Suit to play: ♥ Hearts") while an 8 is on
+  top, once its suit is named. Game files can now give a `display` value `format: "suit"`.
+  A display may only use state, never piles, so the game keeps a `state.eight` flag, and the
+  suit is blank (so not shown) while the player of the 8 is still choosing.
