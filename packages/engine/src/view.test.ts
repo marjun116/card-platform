@@ -105,6 +105,46 @@ describe('viewFor', () => {
     expect(viewFor(led, 1 - L).trick?.leading).toBeNull();
   });
 
+  it('says which suit was led, once a card is played', () => {
+    const start = createGame(tinyTricks, {}, 2, 'led');
+    const L = start.cursor.current;
+    expect(viewFor(start, 0).trick?.led ?? null).toBeNull();
+    const led = play(start, { player: L, type: 'playToTrick', card: id('3H') });
+    expect(viewFor(led, 1 - L).trick?.led).toBe('hearts');
+    const done = play(led, { player: 1 - L, type: 'playToTrick', card: id('4H') });
+    expect(viewFor(done, L).lastTrick?.led).toBe('hearts');
+  });
+
+  it('says a left bower leads trump', () => {
+    const file: GameFile = { ...tinyTricks, cardOrder: { trump: 'declared', bowers: true } };
+    const start = createGame(file, {}, 2, 'led-bower');
+    const L = start.cursor.current;
+    const led = play(start, { player: L, type: 'playToTrick', card: id('3H') });
+    const trick = led.trick;
+    if (!trick) throw new Error('no trick');
+    // The jack of diamonds led while hearts are trump.
+    const bower: GameState = {
+      ...led,
+      vars: { ...led.vars, trump: 'hearts' },
+      trick: {
+        ...trick,
+        plays: [{ player: L, card: { id: 'JD.0', suit: 'diamonds', rank: 'J' } }],
+      },
+    };
+    expect(viewFor(bower, 1 - L).trick?.led).toBe('hearts');
+  });
+
+  it("doesn't say which suit was led when you can't see the trick", () => {
+    const file: GameFile = {
+      ...tinyTricks,
+      zones: { ...tinyTricks.zones, trick: { shared: true, visibility: 'none' } },
+    };
+    const start = createGame(file, {}, 2, 'led-hidden');
+    const L = start.cursor.current;
+    const led = play(start, { player: L, type: 'playToTrick', card: id('3H') });
+    expect(viewFor(led, 1 - L).trick?.led).toBeNull();
+  });
+
   it('says which suit is trump and whether the bowers count as trump', () => {
     expect(viewFor(createGame(spades, {}, 4, 'trump'), 0).trump).toEqual({
       suit: 'spades',
@@ -182,6 +222,23 @@ describe('showOnTable', () => {
     ).toEqual(['zones.hand.showOnTable: "showOnTable" is only for shared zones']);
     expect(errors(withRule('player.hand.count > 0'))).toEqual([
       expect.stringContaining('zones.stock.showOnTable'),
+    ]);
+  });
+});
+
+describe('display formats', () => {
+  it('marks a suit value as a suit, and leaves other values plain', () => {
+    const file: GameFile = {
+      ...miniRummy,
+      display: [
+        { label: 'Suit', value: "'hearts'", format: 'suit' },
+        { label: 'Not a suit', value: "'purple'", format: 'suit' },
+      ],
+    };
+    expect(validate(file).ok).toBe(true);
+    expect(viewFor(createGame(file, {}, 2, 'suit'), 0).display).toEqual([
+      { label: 'Suit', value: 'hearts', format: 'suit' },
+      { label: 'Not a suit', value: 'purple' },
     ]);
   });
 });

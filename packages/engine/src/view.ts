@@ -2,7 +2,7 @@
  * viewFor: the game as one player is allowed to see it. The server sends
  * only this to a client, never the full state.
  */
-import type { Card, CardId, Suit } from './cards/card';
+import { type Card, type CardId, isJoker, type Suit } from './cards/card';
 import { controlOf, currentPhase, turnSteps } from './game/legal';
 import { leadingPlayer } from './effects';
 import { checkedGroups, deadwood } from './game/arrangement';
@@ -13,12 +13,13 @@ import {
   type RoundResult,
   type CardEvent,
   type ScoreEvent,
+  suitOf,
   type TrickState,
   trumpSuit,
   zoneDef,
   zoneKey,
 } from './game/state';
-import type { GameFile, OptionValue } from './game/types';
+import type { DisplayDef, GameFile, OptionValue } from './game/types';
 import { evaluate, evaluateCondition } from './expr/evaluate';
 import { buildScope } from './game/scope';
 
@@ -97,9 +98,13 @@ export interface PlayerView {
   cardEvents: CardEvent[];
   /**
    * Values the game shows on the table (`display`), e.g. { label: "Count", value: 23 }.
-   * With `format`, the value is a seat or team number to show as names.
+   * With `format`, the value is a seat or team number to show as names, or a suit.
    */
-  display: { label: string; value: string | number | boolean; format?: 'player' | 'team' }[];
+  display: {
+    label: string;
+    value: string | number | boolean;
+    format?: 'player' | 'team' | 'suit';
+  }[];
   /** Words shown with the result once the game is over, e.g. "Skunk!". */
   notes: string[];
   /** Words for `choose` values, e.g. { "shooterMinus26": "Take 26 off my score" }. */
@@ -132,6 +137,11 @@ export interface TrickView {
    * no cards played yet, or when some of its cards are hidden from this player.
    */
   leading: PlayerId | null;
+  /**
+   * The suit led (a left bower leads trump), once a card other than a joker has been
+   * played; null before that, or when the trick's cards are hidden from this player.
+   */
+  led: Suit | null;
 }
 
 type Access = 'cards' | 'count' | 'top' | 'hidden';
@@ -241,11 +251,17 @@ function trickView(state: GameState, trick: TrickState | null, viewer: PlayerId)
     leader: trick.leader,
     winner: trick.winner,
     leading,
+    led: visible ? ledSuit(state, trick) : null,
     plays: trick.plays.map((p) => ({
       player: p.player,
       card: visible || p.player === viewer ? p.card : null,
     })),
   };
+}
+
+function ledSuit(state: GameState, trick: TrickState): Suit | null {
+  const first = trick.plays.find((p) => !isJoker(p.card))?.card;
+  return first ? suitOf(state)(first) : null;
 }
 
 function publicMove(state: GameState, move: Move, viewer: PlayerId): PublicMove {
@@ -259,6 +275,17 @@ function publicMove(state: GameState, move: Move, viewer: PlayerId): PublicMove 
     }
   }
   return move;
+}
+
+const SUIT_NAMES: readonly unknown[] = ['clubs', 'diamonds', 'hearts', 'spades'];
+
+/** Seats and teams are numbers; a suit is one of the four suit names. */
+function formatFits(
+  format: DisplayDef['format'],
+  value: unknown,
+): format is NonNullable<DisplayDef['format']> {
+  if (format === 'suit') return SUIT_NAMES.includes(value);
+  return format !== undefined && typeof value === 'number';
 }
 
 /** The game's `display` values that apply now. The validator keeps them to public values. */
@@ -279,7 +306,7 @@ function displayValues(state: GameState): PlayerView['display'] {
     shown.push({
       label: item.label,
       value: simple ? value : JSON.stringify(value),
-      ...(item.format && typeof value === 'number' ? { format: item.format } : {}),
+      ...(formatFits(item.format, value) ? { format: item.format } : {}),
     });
   }
   return shown;

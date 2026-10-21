@@ -437,8 +437,11 @@ export const displaySchema = z.strictObject({
   if: expr.optional(),
   /** Words for values, e.g. { "1": "Doubled", "2": "Redoubled" }. */
   labels: labels.optional(),
-  /** The value is a seat (shown as that player's name) or a team (its players' names). */
-  format: z.enum(['player', 'team']).optional(),
+  /**
+   * The value is a seat (shown as that player's name), a team (its players' names) or a
+   * suit (shown as its symbol and name).
+   */
+  format: z.enum(['player', 'team', 'suit']).optional(),
 });
 
 export const gameFileSchema = z.strictObject({
