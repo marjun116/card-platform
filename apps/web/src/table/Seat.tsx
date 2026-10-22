@@ -91,7 +91,7 @@ export function Seat({
 
   return (
     <section
-      className={`seat${acting ? ' acting' : ''}${dealer ? ' dealer' : ''}${open ? ' open' : ''}${openCards ? ' has-open-hand' : ''}`}
+      className={`seat${acting ? ' acting' : ''}${dealer ? ' dealer' : ''}${open ? ' open' : ''}${openCards ? ' has-open-hand' : ''}${effects.length > 0 ? ' has-effects' : ''}`}
       style={{
         ['--x' as string]: x,
         ['--y' as string]: y,

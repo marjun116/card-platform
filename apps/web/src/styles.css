@@ -1963,6 +1963,12 @@ kbd {
   pointer-events: none;
   z-index: 5;
 }
+/* Its seat comes forward meanwhile, so a bubble isn't hidden under the trick (but stays
+   under a seat's details opened on a phone). */
+.seat.has-effects:not(.open),
+.felt.many .seat.has-effects:not(.open) {
+  z-index: 2;
+}
 /* Yours start from your avatar at the start of the status line. */
 .status-line {
   position: relative;
@@ -2171,12 +2177,15 @@ kbd {
     animation: none;
     box-shadow: 0 0 10px 2px rgb(240 180 0 / 0.55);
   }
-  .felt.many .seat.acting {
-    box-shadow: none;
-  }
   .you-area.your-turn::before {
     animation: none;
     box-shadow: 0 -3px 12px 1px rgb(240 180 0 / 0.5);
+  }
+}
+/* On phones with five or more players the chip carries the glow, not the seat around it. */
+@media (prefers-reduced-motion: reduce) and (max-width: 700px) {
+  .felt.many .seat.acting {
+    box-shadow: none;
   }
 }
 
