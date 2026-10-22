@@ -14,6 +14,7 @@ import type {
   gameFileSchema,
   meldRulesSchema,
   metaSchema,
+  momentSchema,
   optionSchema,
   optionValueSchema,
   phaseSchema,
@@ -47,6 +48,7 @@ export type ScoreRuleDef = z.infer<typeof scoreRuleSchema>;
 export type ScoringDef = z.infer<typeof scoringSchema>;
 export type EndConditionDef = z.infer<typeof endConditionSchema>;
 export type DisplayDef = z.infer<typeof displaySchema>;
+export type MomentDef = z.infer<typeof momentSchema>;
 
 export type ActionDef = z.infer<typeof actionSchema>;
 type Action<T extends ActionDef['type']> = Extract<ActionDef, { type: T }>;

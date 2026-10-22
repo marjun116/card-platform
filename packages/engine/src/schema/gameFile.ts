@@ -444,6 +444,20 @@ export const displaySchema = z.strictObject({
   format: z.enum(['player', 'team', 'suit']).optional(),
 });
 
+/**
+ * A big moment shown to everyone as a banner, e.g. { "when": "state.heartsBroken",
+ * "label": "♥ Hearts broken" }. With `when` it happens each time the condition turns
+ * true; with `each`, each time the number goes up (another canasta). With `per`, it's
+ * checked for every player (or team), and the banner says whose moment it is. Only
+ * values everyone can see may be used (checked in validate.ts).
+ */
+export const momentSchema = z.strictObject({
+  label: z.string().min(1),
+  when: expr.optional(),
+  each: expr.optional(),
+  per: z.enum(['player', 'team']).optional(),
+});
+
 export const gameFileSchema = z.strictObject({
   /** Lets editors find the JSON Schema; ignored by the engine. */
   $schema: z.string().optional(),
@@ -459,6 +473,7 @@ export const gameFileSchema = z.strictObject({
   elimination: z.strictObject({ when: expr }).optional(),
   endCondition: endConditionSchema,
   display: z.array(displaySchema).min(1).optional(),
+  moments: z.array(momentSchema).min(1).optional(),
   /**
    * Cards laid down as soon as they reach a hand (red 3s in canasta): moved to
    * the player's (or team's) `to` zone and, from the deal or a draw, replaced

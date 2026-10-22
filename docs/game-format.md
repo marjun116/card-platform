@@ -86,6 +86,34 @@ Rules reference options by name, e.g. `"if": "options.blindNil"`. A table's chos
 
 When a family saves its own set of toggles, it becomes a **variant**: a named, shareable preset like "Grandma's Spades" that sits between the standard game and a fully custom one.
 
+## Big moments
+
+A game can name its big moments, which the table shows as a banner across the felt
+("♥ Hearts broken", "Euchred!", "Canasta!"). Each moment has a `label` and either:
+
+- `when`: a condition. The moment happens each time it turns from false to true.
+- `each`: a number. The moment happens each time it goes up (every new canasta).
+
+With `"per": "player"` or `"per": "team"`, the moment is checked for every player (or
+team) on their own, and the banner says whose moment it is.
+
+```json
+"moments": [
+  { "when": "state.heartsBroken", "label": "♥ Hearts broken" },
+  { "per": "team", "each": "team.melds.countMelds(7)", "label": "Canasta!" },
+  { "per": "player", "when": "player.bid == 'nil' && player.tricks > 0", "label": "Nil broken" }
+]
+```
+
+Everyone sees the banner, so a moment may only use what everyone can see: `state`,
+`options`, the round and dealer, players' and teams' scores, bids and tricks, face-up
+piles, and the number of cards in a pile whose count is shown. The validator rejects a
+moment that looks at a hand or any other hidden card. When a moment depends on cards
+everyone saw played that are now face down, such as the tricks a player has won, an
+effect can note the answer in `state` first (hearts notes who shot the moon in
+`state.moonShooter`). A moment is only a banner: if it can't be worked out yet (a value
+that isn't set), it simply hasn't happened.
+
 ## Example 1: Spades
 
 This is a complete built-in game in about 90 lines, with four house rule toggles. Standard rules: four players in two partnerships, each player bids, spades are always trump, and the first team to 500 wins. A team that falls to -200 loses (the "mercy rule", on by default).

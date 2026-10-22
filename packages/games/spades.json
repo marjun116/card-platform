@@ -155,5 +155,18 @@
   "endCondition": {
     "when": "anyTeam.score >= options.targetScore || (options.mercyRule && anyTeam.score <= -200)",
     "winner": "highestScore"
-  }
+  },
+  "moments": [
+    { "per": "player", "when": "player.bid == 'nil' && player.tricks > 0", "label": "Nil broken" },
+    {
+      "per": "player",
+      "when": "player.bid == 'blindNil' && player.tricks > 0",
+      "label": "Blind nil broken"
+    },
+    {
+      "per": "team",
+      "when": "everyPlayer.hand.count == 0 && team.tricks < team.bid",
+      "label": "Set!"
+    }
+  ]
 }

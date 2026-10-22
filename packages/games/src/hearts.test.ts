@@ -276,6 +276,31 @@ describe('hearts: scoring', () => {
   });
 });
 
+describe('hearts: big moments', () => {
+  const moments = (state: GameState) => state.moments.map((m) => [m.label, m.player]);
+
+  it('says "Shot the moon!" for the player who took every point', () => {
+    const { state, seats } = lastTrick(['QS', ...otherHearts]);
+    expect(moments(state)).toContainEqual(['Shot the moon!', seats[0]]);
+  });
+
+  it('says it as the last point is taken, before the shooter chooses', () => {
+    const { state, seats } = lastTrick(['QS', ...otherHearts], { moon: 'shooterChooses' });
+    expect(phase(state)).toBe('moon');
+    expect(moments(state)).toContainEqual(['Shot the moon!', seats[0]]);
+  });
+
+  it("doesn't say it when the points are shared", () => {
+    const { state } = lastTrick(['QS', '2H']);
+    expect(moments(state).map(([label]) => label)).not.toContain('Shot the moon!');
+  });
+
+  it('says "♥ Hearts broken" once, when the first heart is taken', () => {
+    const { state } = lastTrick(['QS', '2H']);
+    expect(moments(state).filter(([label]) => label === '♥ Hearts broken')).toHaveLength(1);
+  });
+});
+
 describe('hearts: end of the game', () => {
   // L takes 18, the next player 8; the other two take nothing and are tied.
   const won = ['QS', '2H', '3H', '4H', '5H'];

@@ -63,6 +63,7 @@ export function startGame(
     playedBy: {},
     scoreEvents: [],
     cardEvents: [],
+    moments: [],
     roundStartScores: [],
     round: 1,
     dealer: randomInt(rng, playerCount),

@@ -134,6 +134,10 @@
         {
           "set": "state.heartsBroken",
           "if": "trick.containsSuit('hearts') || (options.queenBreaksHearts && trick.hasCard('QS'))"
+        },
+        {
+          "set": { "state.moonShooter": "trick.winner" },
+          "if": "state.moonShooter == null && sum(anyPlayer.won, cardValue) == 26"
         }
       ]
     },
@@ -180,5 +184,9 @@
     "when": "anyPlayer.score >= options.targetScore",
     "winner": "lowestScore",
     "ties": "options.shareTies ? 'share' : 'playOn'"
-  }
+  },
+  "moments": [
+    { "when": "state.heartsBroken", "label": "♥ Hearts broken" },
+    { "per": "player", "when": "state.moonShooter == player.id", "label": "Shot the moon!" }
+  ]
 }

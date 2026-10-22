@@ -23,6 +23,7 @@ export type { BidValue, Move, MoveType, PlayerId, ZoneKey } from './game/move';
 export type {
   CardEvent,
   GameState,
+  MomentEvent,
   PlayerState,
   RoundResult,
   ScoreEvent,

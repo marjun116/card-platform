@@ -1282,3 +1282,25 @@ build checklist, done before Phase 6.
   Screen readers only get the final number. With "reduce motion" the number just changes.
 - **Big moments come from a new `moments` list in the game file** (decided by Arjun), not
   from labels on existing rules, so a meld reaching seven cards (a canasta) can be one.
+  Each has a `label` and either `when` (happens each time the condition turns true) or
+  `each` (happens each time the number goes up), and optionally `per: player|team` (checked
+  for each, and the banner says whose). See docs/game-format.md, "Big moments".
+- **How the engine finds them:** every moment is read just before a move and again once the
+  move has settled (after any round scoring, before the next deal), and the ones that
+  happened go in `view.moments`, like score events. Nothing else is stored, so a value that
+  resets with the round can happen again next round.
+- **Moments may only use public values,** checked by the validator, because everyone sees
+  the banner: state, options, round, dealer, players' and teams' public values (score, bid,
+  tricks, active, dealer, counters), face-up piles, and the count of a pile whose count is
+  shown. Hands, hidden piles, `trick`, `holderOf`, deadwood, legal moves and player values
+  are refused. This is the same idea as `display`, a little wider.
+- **A moment that can't be worked out counts as not happened** (a null value: "state.total
+  >= 10" before anything is counted), instead of stopping the game. It's only a banner.
+- **The built-in games' moments:** spades "Nil broken", "Blind nil broken" and "Set!" (at
+  the end of the hand); hearts "♥ Hearts broken" and "Shot the moon!"; euchre "Euchred!" (as
+  the defenders take their third trick) and "March!"; gin rummy "Gin!" and "Big gin!";
+  canasta "Canasta!" for every meld reaching seven cards. Hearts' won piles are face down,
+  so an `afterTrick` effect notes the shooter in `state.moonShooter` the moment one player
+  holds all 26 points (necessarily the winner of that trick); the cards were all seen as
+  they were played, so this gives nothing away. Gin's undercut was left out: it needs
+  deadwood, which a moment can't read.

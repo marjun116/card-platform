@@ -6,6 +6,7 @@ import type { Move, PlayerId } from './game/move';
 import { startGame } from './game/setup';
 import { draft, type GameState } from './game/state';
 import type { GameFile, OptionValue } from './game/types';
+import { noteMoments, readMoments } from './moments';
 import { formatIssues, validate } from './schema/validate';
 import { getScores } from './scoring';
 import { viewFor } from './view';
@@ -74,9 +75,12 @@ export function applyMove(state: GameState, move: Move, options: ApplyOptions = 
   }
 
   const next = draft(state);
+  const moments = readMoments(state);
   // Store the legal move exactly as the engine generated it.
   performMove(next, candidate, candidate.move);
   settle(next);
+  // Before the next deal, so a moment at the end of a round (all 26 points) is seen.
+  noteMoments(next, moments);
   if (next.status === 'betweenRounds' && !options.holdNextRound) deal(next);
   return next;
 }

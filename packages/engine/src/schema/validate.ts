@@ -16,6 +16,7 @@ import type {
   ActionDef,
   EffectDef,
   GameFile,
+  MomentDef,
   PhaseDef,
   ScoreRuleDef,
   ZoneDef,
@@ -195,6 +196,34 @@ const FUNCTIONS = [
   'countPairs',
   'runCards',
 ];
+/** Player values in every player's view, so a moment may use them. */
+const PUBLIC_PLAYER_PROPS = [
+  'id',
+  'team',
+  'score',
+  'bid',
+  'tricks',
+  'active',
+  'isDealer',
+  'hasLookedAtHand',
+  'sittingOut',
+];
+/** Names a moment may use as they are (functions only see what they're given). */
+const PUBLIC_NAMES = [
+  'state',
+  'options',
+  'round',
+  'dealer',
+  'activePlayers',
+  'cardValue',
+  'sum',
+  'min',
+  'max',
+  'abs',
+  'countSums',
+  'countPairs',
+  'runCards',
+];
 const CODE_HINT = 'use a rank and suit letter, e.g. "QS", "10H", "2C", or JOKER';
 const QUANTIFIER_KIND: Record<string, Kind> = {
   anyPlayer: 'player',
@@ -262,6 +291,98 @@ class Checker {
       this.checkExpr(this.file.elimination.when, ['elimination', 'when'], PLAYER);
     this.checkEnd();
     this.checkBonusCards();
+    (this.file.moments ?? []).forEach((moment, i) => this.checkMoment(moment, ['moments', i]));
+  }
+
+  /**
+   * A moment is a banner everyone sees, so, like a display, it may only use what
+   * everyone can see: state, options, public player and team values (score, bid, tricks),
+   * and piles as far as they're shown (all of a face-up pile, the count of a face-down one).
+   */
+  private checkMoment(moment: MomentDef, path: Path): void {
+    const ctx = moment.per === 'player' ? PLAYER : moment.per === 'team' ? TEAM : NO_CONTEXT;
+    if ((moment.when === undefined) === (moment.each === undefined)) {
+      this.error(
+        path,
+        'A moment needs either "when" (a condition: it happens when this turns true) or ' +
+          '"each" (a number: it happens each time this goes up), not both',
+      );
+    }
+    for (const [key, source] of [
+      ['when', moment.when],
+      ['each', moment.each],
+    ] as const) {
+      if (source === undefined) continue;
+      const ast = this.checkExpr(source, [...path, key], ctx);
+      if (!ast) continue;
+      const hidden = [...new Set(this.hiddenUses(ast))];
+      if (hidden.length > 0) {
+        this.error(
+          [...path, key],
+          'A moment is shown to everyone, so it can only use what everyone can see ' +
+            '(state, options, scores, bids, tricks, face-up piles and pile counts), ' +
+            `not ${hidden.map((h) => `"${h}"`).join(', ')}`,
+        );
+      }
+    }
+  }
+
+  /** The parts of an expression that read something not everyone can see. */
+  private hiddenUses(node: Node): string[] {
+    // A chain such as team.melds.countMelds: the name it starts from, then each name after it.
+    const chain: string[] = [];
+    let root = node;
+    while (root.kind === 'member') {
+      chain.unshift(root.name);
+      root = root.object;
+    }
+    if (root.kind === 'name') {
+      const hidden = this.hiddenChain(root.name, chain);
+      return hidden === null ? [] : [hidden];
+    }
+    if (root !== node) return this.hiddenUses(root);
+    switch (node.kind) {
+      case 'array':
+        return node.items.flatMap((item) => this.hiddenUses(item));
+      case 'call':
+        return [node.callee, ...node.args].flatMap((n) => this.hiddenUses(n));
+      case 'unary':
+        return this.hiddenUses(node.arg);
+      case 'binary':
+        return [...this.hiddenUses(node.left), ...this.hiddenUses(node.right)];
+      case 'cond':
+        return [node.test, node.then, node.else].flatMap((n) => this.hiddenUses(n));
+      default:
+        return [];
+    }
+  }
+
+  /** "player.hand" if `root.props…` reads something hidden, otherwise null. */
+  private hiddenChain(root: string, props: string[]): string | null {
+    const text = (n: number) => [root, ...props.slice(0, n)].join('.');
+    if (PUBLIC_NAMES.includes(root)) return null;
+    const who = QUANTIFIER_KIND[root] ?? (root === 'player' || root === 'team' ? root : null);
+    if (who === 'player' || who === 'team') {
+      const [prop, ...rest] = props;
+      if (prop === undefined) return null;
+      const shown =
+        who === 'player' ? PUBLIC_PLAYER_PROPS : [...TEAM_PROPS, ...heldNames({ file: this.file })];
+      if (shown.includes(prop) || this.tracks.has(prop)) return null;
+      if (this.file.zones[prop]?.per === who) return this.zoneHidden(prop, rest) ? text(2) : null;
+      return text(1);
+    }
+    if (Object.hasOwn(this.file.zones, root)) return this.zoneHidden(root, props) ? text(1) : null;
+    // Unknown names are reported by checkExpr already.
+    return ['trick', 'turn', 'holderOf', ...this.playerValueNames()].includes(root) ? root : null;
+  }
+
+  /** Whether reading `props` of a zone shows more than every player sees of it. */
+  private zoneHidden(name: string, props: string[]): boolean {
+    const zone = this.file.zones[name];
+    if (!zone || zone.visibility === 'all') return false;
+    if (props[0] === 'count') return zone.visibility === 'none' && !zone.countVisible;
+    if (props[0] === 'top') return zone.visibility !== 'topCardOnly';
+    return true;
   }
 
   private checkBonusCards(): void {

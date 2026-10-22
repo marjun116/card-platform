@@ -254,5 +254,13 @@
       "labels": { "true": "Yes" },
       "if": "state.defenderAlone == true"
     }
+  ],
+  "moments": [
+    {
+      "per": "team",
+      "when": "state.makerTeam != null && team.id != state.makerTeam && team.tricks >= 3",
+      "label": "Euchred!"
+    },
+    { "per": "team", "when": "team.id == state.makerTeam && team.tricks == 5", "label": "March!" }
   ]
 }

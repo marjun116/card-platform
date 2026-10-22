@@ -129,6 +129,20 @@ export interface CardEvent {
   cards: CardId[];
 }
 
+/**
+ * A big moment (the game file's `moments`) that just happened, e.g. "♥ Hearts broken".
+ * Public: moments may only use values everyone can see.
+ */
+export interface MomentEvent {
+  round: number;
+  /** Moves in the log when it happened, to place it among the moves. */
+  at: number;
+  label: string;
+  /** Whose moment it is (a moment with `per`), or null for the whole table. */
+  player: PlayerId | null;
+  team: number | null;
+}
+
 /** One pass of cards from one seat to another (see `passing`). Never shown whole to players. */
 export interface PassRecord {
   from: PlayerId;
@@ -194,6 +208,8 @@ export interface GameState {
   scoreEvents: ScoreEvent[];
   /** Cards turned up or given out (see CardEvent), oldest first. Public. */
   cardEvents: CardEvent[];
+  /** Big moments (see MomentEvent), oldest first. Public. */
+  moments: MomentEvent[];
   /** Each team's score when this round began, so the round summary counts every point. */
   roundStartScores: number[];
   round: number;
@@ -392,6 +408,7 @@ export function draft(state: GameState): GameState {
     // Entries are never changed once added.
     scoreEvents: [...state.scoreEvents],
     cardEvents: [...state.cardEvents],
+    moments: [...state.moments],
     roundStartScores: [...state.roundStartScores],
     cursor: { ...state.cursor, turns: [...state.cursor.turns] },
     trick: copyTrick(state.trick),

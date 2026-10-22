@@ -338,5 +338,6 @@
   "endCondition": {
     "when": "anyTeam.score >= options.targetScore",
     "winner": "highestScore"
-  }
+  },
+  "moments": [{ "per": "team", "each": "team.melds.countMelds(7)", "label": "Canasta!" }]
 }

@@ -523,6 +523,13 @@
         "$ref": "#/$defs/__schema27"
       }
     },
+    "moments": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/__schema28"
+      }
+    },
     "bonusCards": {
       "type": "object",
       "properties": {
@@ -1629,6 +1636,32 @@
       "required": [
         "label",
         "value"
+      ],
+      "additionalProperties": false
+    },
+    "__schema28": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "when": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "each": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "per": {
+          "type": "string",
+          "enum": [
+            "player",
+            "team"
+          ]
+        }
+      },
+      "required": [
+        "label"
       ],
       "additionalProperties": false
     }

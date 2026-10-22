@@ -275,5 +275,17 @@
   "endCondition": {
     "when": "anyPlayer.score >= options.targetScore",
     "winner": "highestScore"
-  }
+  },
+  "moments": [
+    {
+      "per": "player",
+      "when": "state.knocker == player.id && state.knockType == 'gin'",
+      "label": "Gin!"
+    },
+    {
+      "per": "player",
+      "when": "state.knocker == player.id && state.knockType == 'bigGin'",
+      "label": "Big gin!"
+    }
+  ]
 }

@@ -12,6 +12,7 @@ import {
   parseZoneKey,
   type RoundResult,
   type CardEvent,
+  type MomentEvent,
   type ScoreEvent,
   suitOf,
   type TrickState,
@@ -96,6 +97,8 @@ export interface PlayerView {
   scoreEvents: ScoreEvent[];
   /** Cards turned up in the deal or given out by effects, oldest first, for the log. */
   cardEvents: CardEvent[];
+  /** Big moments from the game file's `moments` ("♥ Hearts broken"), oldest first. */
+  moments: MomentEvent[];
   /**
    * Values the game shows on the table (`display`), e.g. { label: "Count", value: 23 }.
    * With `format`, the value is a seat or team number to show as names, or a suit.
@@ -377,6 +380,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     history: state.history,
     scoreEvents: state.scoreEvents,
     cardEvents: state.cardEvents,
+    moments: state.moments,
     display: displayValues(state),
     notes: [...state.notes],
     choiceLabels: choiceLabelsOf(state.file),
