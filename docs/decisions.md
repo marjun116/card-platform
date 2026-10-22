@@ -1277,5 +1277,8 @@ build checklist, done before Phase 6.
   replays what happened before you came (`table/events.ts`). Both are hidden from screen
   readers, which hear the same news from the log announcement. With "reduce motion" they
   fade in and out where they are.
+- **Scoreboard totals count** to their new value in 0.6 seconds, quickly at first and
+  settling on the number (`CountUp.tsx`, to be reused in the round summary and results).
+  Screen readers only get the final number. With "reduce motion" the number just changes.
 - **Big moments come from a new `moments` list in the game file** (decided by Arjun), not
   from labels on existing rules, so a meld reaching seven cards (a canasta) can be one.

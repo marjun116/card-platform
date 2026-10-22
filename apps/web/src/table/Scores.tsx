@@ -2,6 +2,7 @@
 import type { BidValue, PlayerView, RoundResult } from '@card-table/engine';
 import { type ReactNode, useEffect, useRef } from 'react';
 import { Avatar, TeamDot } from './Avatar';
+import { CountUp } from './CountUp';
 import { type SeatInitials, teamColour } from './avatars';
 import { type BidLabels, bidWords, type SeatNames, teamName } from './describe';
 import { SuitText } from './SuitText';
@@ -59,7 +60,7 @@ export function Scoreboard({
               <div className="team-row">
                 <TeamAvatars team={team} initials={initials} />
                 <span className="team-name">{teamName(team, names)}</span>
-                <span className="team-score">{team.score}</span>
+                <CountUp value={team.score} className="team-score" />
               </div>
               {tracks && <div className="muted">{tracks}</div>}
               {/* One-player teams already show their name; their bid and tricks fit on one line. */}
