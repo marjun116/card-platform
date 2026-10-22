@@ -1387,23 +1387,6 @@ kbd {
 .hand-card.playable {
   transform: translateY(-8px);
 }
-/* Trump: a small mark in the bottom-left corner, which stays in view when cards overlap. */
-.trump-mark {
-  position: absolute;
-  left: 4px;
-  bottom: 4px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 0 1.5px currentColor;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  line-height: 1;
-  pointer-events: none;
-}
 .hand-card.playable .card {
   box-shadow:
     0 0 0 2px var(--playable),

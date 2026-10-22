@@ -461,15 +461,16 @@ describe('TableView', () => {
 });
 
 describe('TableView: suits', () => {
-  it('shows trump in a badge on the table, and marks trump cards in your hand (spades)', () => {
+  it('shows trump in a badge on the table, and says which cards in your hand are trump (spades)', () => {
     const state = createGame(spades, {}, 4, 'view-trump');
     show(state, 0);
     expect(screen.getByRole('img', { name: 'Trump: spades' }).textContent).toContain('♠');
     const cards = hand().getAllByRole('button');
     for (const card of cards) {
       const spade = /of spades/.test(card.getAttribute('aria-label') ?? '');
+      // Said to screen readers only: no mark on the card itself.
       expect(card.getAttribute('aria-label')?.includes(', trump')).toBe(spade);
-      expect(card.querySelector('.trump-mark') !== null).toBe(spade);
+      expect(card.querySelector('.trump-mark')).toBeNull();
     }
   });
 

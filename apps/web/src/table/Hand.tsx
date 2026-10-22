@@ -10,7 +10,7 @@
 import type { Card as CardData, PlayerView, ZoneView } from '@card-table/engine';
 import { type KeyboardEvent, useRef, useState } from 'react';
 import { CardBack, CardFace } from './Card';
-import { isRed, isTrump, sortHand, spokenLabel, SUIT_SYMBOL } from './cards';
+import { isTrump, sortHand, spokenLabel } from './cards';
 import { type Controls, isCardUsable } from './moves';
 
 export function Hand({
@@ -125,15 +125,6 @@ export function Hand({
             onClick={() => usable && onPress(card)}
           >
             <CardFace card={card} />
-            {/* A small mark in the corner for trump, in trump's colour. */}
-            {trump && trumpCard && (
-              <span
-                className={`trump-mark ${isRed(trump.suit) ? 'red' : 'black'}`}
-                aria-hidden="true"
-              >
-                {SUIT_SYMBOL[trump.suit]}
-              </span>
-            )}
           </button>
         );
       })}
