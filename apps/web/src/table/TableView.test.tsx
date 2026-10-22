@@ -1,6 +1,6 @@
 import { applyMove, type GameState, type Move } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   counting,
@@ -295,6 +295,49 @@ describe('TableView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pass 3 cards' }));
     const sent = connection.move.mock.calls[0]?.[0] as Extract<Move, { type: 'pass' }>;
     expect([...sent.cards].sort()).toEqual([...target.cards].sort());
+  });
+
+  describe('cards passed to you', () => {
+    /** Everyone but the last to pass has passed; returns the state and who's last. */
+    function allButLast() {
+      let state = createGame(passing, {}, 4, 'view-received');
+      for (let i = 0; i < 3; i++) state = applyMove(state, firstMove(state));
+      return { state, last: state.cursor.current };
+    }
+
+    it('raises them for a few seconds with who sent them', () => {
+      vi.useFakeTimers();
+      try {
+        const { state, last } = allButLast();
+        const receiver = (last + 1) % 4;
+        const { update } = show(state, receiver);
+        const after = applyMove(state, firstMove(state));
+        act(() => update(after));
+        const got = after.passes.find((p) => p.to === receiver)?.cards ?? [];
+        const raised = hand()
+          .getAllByRole('button')
+          .filter((b) => b.classList.contains('received'));
+        expect(raised).toHaveLength(got.length);
+        expect(raised[0]?.getAttribute('aria-label')).toContain(`from ${NAMES[last]}`);
+        expect(screen.getByText(`From ${NAMES[last]}:`, { exact: false })).toBeTruthy();
+        // Screen readers hear which cards came.
+        expect(document.querySelector('[aria-live]')?.textContent).toContain(
+          `${NAMES[last]} passed you`,
+        );
+        act(() => {
+          vi.advanceTimersByTime(4000);
+        });
+        expect(screen.queryByText(`From ${NAMES[last]}:`, { exact: false })).toBeNull();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it("doesn't raise them when you open the table after they came", () => {
+      const { state, last } = allButLast();
+      show(applyMove(state, firstMove(state)), (last + 1) % 4);
+      expect(screen.queryByText(`From ${NAMES[last]}:`, { exact: false })).toBeNull();
+    });
   });
 
   it('draws from a pile by pressing it (rummy)', () => {

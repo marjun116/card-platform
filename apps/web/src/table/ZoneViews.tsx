@@ -4,6 +4,7 @@ import { useNarrow } from '../useNarrow';
 import { CardBack, CardFace, type CardSize } from './Card';
 import { spokenLabel } from './cards';
 import { SuitSymbol } from './SuitText';
+import { Tick } from './Tick';
 import { moveLabel, type SeatNames } from './describe';
 import { humanize, type PlacedZone, trickAreaSize, trickLayout, zoneCount } from './zones';
 
@@ -26,24 +27,38 @@ export function ZoneDisplay({
   const view = zone.view;
   if (view.kind === 'hidden') return null;
   if (view.kind === 'count' && compact && !view.top) {
-    return <div className="zone-line">{`${label} pile: ${countText(view.count)}`}</div>;
+    return (
+      <div className="zone-line" data-anchor={`zone:${zone.key}`}>
+        <Tick value={view.count}>{`${label} pile: ${countText(view.count)}`}</Tick>
+      </div>
+    );
   }
   if (view.kind === 'count') {
     return (
-      <div className="zone" aria-label={`${label}: ${countText(view.count)}`} role="group">
+      <div
+        className="zone"
+        aria-label={`${label}: ${countText(view.count)}`}
+        role="group"
+        data-anchor={`zone:${zone.key}`}
+      >
         <span className="zone-label">{label}</span>
         <span className="stack-count">
           {view.top ? <CardFace card={view.top} size={size} /> : <CardBack size={size} />}
-          <span className="count" aria-hidden="true">
+          <Tick value={view.count} className="count" aria-hidden="true">
             {view.count}
-          </span>
+          </Tick>
         </span>
       </div>
     );
   }
   if (view.kind === 'melds') {
     return (
-      <div className="zone" role="group" aria-label={`${label}: ${view.melds.length} groups`}>
+      <div
+        className="zone"
+        role="group"
+        aria-label={`${label}: ${view.melds.length} groups`}
+        data-anchor={`zone:${zone.key}`}
+      >
         <span className="zone-label">{label}</span>
         <div className="melds">
           {view.melds.length === 0 && <span className="muted">none yet</span>}
@@ -59,7 +74,12 @@ export function ZoneDisplay({
     );
   }
   return (
-    <div className="zone" role="group" aria-label={`${label}: ${countText(view.cards.length)}`}>
+    <div
+      className="zone"
+      role="group"
+      aria-label={`${label}: ${countText(view.cards.length)}`}
+      data-anchor={`zone:${zone.key}`}
+    >
       <span className="zone-label">{label}</span>
       <span className="fan">
         {view.cards.length === 0 && <span className="muted">empty</span>}
@@ -121,7 +141,7 @@ export function Pile({
   const move = moves.length === 1 ? moves[0] : undefined;
 
   return (
-    <div className="pile">
+    <div className="pile" data-anchor={`zone:${zone.key}`}>
       {move ? (
         <button
           type="button"
@@ -139,7 +159,7 @@ export function Pile({
       )}
       <span className="pile-label" aria-hidden="true">
         {label}
-        {count !== null && count > 0 && ` · ${count}`}
+        {count !== null && count > 0 && <Tick value={count}>{` · ${count}`}</Tick>}
       </span>
     </div>
   );

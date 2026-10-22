@@ -5,7 +5,7 @@
  */
 import type { Card as CardData, Move, Suit } from '@card-table/engine';
 import type { ErrorCode, TableInfo } from '@card-table/server/protocol';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, type MenuItem } from '../components/Menu';
 import { RulesDialog } from '../components/Rules';
@@ -15,9 +15,11 @@ import { DecisionPanel, HandActions } from './ActionBar';
 import { Avatar } from './Avatar';
 import { seatInitials } from './avatars';
 import type { GameMessage, TableConnection } from './connection';
-import { isRed, SUIT_SYMBOL } from './cards';
+import { cardFromId, isRed, spokenLabel, SUIT_SYMBOL } from './cards';
 import { bidWords, lineText, logEntries, seatNames, teamName } from './describe';
 import { GroupSummary, Hand } from './Hand';
+import type { CardMotion } from './motion/animate';
+import { useCardMotion } from './motion/useCardMotion';
 import { buildControls, quickMove, turnPrompt } from './moves';
 import { Dialog, HistoryTable, RoundTable, Scoreboard } from './Scores';
 import { Seat } from './Seat';
@@ -38,6 +40,9 @@ function errorText(error: unknown): string {
   }
   return 'Something went wrong. Try again.';
 }
+
+/** How long cards passed to you stay raised, in ms. */
+const RECEIVED_FOR = 4000;
 
 const SUIT_NAMES: Partial<Record<string, Suit>> = {
   clubs: 'clubs',
@@ -63,6 +68,7 @@ function TrumpBadge({ suit }: { suit: Suit }) {
 export function TableView({
   table,
   game,
+  motion,
   connection,
   error,
   nudgedBy,
@@ -71,6 +77,8 @@ export function TableView({
 }: {
   table: TableInfo;
   game: GameMessage;
+  /** Moves the cards as the table changes (none in tests). */
+  motion?: CardMotion;
   connection: TableConnection;
   error: { code: ErrorCode; message: string } | null;
   nudgedBy: number | null;
@@ -79,6 +87,7 @@ export function TableView({
   onShowResults?: () => void;
 }) {
   const { view, legalMoves, toAct, seq } = game;
+  useCardMotion(motion, view);
   const names = useMemo(() => seatNames(table, view.you), [table, view.you]);
   const initials = useMemo(() => seatInitials(table), [table]);
   const layout = useMemo(() => layoutZones(view), [view]);
@@ -158,10 +167,38 @@ export function TableView({
     if (card) card.focus({ preventScroll: true });
   };
 
+  // Cards just passed to you are raised with who sent them, for a few seconds after
+  // they arrive (not when you open the table after they came).
+  const pass = view.passes.find((p) => p.to === view.you && p.delivered && p.cards.length > 0);
+  const passKey = pass ? `${view.round}:${pass.from}:${pass.cards.join(',')}` : null;
+  const [passOnOpen] = useState(passKey);
+  const [passDone, setPassDone] = useState<string | null>(null);
+  useEffect(() => {
+    if (passKey === null || passKey === passOnOpen) return;
+    const timer = setTimeout(() => setPassDone(passKey), RECEIVED_FOR);
+    return () => clearTimeout(timer);
+  }, [passKey, passOnOpen]);
+  const received =
+    pass && passKey !== passOnOpen && passKey !== passDone
+      ? { cards: pass.cards, from: names(pass.from) }
+      : null;
+  const receivedText =
+    received &&
+    `${received.from} passed you ${received.cards
+      .map((id) => {
+        const card = cardFromId(id);
+        return card ? spokenLabel(card) : id;
+      })
+      .join(', ')}`;
+
   const log = useMemo(() => logEntries(view, names), [view, names]);
   const lastEntry = log[log.length - 1];
   const lastLog = lastEntry && lineText(lastEntry);
-  const announcement = [lastLog ?? null, yourTurn && !paused ? turnPrompt(controls, names) : null]
+  const announcement = [
+    lastLog ?? null,
+    receivedText,
+    yourTurn && !paused ? turnPrompt(controls, names) : null,
+  ]
     .filter(Boolean)
     .join('. ');
 
@@ -283,6 +320,7 @@ export function TableView({
           className={`felt${view.players.length >= 5 ? ' many' : ''}${view.players.length >= 7 ? ' crowded' : ''}`}
           role="region"
           aria-label="Table"
+          data-motion-root
         >
           <div className="seats">
             {others.map((player) => (
@@ -426,7 +464,7 @@ export function TableView({
         </aside>
       </div>
 
-      <div className={`you-area${yourTurn && !paused ? ' your-turn' : ''}`}>
+      <div className={`you-area${yourTurn && !paused ? ' your-turn' : ''}`} data-motion-root>
         {layout.mine.length > 0 && (
           <div className="your-zones">
             {layout.mine.map((zone) => (
@@ -466,6 +504,13 @@ export function TableView({
             {view.control?.seat === view.you && ` ${names(view.control.by)} is playing your cards.`}
             {showTricks && ` You've won ${view.players[view.you]?.tricks ?? 0}.`}
           </span>
+          {/* Screen readers hear this in the announcement and on each card. */}
+          {received && (
+            <span className="received-note" aria-hidden="true">
+              From {received.from}:{' '}
+              <RichLine line={received.cards.flatMap((card) => [' ', { card }])} />
+            </span>
+          )}
         </div>
         <GroupSummary arrangement={arrangement} />
         <Hand
@@ -473,6 +518,8 @@ export function TableView({
           controls={controls}
           arrangement={arrangement}
           trump={view.trump}
+          seat={view.you}
+          received={received}
           selected={selected}
           onPress={press}
           onClear={() => setSelection({ seq, cards: [] })}

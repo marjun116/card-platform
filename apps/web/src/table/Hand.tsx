@@ -21,8 +21,14 @@ export function Hand({
   onClear,
   arrangement = null,
   trump = null,
+  seat,
+  received = null,
 }: {
   zone: ZoneView | null;
+  /** Your seat, where cards fly to and from (card motion). */
+  seat?: number;
+  /** Cards just passed to you, raised for a few seconds; screen readers hear who sent them. */
+  received?: { cards: readonly string[]; from: string } | null;
   controls: Controls;
   arrangement?: Arrangement;
   /** Trump, so euchre's bowers are sorted in with it. */
@@ -43,6 +49,7 @@ export function Hand({
         className="hand"
         role="group"
         aria-label={`Your hand: ${zone.count} cards, face down`}
+        data-anchor={seat === undefined ? undefined : `seat:${seat}`}
         style={{ ['--n' as string]: zone.count }}
       >
         {Array.from({ length: zone.count }, (_, i) => (
@@ -84,6 +91,7 @@ export function Hand({
       className="hand"
       role="group"
       aria-label={`Your hand, ${cards.length} cards`}
+      data-anchor={seat === undefined ? undefined : `seat:${seat}`}
       onKeyDown={onKeyDown}
       style={{ ['--n' as string]: cards.length }}
     >
@@ -92,7 +100,9 @@ export function Hand({
         const usable = isCardUsable(controls, card.id) || arrangement !== null;
         const isSelected = selected.includes(card.id);
         const trumpCard = isTrump(card, trump);
+        const fresh = received?.cards.includes(card.id) ?? false;
         const state = [
+          fresh ? 'received' : null,
           choosing && isCardUsable(controls, card.id) ? 'playable' : null,
           choosing && !isCardUsable(controls, card.id) ? 'unusable' : null,
           groupStarts.has(i) ? 'group-start' : null,
@@ -110,7 +120,7 @@ export function Hand({
             tabIndex={i === current ? 0 : -1}
             aria-pressed={isSelected}
             aria-disabled={!usable}
-            aria-label={`${spokenLabel(card)}${trumpCard ? ', trump' : ''}${choosing && !isCardUsable(controls, card.id) ? ", can't be played now" : ''}`}
+            aria-label={`${spokenLabel(card)}${trumpCard ? ', trump' : ''}${fresh && received ? `, from ${received.from}` : ''}${choosing && !isCardUsable(controls, card.id) ? ", can't be played now" : ''}`}
             onFocus={() => setFocus(i)}
             onClick={() => usable && onPress(card)}
           >

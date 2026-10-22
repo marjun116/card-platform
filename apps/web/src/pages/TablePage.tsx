@@ -5,6 +5,8 @@ import { useSession } from '../useSession';
 import { GameOver } from '../table/GameOver';
 import { Lobby } from '../table/Lobby';
 import { TableView } from '../table/TableView';
+import { CardMotion } from '../table/motion/animate';
+import { usePacedGame } from '../table/motion/pace';
 import { useTable } from '../table/useTable';
 import { useLoad } from '../useLoad';
 import { RequireUser } from './SignIn';
@@ -43,7 +45,11 @@ function TableLoader({ code }: { code: string }) {
 function TableScreen({ code }: { code: string }) {
   const { user } = useSession();
   const { connection, snapshot } = useTable(code);
-  const { table, game, status } = snapshot;
+  const { table, status } = snapshot;
+  // Other players' moves are shown one at a time, so they don't blur together, and
+  // where the cards were is noted just before each change so they can move.
+  const [motion] = useState(() => new CardMotion());
+  const game = usePacedGame(snapshot.game, motion.capture);
   // A game that ends while you're playing stays on screen, so you can look over the
   // table, until you choose to see the results. One that was already over goes straight
   // to them.
@@ -113,6 +119,7 @@ function TableScreen({ code }: { code: string }) {
       <TableView
         table={table}
         game={game}
+        motion={motion}
         connection={connection}
         error={snapshot.error}
         nudgedBy={snapshot.nudgedBy}

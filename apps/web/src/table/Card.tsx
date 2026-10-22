@@ -13,7 +13,13 @@ export function CardFace({ card, size = 'normal' }: { card: CardData; size?: Car
   const suit = isJoker(card) ? null : card.suit;
   const colour = isRed(suit) || suit === null ? 'red' : 'black';
   return (
-    <span className={`card face size-${size}`} role="img" aria-label={spokenLabel(card)}>
+    <span
+      className={`card face size-${size}`}
+      role="img"
+      aria-label={spokenLabel(card)}
+      // Lets card motion find this card again after the table changes.
+      data-card-id={card.id}
+    >
       {image && size !== 'tiny' ? (
         <img src={image} alt="" draggable={false} />
       ) : (

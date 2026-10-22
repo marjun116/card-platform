@@ -1412,6 +1412,26 @@ kbd {
 .hand-card.unusable .card {
   filter: grayscale(0.6) brightness(0.8);
 }
+/* With a mouse, a card you can play rises a little more under the pointer. */
+@media (hover: hover) and (pointer: fine) {
+  .hand-card.playable:hover {
+    transform: translateY(-14px);
+  }
+}
+/* Cards just passed to you, for a few seconds, with who sent them. */
+.hand-card.received {
+  transform: translateY(-14px);
+}
+.received-note {
+  margin-left: 0.5em;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
 .hand-card.selected {
   transform: translateY(-20px);
 }
@@ -1876,12 +1896,59 @@ kbd {
   }
 }
 
+/* ---- card motion (see table/motion/animate.ts) ---- */
+
+/* Copies of cards fly on this layer, over everything on the table, and never take a click. */
+.motion-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  overflow: hidden;
+}
+.motion-box {
+  position: absolute;
+  perspective: 600px;
+}
+/* A copy is drawn at its box's size (the box sets the card width variables). */
+.motion-box .card {
+  width: 100%;
+  height: 100%;
+}
+.motion-flip {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+}
+.motion-flip > .card {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+.motion-flip > .motion-back {
+  transform: rotateY(180deg);
+}
+/* A number that just changed (cards in a pile, tricks won) glows for a moment. A glow
+   rather than a bump, so it works on text inside a line without moving anything. */
+.tick {
+  animation: tick 500ms ease-out;
+}
+@keyframes tick {
+  30% {
+    text-shadow:
+      0 0 6px #fff,
+      0 0 12px var(--playable);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hand-card,
   .suit-tile {
     transition: none;
   }
-  .fade-in {
+  .fade-in,
+  .tick {
     animation: none;
   }
 }

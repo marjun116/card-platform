@@ -15,6 +15,7 @@ import { CardBack, CardFace } from './Card';
 import { SUITS, sortHand, spokenLabel } from './cards';
 import { bidWords, type SeatNames, seatStats } from './describe';
 import { SuitText } from './SuitText';
+import { Tick } from './Tick';
 import { type Controls, isCardUsable } from './moves';
 import { ZoneDisplay } from './ZoneViews';
 import { type PlacedZone, seatPosition } from './zones';
@@ -93,6 +94,8 @@ export function Seat({
         ['--team' as string]: teamColour(team),
       }}
       aria-label={`${name}${dealer ? ', dealer' : ''}${acting ? ', to play' : ''}`}
+      // Where cards fly to and from this player (card motion).
+      data-anchor={`seat:${seat}`}
       onKeyDown={(e) => {
         if (e.key === 'Escape' && open) setOpen(false);
       }}
@@ -107,12 +110,16 @@ export function Seat({
       >
         <span className="chip-line">
           <span className="chip-name">{name}</span>
-          {handCount !== null && <span className="chip-count">{handCount}</span>}
+          {handCount !== null && (
+            <Tick value={handCount} className="chip-count">
+              {handCount}
+            </Tick>
+          )}
         </span>
         {stats.short && (
-          <span className="chip-line chip-stats">
+          <Tick value={player?.tricks ?? 0} className="chip-line chip-stats">
             <SuitText text={stats.short} />
-          </span>
+          </Tick>
         )}
       </button>
 
@@ -145,18 +152,18 @@ export function Seat({
               {handCount !== null && (
                 <span className="stack-count" role="img" aria-label={`${handCount} cards in hand`}>
                   <CardBack size="tiny" />
-                  <span className="count" aria-hidden="true">
+                  <Tick value={handCount} className="count" aria-hidden="true">
                     {handCount}
-                  </span>
+                  </Tick>
                 </span>
               )}
               {(dealer || facts.length > 0) && (
-                <span className="seat-facts">
+                <Tick value={player?.tricks ?? 0} className="seat-facts">
                   {/* Same colour as the outline round the dealer's seat. */}
                   {dealer && <span className="dealer-tag">Dealer</span>}
                   {dealer && facts.length > 0 && ' · '}
                   <SuitText text={facts.join(' · ')} />
-                </span>
+                </Tick>
               )}
             </div>
           </div>
