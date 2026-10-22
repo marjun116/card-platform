@@ -1184,22 +1184,23 @@ kbd {
   bottom: 12px;
   display: flex;
   justify-content: flex-start;
-  align-items: end;
+  align-items: center;
   gap: 16px;
   pointer-events: none;
 }
 .felt-footer > * {
   pointer-events: auto;
 }
-/* Three fixed rows, filled top to bottom and then in a new column to the right, so a
-   value that comes and goes (such as who picks up the upcard) never moves the others. */
+/* One line beside the trump badge and centred on it, wrapping if a game has many. Values
+   that come and go (euchre's "Going alone") come last, so they don't move the others. */
 .display-values {
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: repeat(3, 1.8rem);
-  align-items: center;
-  column-gap: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 24px;
   margin: 0;
+}
+.display-values > span {
   white-space: nowrap;
 }
 .display-values strong {
@@ -1729,13 +1730,7 @@ kbd {
     min-height: 32px;
   }
   .display-values {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2px 14px;
-    white-space: normal;
-  }
-  .display-values > span {
-    white-space: nowrap;
+    column-gap: 14px;
   }
   .display-values strong {
     font-size: 1rem;
