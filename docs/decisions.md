@@ -1239,3 +1239,15 @@ build checklist, done before Phase 6.
 - **Reduce motion:** cards fade in or out where they are, with no flights, no card backs
   and no glow. The animation-speed setting (still to come) only has to change
   `motionSpeed()` in `table/motion/animate.ts`.
+
+## 2026-10-22: Trump mark and the game's values (bugs)
+
+- **No trump mark on the cards in your hand** (decided by Arjun: overkill). This reverses
+  "Trump cards in your hand get a mark in every game" (2026-10-20). The trump badge on the
+  table is enough. Screen readers still hear ", trump" after a trump card, since it costs
+  nothing on screen.
+- **The game's values sit in one line beside the trump badge, centred on it**, wrapping if a
+  game has many (bridge shows up to five). They used to fill three fixed rows from the top,
+  so a lone "Called by Bot 2" floated above the badge on wide screens. The promise from
+  2026-10-15 still holds: values that come and go (euchre's "Going alone") are last in the
+  game file, so they don't move the others. Phones already laid them out this way.

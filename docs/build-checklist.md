@@ -328,6 +328,11 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
 - [x] **Euchre: the upcard stays face up after everyone passes it.** Once the first round of
       bidding goes all the way round, the upcard should be turned down so no one can see it,
       and the kitty and upcard taken off the middle of the table (as they are during play).
+- [x] **Table: the trump mark on the cards in your hand is overkill.** Take the small suit
+      mark off trump cards in your hand; the trump badge on the table is enough.
+- [x] **Euchre: "Called by Bot 2" isn't laid out well next to the trump badge.** On wide
+      screens the game's values sat above the badge instead of beside it; they should line
+      up with it.
 
 ## UI polish
 
@@ -351,7 +356,8 @@ never by a game's name, so custom games get them too. No sound.
 - [x] A suit is always shown with its symbol in its colour: trump, log lines, bridge bids
       (1♣, 3♥), crazy eights' chosen suit
 - [x] Trump badge: a large suit symbol in a round badge in a fixed spot on the felt; trump
-      cards in your hand get a small coloured mark in the corner
+      cards in your hand get a small coloured mark in the corner (the mark was later taken
+      out: see "Bugs and playtest feedback")
 - [x] Naming trump or choosing a suit uses four large suit tiles instead of text buttons
 - [x] "Led ♠" marker in the middle of the trick while a trick is under way
 - [x] Cards in text (log, round summary, pop-ups) drawn as small inline cards, with the
