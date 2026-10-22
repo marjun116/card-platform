@@ -1280,6 +1280,13 @@ build checklist, done before Phase 6.
 - **Scoreboard totals count** to their new value in 0.6 seconds, quickly at first and
   settling on the number (`CountUp.tsx`, to be reused in the round summary and results).
   Screen readers only get the final number. With "reduce motion" the number just changes.
+- **Banners:** a dark band with gold edges sweeps across the middle of the felt, holds and
+  sweeps on (1.8 seconds), with the moment's words large and whose it is small above them
+  ("TEAM 2 (ANA & RAJ)" / "Euchred!"). It ignores the pointer, so play goes on underneath.
+  Two at once are stacked. With "reduce motion" it fades in and out.
+- **Moments go in the game log** too ("Raj: Shot the moon!", after the move and its
+  points), so they're kept and screen readers hear them as the latest news; the banner
+  itself is hidden from screen readers.
 - **Big moments come from a new `moments` list in the game file** (decided by Arjun), not
   from labels on existing rules, so a meld reaching seven cards (a canasta) can be one.
   Each has a `label` and either `when` (happens each time the condition turns true) or

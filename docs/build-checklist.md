@@ -392,7 +392,7 @@ never by a game's name, so custom games get them too. No sound.
       then joins the seat's details
 - [x] Points float up from the player when scored during play ("+2 Fifteen", "+50 Meld");
       scoreboard numbers count up to their new value
-- [ ] Big-moment banners across the felt for named events ("♥ Hearts broken", "Shot the
+- [x] Big-moment banners across the felt for named events ("♥ Hearts broken", "Shot the
       moon!", "Euchred!", "Gin!", "Canasta!"), taken from labels in the game file
 - [x] A short phone vibration on your turn, where the phone supports it
 

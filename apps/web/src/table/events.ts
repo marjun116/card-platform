@@ -1,25 +1,33 @@
 /**
  * What just happened at the table, to show for a moment: a bid said out loud
- * at a seat, points floating up from a player. Worked out by comparing the
+ * at a seat, points floating up from a player, a big moment across the felt. Worked out by comparing the
  * view on screen with the one before it, so it follows the pacing of other
  * players' moves, and opening a table never replays what happened before you
  * came. Generic: it looks at move types and score events, never at the game.
  */
 import type { PlayerView, PublicMove } from '@card-table/engine';
 import { useEffect, useRef, useState } from 'react';
-import { bidLabel, moveLabel, type SeatNames } from './describe';
+import { bidLabel, momentWho, moveLabel, type SeatNames } from './describe';
 import { humanize } from './zones';
 
 export type TableEvent =
   /** A decision said out loud (a bid, a pass, naming trump): a speech bubble at the seat. */
   | { kind: 'speech'; seat: number; text: string }
   /** Points scored during play, floating up from the player. */
-  | { kind: 'points'; seat: number; points: number; label: string | null };
+  | { kind: 'points'; seat: number; points: number; label: string | null }
+  /** A big moment from the game file ("Euchred!"): a banner across the felt. */
+  | { kind: 'moment'; who: string | null; label: string };
+
+/** The event's seat, for those shown at a seat (not big moments, which cross the felt). */
+export function eventSeat(event: TableEvent): number | null {
+  return event.kind === 'moment' ? null : event.seat;
+}
 
 /** How long each kind of event stays on screen, in ms. */
 export const EVENT_TIME: Record<TableEvent['kind'], number> = {
   speech: 2500,
   points: 1600,
+  moment: 1800,
 };
 
 /** The words for a decision a player says out loud, or null for any other move. */
@@ -64,6 +72,11 @@ export function newEvents(
       });
     }
   }
+  if (after.moments.length >= before.moments.length) {
+    for (const moment of after.moments.slice(before.moments.length)) {
+      events.push({ kind: 'moment', who: momentWho(moment, after, names), label: moment.label });
+    }
+  }
   return events;
 }
 
@@ -104,9 +117,9 @@ export function useTableEvents(view: PlayerView, names: SeatNames): ShownEvent[]
     });
     // Only the newest bubble at each seat is said (older ones, and two at once after a
     // reconnect, give way).
-    const saidLater = (item: ShownEvent, later: ShownEvent[]) =>
-      item.event.kind === 'speech' &&
-      later.some((b) => b.event.kind === 'speech' && b.event.seat === item.event.seat);
+    const saidLater = ({ event }: ShownEvent, later: ShownEvent[]) =>
+      event.kind === 'speech' &&
+      later.some((b) => b.event.kind === 'speech' && b.event.seat === event.seat);
     setShown((current) => [
       ...current.filter((item) => !saidLater(item, added)),
       ...added.filter((item, i) => !saidLater(item, added.slice(i + 1))),

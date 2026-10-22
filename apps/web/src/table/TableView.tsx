@@ -15,7 +15,7 @@ import { DecisionPanel, HandActions } from './ActionBar';
 import { Avatar } from './Avatar';
 import { seatInitials } from './avatars';
 import type { GameMessage, TableConnection } from './connection';
-import { useTableEvents } from './events';
+import { eventSeat, useTableEvents } from './events';
 import { cardFromId, isRed, spokenLabel, SUIT_SYMBOL } from './cards';
 import { bidWords, lineText, logEntries, seatNames, teamName } from './describe';
 import { GroupSummary, Hand } from './Hand';
@@ -96,7 +96,7 @@ export function TableView({
   const layout = useMemo(() => layoutZones(view), [view]);
   // Bids said out loud and points scored, shown at the seat for a moment.
   const events = useTableEvents(view, names);
-  const eventsAt = (seat: number) => events.filter(({ event }) => event.seat === seat);
+  const eventsAt = (seat: number) => events.filter(({ event }) => eventSeat(event) === seat);
   const paused = table.status === 'paused';
   // While paused nobody can move, so no controls are shown.
   const controls = useMemo(() => buildControls(paused ? [] : legalMoves), [legalMoves, paused]);
@@ -356,6 +356,20 @@ export function TableView({
               />
             ))}
           </div>
+          {/* Big moments ("Euchred!") sweep across the middle of the table. Screen readers
+              hear them from the log. */}
+          {events.some(({ event }) => event.kind === 'moment') && (
+            <div className="moment-banners" aria-hidden="true">
+              {events.map(({ id, event }) =>
+                event.kind === 'moment' ? (
+                  <p key={id} className="moment-banner">
+                    {event.who && <span className="moment-who">{event.who}</span>}
+                    <SuitText text={event.label} />
+                  </p>
+                ) : null,
+              )}
+            </div>
+          )}
           {/* The game's values (trump, the count) and the last-trick button have a fixed place
               along the bottom of the table, so they don't move as cards come and go. */}
           {(view.display.length > 0 || showTricks || view.trump) && (

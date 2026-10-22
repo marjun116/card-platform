@@ -3,7 +3,7 @@ import { withZones } from '@card-table/engine/testing';
 import { act, cleanup, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { counting, createGame, spades } from '../test/games';
-import { EVENT_TIME, newEvents, spokenWords, useTableEvents } from './events';
+import { EVENT_TIME, eventSeat, newEvents, spokenWords, useTableEvents } from './events';
 
 afterEach(() => {
   cleanup();
@@ -66,6 +66,27 @@ describe('newEvents', () => {
     const { before, after, first } = pairScored();
     const events = newEvents(viewFor(before, first), viewFor(after, first), names);
     expect(events.some((e) => e.kind === 'speech')).toBe(false);
+  });
+});
+
+describe('newEvents: big moments', () => {
+  it('shows a banner for each new moment, with whose it is', () => {
+    const { before, after } = bidding(3);
+    const view = viewFor(after, 0);
+    const moment = { round: 1, at: 1, label: 'Euchred!', player: null, team: 1 };
+    const events = newEvents(viewFor(before, 0), { ...view, moments: [moment] }, names);
+    expect(events).toContainEqual({ kind: 'moment', who: 'Team 2 (Ana & Raj)', label: 'Euchred!' });
+    expect(events.find((e) => e.kind === 'moment' && eventSeat(e) === null)).toBeDefined();
+  });
+
+  it('shows none for moments that were already there', () => {
+    const { after } = bidding(3);
+    const view = viewFor(after, 0);
+    const withMoment = {
+      ...view,
+      moments: [{ round: 1, at: 1, label: 'Set!', player: null, team: null }],
+    };
+    expect(newEvents(withMoment, withMoment, names)).toEqual([]);
   });
 });
 
@@ -136,7 +157,7 @@ describe('useTableEvents', () => {
       initialProps: { v: viewFor(before, first) },
     });
     rerender({ v: { ...view, scoreEvents: [...view.scoreEvents, extra] } });
-    expect(result.current.map((s) => [s.event.seat, s.delay])).toEqual([
+    expect(result.current.map((s) => [eventSeat(s.event), s.delay])).toEqual([
       [other, 0],
       [other, 300],
     ]);

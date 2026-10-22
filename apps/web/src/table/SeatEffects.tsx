@@ -24,7 +24,7 @@ export function SeatEffects({
           <span key={id} className={`speech${below ? ' below' : ''}`}>
             <SuitText text={event.text} />
           </span>
-        ) : (
+        ) : event.kind === 'points' ? (
           <span
             key={id}
             className={`float-points${event.points < 0 ? ' minus' : ''}`}
@@ -34,7 +34,7 @@ export function SeatEffects({
             {Math.abs(event.points)}
             {event.label && <span className="float-label"> {event.label}</span>}
           </span>
-        ),
+        ) : null,
       )}
     </span>
   );

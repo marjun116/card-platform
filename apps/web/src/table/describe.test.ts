@@ -1,13 +1,14 @@
 import type { TableInfo } from '@card-table/server/protocol';
 import { describe, expect, it } from 'vitest';
 import { cardFromId, cardImage, isRed, shortLabel, spokenLabel } from './cards';
-import type { CardEvent, PlayerView } from '@card-table/engine';
+import type { CardEvent, MomentEvent, PlayerView } from '@card-table/engine';
 import {
   bidLabel,
   describeCards,
   describeMove,
   describeScore,
   logLines,
+  momentText,
   moveLabel,
   seatNames,
   seatStats,
@@ -159,6 +160,7 @@ describe('cards turned up and given out', () => {
       log: [pass(1), pass(0), pass(1), pass(0)],
       scoreEvents: [],
       cardEvents: [turned, given],
+      moments: [],
       choiceLabels: {},
       bidLabels: {},
     } as unknown as PlayerView;
@@ -169,6 +171,47 @@ describe('cards turned up and given out', () => {
       'Seat 2 chose: Pass',
       'Ana chose: Pass',
       'Ana picked up Jack of hearts',
+    ]);
+  });
+});
+
+describe('words for big moments', () => {
+  const teams = [
+    { id: 0, players: [0, 2] },
+    { id: 1, players: [1] },
+  ];
+  const moment = (m: Partial<MomentEvent>): MomentEvent => ({
+    round: 1,
+    at: 1,
+    label: 'Euchred!',
+    player: null,
+    team: null,
+    ...m,
+  });
+
+  it("says whose moment it is: a player's, a team's or nobody's", () => {
+    expect(momentText(moment({ player: 0, team: 0 }), { teams }, names)).toBe('Ana: Euchred!');
+    expect(momentText(moment({ team: 0 }), { teams }, names)).toBe('Team 1 (Ana & You): Euchred!');
+    expect(momentText(moment({ team: 1 }), { teams }, names)).toBe('Seat 2: Euchred!');
+    expect(momentText(moment({ label: '♥ Hearts broken' }), { teams }, names)).toBe(
+      '♥ Hearts broken',
+    );
+  });
+
+  it('puts them in the log after the move, and after its points', () => {
+    const view = {
+      log: [{ player: 0, type: 'choose', value: 'pass' }],
+      scoreEvents: [{ round: 1, at: 1, player: 0, team: 0, points: 2, label: 'Pair', into: null }],
+      cardEvents: [],
+      moments: [moment({ player: 0, team: 0, label: 'Big moment' })],
+      teams,
+      choiceLabels: {},
+      bidLabels: {},
+    } as unknown as PlayerView;
+    expect(logLines(view, names)).toEqual([
+      'Ana chose: Pass',
+      'Ana: Pair for 2',
+      'Ana: Big moment',
     ]);
   });
 });

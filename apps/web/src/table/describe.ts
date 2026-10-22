@@ -2,6 +2,7 @@
 import type {
   BidValue,
   CardEvent,
+  MomentEvent,
   Move,
   PlayerView,
   PublicMove,
@@ -255,6 +256,27 @@ export function describeScore(event: ScoreEvent, names: SeatNames): string {
     : `${who} scored ${event.points}${held}`;
 }
 
+/** Whose big moment it is: a player's or team's name, or null for the whole table. */
+export function momentWho(
+  moment: MomentEvent,
+  view: { teams: readonly { id: number; players: number[] }[] },
+  names: SeatNames,
+): string | null {
+  if (moment.player !== null) return names(moment.player);
+  const team = moment.team === null ? undefined : view.teams[moment.team];
+  return team ? teamName(team, names) : null;
+}
+
+/** A big moment's words: "Shot the moon!", with whose it is ("Raj: Shot the moon!"). */
+export function momentText(
+  moment: MomentEvent,
+  view: { teams: readonly { id: number; players: number[] }[] },
+  names: SeatNames,
+): string {
+  const who = momentWho(moment, view, names);
+  return who ? `${who}: ${moment.label}` : moment.label;
+}
+
 /** The game log as plain text, oldest first (see `logEntries`). */
 export function logLines(view: PlayerView, names: SeatNames): string[] {
   return logEntries(view, names).map(lineText);
@@ -262,8 +284,8 @@ export function logLines(view: PlayerView, names: SeatNames): string[] {
 
 /**
  * The game log in pieces, oldest first: every move worth telling others
- * about, with the points scored along the way placed after the move that
- * scored them.
+ * about, with the points scored along the way (and any big moment) placed
+ * after the move that made them.
  */
 export function logEntries(view: PlayerView, names: SeatNames): Line[] {
   const scoredAfter = new Map<number, ScoreEvent[]>();
@@ -274,13 +296,19 @@ export function logEntries(view: PlayerView, names: SeatNames): Line[] {
   for (const event of view.cardEvents) {
     cardsAfter.set(event.at, [...(cardsAfter.get(event.at) ?? []), event]);
   }
-  // What happened after the first `at` moves: points scored, then cards turned up or given.
+  const momentsAfter = new Map<number, MomentEvent[]>();
+  for (const moment of view.moments) {
+    momentsAfter.set(moment.at, [...(momentsAfter.get(moment.at) ?? []), moment]);
+  }
+  // What happened after the first `at` moves: points scored, cards turned up or given, then
+  // big moments (last, so a screen reader hears them as the news).
   const scores = (at: number): Line[] => [
     ...(scoredAfter.get(at) ?? []).map((e) => [describeScore(e, names)]),
     ...(cardsAfter.get(at) ?? []).flatMap((e) => {
       const parts = cardsLine(e, names);
       return parts ? [parts] : [];
     }),
+    ...(momentsAfter.get(at) ?? []).map((m) => [momentText(m, view, names)]),
   ];
   const lines = scores(0);
   view.log.forEach((move, i) => {

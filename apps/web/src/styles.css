@@ -2065,6 +2065,74 @@ kbd {
     transform: translate(-50%, -2.6em);
   }
 }
+/* Big moments ("Euchred!"): a band across the middle of the table that sweeps in, stays a
+   moment and sweeps on. It clips its own motion, so it never makes the page scroll
+   sideways, and it ignores the pointer, so it never gets in the way of a move. */
+.moment-banners {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 42%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 6;
+}
+.moment-banner {
+  margin: 0;
+  padding: 0.3em 1em 0.35em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  color: #fff;
+  font-family: var(--display);
+  font-size: clamp(1.5rem, 5vw, 2.3rem);
+  line-height: 1.15;
+  text-shadow: 0 2px 6px rgb(0 0 0 / 0.6);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(0 0 0 / 0.72) 18%,
+    rgb(0 0 0 / 0.72) 82%,
+    transparent
+  );
+  border-block: 2px solid;
+  border-image: linear-gradient(
+      90deg,
+      transparent,
+      var(--playable) 25%,
+      var(--playable) 75%,
+      transparent
+    )
+    1;
+  animation: moment-banner 1800ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+.moment-who {
+  font-family: inherit;
+  font-size: 0.42em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--playable);
+}
+@keyframes moment-banner {
+  0% {
+    opacity: 0;
+    transform: translateX(-35%);
+  }
+  14%,
+  80% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(25%);
+  }
+}
 /* Reduce motion: they fade in and out where they are. */
 @keyframes fade-in-out {
   0%,
@@ -2085,6 +2153,9 @@ kbd {
   .float-points {
     animation-name: fade-in-out;
     transform: translate(-50%, -1.4em);
+  }
+  .moment-banner {
+    animation-name: fade-in-out;
   }
   .hand-card,
   .suit-tile {
