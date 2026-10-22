@@ -359,20 +359,20 @@ never by a game's name, so custom games get them too. No sound.
 
 **Card motion**
 
-- [ ] Playing a card: yours lifts from your hand and slides to its place in the trick; an
+- [x] Playing a card: yours lifts from your hand and slides to its place in the trick; an
       opponent's slides in from their seat and flips over as it lands
-- [ ] Collecting the trick: a short pause with the winning card outlined, then the cards
+- [x] Collecting the trick: a short pause with the winning card outlined, then the cards
       sweep to the winner's seat and their trick count ticks up
-- [ ] Your hand closes up smoothly when a card leaves; playable cards rise a little on hover
+- [x] Your hand closes up smoothly when a card leaves; playable cards rise a little on hover
       with a mouse
-- [ ] Dealing: cards fly from the dealer to every seat at the start of a round (about a
+- [x] Dealing: cards fly from the dealer to every seat at the start of a round (about a
       second; a tap skips it)
-- [ ] Pile moves: drawing, discarding and melding slide cards between your hand and the pile
+- [x] Pile moves: drawing, discarding and melding slide cards between your hand and the pile
       or meld area; pile counts tick
-- [ ] Passing (hearts): passed cards slide toward the receiver; cards you receive arrive
+- [x] Passing (hearts): passed cards slide toward the receiver; cards you receive arrive
       raised with a "from Ana" tag for a few seconds
-- [ ] Flips: euchre's upcard turning down, and cards being turned face up
-- [ ] Rules for all motion: no animation library (CSS and the browser's own animation
+- [x] Flips: euchre's upcard turning down, and cards being turned face up
+- [x] Rules for all motion: no animation library (CSS and the browser's own animation
       support); under about 400ms per card; never blocks your next move; other players'
       moves play in order at a minimum pace so a fast bot's turns don't blur; with "reduce
       motion" switched on, simple fades instead

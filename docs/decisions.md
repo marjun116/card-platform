@@ -1207,3 +1207,35 @@ build checklist, done before Phase 6.
   top, once its suit is named. Game files can now give a `display` value `format: "suit"`.
   A display may only use state, never piles, so the game keeps a `state.eight` flag, and the
   suit is blank (so not shown) while the player of the 8 is still choosing.
+
+## 2026-10-22: Card motion (UI polish)
+
+- **A finished trick is swept when the next card is led** (decided by Arjun). It stays on the
+  table, winning card outlined, until then (as decided after the first playtest), and the
+  sweep to the winner's seat plays as the new lead slides in. The winner's trick count
+  changes, with a short glow, when the trick is won, as before.
+- **The view says who passed to whom** (decided by Arjun). `view.passes` lists this round's
+  passes you made or received. The receiver sees the cards only once they're delivered, so
+  nothing is shown early. Cards passed to you are raised for 4 seconds, and your status line
+  says "From Ana: [2♥] [6♥] [9♥]". Screen readers hear "Ana passed you …", and each card says
+  ", from Ana". The note is in the status line, not a tag on a card: the hand scrolls
+  sideways, which clips anything drawn above it. Nothing is raised when you open the table
+  after the cards came.
+- **How it works:** just before a new view is drawn, the table notes where every card is.
+  Once it's drawn, a copy of each card that moved flies from its old spot to its new one, on
+  a layer above the page, while the real card stays invisible until the copy lands. Cards
+  that came into view fly from where the log says they came from (a seat or a pile). Cards
+  that left fly to where they went. Face-down cards nobody here can see fly as card backs.
+  All of this is worked out from card ids, zone keys and the log, never from the game's
+  name (`table/motion/plan.ts`).
+- **Pacing:** your own moves show at once. Other players' moves are shown at least 600ms
+  apart, and if more than 3 are waiting it jumps to the newest. The server already waits 2
+  seconds between bot moves, so this mostly matters after a reconnect.
+- **The deal** goes one card to each seat in turn, starting on the dealer's left, in about a
+  second whatever the number of cards. A tap anywhere skips it. It plays at the start of
+  every round, and when the table opens on a deal with no moves made yet.
+- **Counts** (cards in a pile or a hand, tricks won) glow briefly when they change, rather
+  than scaling up, so text around them doesn't move.
+- **Reduce motion:** cards fade in or out where they are, with no flights, no card backs
+  and no glow. The animation-speed setting (still to come) only has to change
+  `motionSpeed()` in `table/motion/animate.ts`.
