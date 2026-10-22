@@ -1955,7 +1955,137 @@ kbd {
   }
 }
 
+/* Things that happen at a seat for a moment (SeatEffects.tsx): a speech bubble with a bid,
+   points floating up. On top of everything, and never in the way of the pointer. */
+.seat-effects {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+/* Yours start from your avatar at the start of the status line. */
+.status-line {
+  position: relative;
+}
+.status-line > .seat-effects {
+  right: auto;
+  width: 1.7rem;
+}
+.speech {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  padding: 0.25em 0.75em;
+  border-radius: 14px;
+  background: #fff;
+  color: #1d1d1b;
+  font-weight: 700;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.35);
+  transform-origin: 50% calc(100% + 10px);
+  animation: speech 2500ms ease-out both;
+}
+/* The tail, pointing at the seat. */
+.speech::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  margin-left: -7px;
+  border: 7px solid transparent;
+  border-top-color: #fff;
+  border-bottom: 0;
+}
+.speech.below {
+  bottom: auto;
+  top: calc(100% + 10px);
+  transform-origin: 50% -10px;
+}
+.speech.below::after {
+  top: auto;
+  bottom: 100%;
+  border: 7px solid transparent;
+  border-bottom-color: #fff;
+  border-top: 0;
+}
+/* Pops out, stays, then shrinks back into the seat, where the bid is written. */
+@keyframes speech {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.5);
+  }
+  8% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.06);
+  }
+  14%,
+  82% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(0.3);
+  }
+}
+.float-points {
+  position: absolute;
+  left: 50%;
+  top: -0.4em;
+  font-family: var(--display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  font-variant-numeric: lining-nums tabular-nums;
+  white-space: nowrap;
+  color: var(--playable);
+  text-shadow:
+    0 1px 2px rgb(0 0 0 / 0.8),
+    0 0 8px rgb(0 0 0 / 0.5);
+  animation: float-points 1600ms ease-out both;
+}
+.float-points.minus {
+  color: #ff9a8f;
+}
+.float-label {
+  font-family: inherit;
+  font-size: 0.85em;
+}
+@keyframes float-points {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0.4em);
+  }
+  15%,
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -2.6em);
+  }
+}
+/* Reduce motion: they fade in and out where they are. */
+@keyframes fade-in-out {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  12%,
+  80% {
+    opacity: 1;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .speech {
+    animation-name: fade-in-out;
+    transform: translateX(-50%);
+  }
+  .float-points {
+    animation-name: fade-in-out;
+    transform: translate(-50%, -1.4em);
+  }
   .hand-card,
   .suit-tile {
     transition: none;

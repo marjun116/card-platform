@@ -12,8 +12,10 @@ import { useId, useState } from 'react';
 import { Avatar } from './Avatar';
 import { type SeatInitials, teamColour } from './avatars';
 import { CardBack, CardFace } from './Card';
+import type { ShownEvent } from './events';
 import { SUITS, sortHand, spokenLabel } from './cards';
 import { bidWords, type SeatNames, seatStats } from './describe';
+import { SeatEffects } from './SeatEffects';
 import { SuitText } from './SuitText';
 import { Tick } from './Tick';
 import { type Controls, isCardUsable } from './moves';
@@ -27,6 +29,7 @@ export function Seat({
   zones,
   names,
   initials,
+  effects,
   toAct,
   showTricks,
   onNudge,
@@ -41,6 +44,8 @@ export function Seat({
   zones: PlacedZone[];
   names: SeatNames;
   initials: SeatInitials;
+  /** A bid said or points scored here just now (see events.ts). */
+  effects: readonly ShownEvent[];
   toAct: number[];
   showTricks: boolean;
   onNudge: (seat: number) => void;
@@ -100,6 +105,7 @@ export function Seat({
         if (e.key === 'Escape' && open) setOpen(false);
       }}
     >
+      <SeatEffects events={effects} below={y < 50} />
       <button
         type="button"
         className="seat-chip"

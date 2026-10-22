@@ -15,6 +15,7 @@ import { DecisionPanel, HandActions } from './ActionBar';
 import { Avatar } from './Avatar';
 import { seatInitials } from './avatars';
 import type { GameMessage, TableConnection } from './connection';
+import { useTableEvents } from './events';
 import { cardFromId, isRed, spokenLabel, SUIT_SYMBOL } from './cards';
 import { bidWords, lineText, logEntries, seatNames, teamName } from './describe';
 import { GroupSummary, Hand } from './Hand';
@@ -23,6 +24,7 @@ import { useCardMotion } from './motion/useCardMotion';
 import { buildControls, quickMove, turnPrompt } from './moves';
 import { Dialog, HistoryTable, RoundTable, Scoreboard } from './Scores';
 import { Seat } from './Seat';
+import { SeatEffects } from './SeatEffects';
 import { RichLine, SuitText, SuitWord } from './SuitText';
 import { useTurnAlert } from './turnAlert';
 import { layoutZones, humanize } from './zones';
@@ -92,6 +94,9 @@ export function TableView({
   const names = useMemo(() => seatNames(table, view.you), [table, view.you]);
   const initials = useMemo(() => seatInitials(table), [table]);
   const layout = useMemo(() => layoutZones(view), [view]);
+  // Bids said out loud and points scored, shown at the seat for a moment.
+  const events = useTableEvents(view, names);
+  const eventsAt = (seat: number) => events.filter(({ event }) => event.seat === seat);
   const paused = table.status === 'paused';
   // While paused nobody can move, so no controls are shown.
   const controls = useMemo(() => buildControls(paused ? [] : legalMoves), [legalMoves, paused]);
@@ -334,6 +339,7 @@ export function TableView({
                 zones={layout.seats.get(player.id) ?? []}
                 names={names}
                 initials={initials}
+                effects={eventsAt(player.id)}
                 toAct={paused ? [] : toAct}
                 showTricks={showTricks}
                 onNudge={(seat) => send({ type: 'nudge', seat })}
@@ -476,6 +482,7 @@ export function TableView({
         )}
         <div className="status-line">
           <Avatar initials={initials(view.you)} team={view.players[view.you]?.team ?? view.you} />
+          <SeatEffects events={eventsAt(view.you)} />
           {hiddenScores ? (
             <>
               <strong>Round {hiddenScores.round} is over.</strong>{' '}

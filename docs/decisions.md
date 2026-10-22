@@ -1262,5 +1262,20 @@ build checklist, done before Phase 6.
 - **Phone buzz:** 150ms when your turn starts, not when you open the table on your turn,
   and not again for the next step of the same turn (draw, then discard). Android only:
   iPhones don't let web pages vibrate.
+- **Speech bubbles for every decision said out loud,** not just `bid`: `passBid`,
+  `declareTrump` and `choose` too, because euchre's bidding ("Order it up", "Pass") is made
+  of choices. A bare number reads "Bid 3"; anything with its own words says just those
+  ("Nil", "1♣"). The bubble opens above the seat (below it for seats along the top), stays
+  2.5 seconds and shrinks back into the seat, where the bid is written. Yours comes from
+  your avatar in the status line. Only the newest bubble at a seat is shown.
+- **Floating points** come from the view's score events (points scored during play): "+2
+  Pair", "+50 Meld" (a held score with no label says where it's held). Points scored
+  together at one seat float up 300ms apart, so a cribbage hand's Fifteens, Pairs and Runs
+  can each be read.
+- **What counts as new:** the table compares each view it draws with the one before, so
+  bubbles and points follow the pace of other players' moves, and opening a table never
+  replays what happened before you came (`table/events.ts`). Both are hidden from screen
+  readers, which hear the same news from the log announcement. With "reduce motion" they
+  fade in and out where they are.
 - **Big moments come from a new `moments` list in the game file** (decided by Arjun), not
   from labels on existing rules, so a meld reaching seven cards (a canasta) can be one.

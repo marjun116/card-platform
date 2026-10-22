@@ -388,7 +388,7 @@ never by a game's name, so custom games get them too. No sound.
 - [x] Clearer turns: a soft pulsing glow on the active seat and on your hand area on your
       turn; the browser tab title becomes "● Your turn" when the tab isn't in front (no
       countdown timer)
-- [ ] Bid bubbles: a bid pops up as a speech bubble from the seat for a couple of seconds,
+- [x] Bid bubbles: a bid pops up as a speech bubble from the seat for a couple of seconds,
       then joins the seat's details
 - [ ] Points float up from the player when scored during play ("+2 Fifteen", "+50 Meld");
       scoreboard numbers count up to their new value
