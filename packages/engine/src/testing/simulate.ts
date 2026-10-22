@@ -295,6 +295,9 @@ export function findHiddenCardLeak(state: GameState): string | null {
       // Cards everyone saw when they were turned up or given out (checked in the
       // engine's own tests), even if they're in someone's hand now.
       cardEvents: [],
+      // Like the log: the cards you passed, and the ones passed to you once they're in
+      // your hand (checked in the engine's own tests).
+      passes: [],
       bidLabels: {},
       choiceLabels: {},
       trackLabels: {},

@@ -58,6 +58,7 @@ export function startGame(
     melds: {},
     reshuffles: {},
     passing: [],
+    passes: [],
     vars: {},
     playedBy: {},
     scoreEvents: [],
@@ -228,6 +229,7 @@ export function startRound(state: GameState): void {
   state.lastTrick = null;
   state.pending = null;
   state.passing = state.players.map(() => []);
+  state.passes = [];
   state.reshuffles = {};
   state.roundMoves = 0;
   state.roundStart = state.log.length;

@@ -113,6 +113,11 @@ export interface PlayerView {
   bidLabels: Record<string, string>;
   /** Words for tracked counters; null means the counter isn't shown. */
   trackLabels: Record<string, string | null>;
+  /**
+   * This round's passes you made or received, so a client can say who passed to whom.
+   * `cards` are listed for your own passes, and for passes to you once delivered.
+   */
+  passes: { from: PlayerId; to: PlayerId; cards: CardId[]; delivered: boolean }[];
   /** One seat playing for another (bridge's declarer for the dummy), or null. */
   control: { seat: PlayerId; by: PlayerId } | null;
   /**
@@ -377,6 +382,12 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     choiceLabels: choiceLabelsOf(state.file),
     bidLabels: bidLabelsOf(state.file),
     trackLabels: { ...state.file.scoring.trackLabels },
+    passes: state.passes
+      .filter((p) => p.from === viewer || p.to === viewer)
+      .map((p) => ({
+        ...p,
+        cards: p.from === viewer || p.delivered ? [...p.cards] : [],
+      })),
     control: controlOf(state),
     // A hand that is still face down (blind bids) shows no groups either.
     arrangement:

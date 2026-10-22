@@ -86,6 +86,42 @@ describe('passing', () => {
     expect(passTarget(three, 0, 'rotate')).toBe(1);
   });
 
+  it('tells each player who they passed to and, once delivered, who passed to them', () => {
+    let state = createGame(passing, {}, 4, 'who');
+    const giver = state.cursor.current;
+    const receiver = (giver + 1) % 4;
+    const move = firstThree(state, giver);
+    const cards = move.type === 'pass' ? [...move.cards].sort() : [];
+    state = applyMove(state, move);
+
+    expect(viewFor(state, giver).passes).toEqual([
+      { from: giver, to: receiver, cards, delivered: false },
+    ]);
+    // The receiver knows a pass is coming, but not what's in it.
+    expect(viewFor(state, receiver).passes).toEqual([
+      { from: giver, to: receiver, cards: [], delivered: false },
+    ]);
+    // Someone not involved hears nothing.
+    expect(viewFor(state, (giver + 2) % 4).passes).toEqual([]);
+
+    for (let i = 0; i < 3; i++) state = applyMove(state, firstThree(state, state.cursor.current));
+    expect(viewFor(state, receiver).passes).toContainEqual({
+      from: giver,
+      to: receiver,
+      cards,
+      delivered: true,
+    });
+    expect(viewFor(state, receiver).passes).toHaveLength(2);
+  });
+
+  it('forgets the passes when the next round starts', () => {
+    const state = draft(createGame(passing, {}, 4, 'reset'));
+    state.passes.push({ from: 0, to: 1, cards: [], delivered: true });
+    state.round = 2;
+    startRound(state);
+    expect(state.passes).toEqual([]);
+  });
+
   it('plays tricks after passing like any trick game', () => {
     let state = createGame(passing, {}, 4, 'tricks');
     for (let i = 0; i < 4; i++) state = applyMove(state, firstThree(state, state.cursor.current));

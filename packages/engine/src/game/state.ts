@@ -129,6 +129,14 @@ export interface CardEvent {
   cards: CardId[];
 }
 
+/** One pass of cards from one seat to another (see `passing`). Never shown whole to players. */
+export interface PassRecord {
+  from: PlayerId;
+  to: PlayerId;
+  cards: CardId[];
+  delivered: boolean;
+}
+
 /** A decision the engine is waiting on before the turn can continue. */
 export type Pending =
   | {
@@ -176,6 +184,8 @@ export interface GameState {
   reshuffles: Record<ZoneKey, number>;
   /** Cards passed to each seat, delivered when the phase ends. */
   passing: Card[][];
+  /** This round's passes: who to whom, and whether they've been delivered yet. */
+  passes: PassRecord[];
   /** Custom values (`state.*`). Reset every round. */
   vars: Record<string, VarValue>;
   /** Who played each card this round (for `returnCards`). Never shown to players. */
@@ -376,6 +386,7 @@ export function draft(state: GameState): GameState {
     melds: copyRecord(state.melds, (melds) => melds.map((m) => [...m])),
     reshuffles: { ...state.reshuffles },
     passing: state.passing.map((cards) => [...cards]),
+    passes: state.passes.map((p) => ({ ...p, cards: [...p.cards] })),
     vars: copyRecord(state.vars, (v) => (Array.isArray(v) ? structuredCopy(v) : v)),
     playedBy: { ...state.playedBy },
     // Entries are never changed once added.

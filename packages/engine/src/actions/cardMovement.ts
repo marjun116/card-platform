@@ -252,6 +252,12 @@ export function applyPass(state: GameState, move: Move, action: PassAction): Act
   const key = zoneKey(state, action.from ?? 'hand', move.player);
   const cards = move.cards.map((id) => takeCard(state, key, id));
   (state.passing[target] ??= []).push(...cards);
+  state.passes.push({
+    from: move.player,
+    to: target,
+    cards: [...move.cards].sort(),
+    delivered: false,
+  });
   return {};
 }
 

@@ -372,6 +372,7 @@ function endPhase(state: GameState): void {
     if (cards.length > 0) zoneCards(state, zoneKey(state, 'hand', seat)).push(...cards);
   });
   state.passing = state.players.map(() => []);
+  for (const pass of state.passes) pass.delivered = true;
   enterPhase(state, state.cursor.phase + 1);
 }
 
