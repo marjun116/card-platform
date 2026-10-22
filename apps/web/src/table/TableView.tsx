@@ -24,6 +24,7 @@ import { buildControls, quickMove, turnPrompt } from './moves';
 import { Dialog, HistoryTable, RoundTable, Scoreboard } from './Scores';
 import { Seat } from './Seat';
 import { RichLine, SuitText, SuitWord } from './SuitText';
+import { useTurnAlert } from './turnAlert';
 import { layoutZones, humanize } from './zones';
 import { Pile, Trick, ZoneDisplay } from './ZoneViews';
 
@@ -125,6 +126,7 @@ export function TableView({
   const over = view.status === 'over';
 
   const yourTurn = toAct.includes(view.you);
+  useTurnAlert(yourTurn && !paused && !over);
   const showTricks = view.trickZones.length > 0;
   const myBid = view.players[view.you]?.bid;
 

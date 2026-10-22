@@ -385,7 +385,7 @@ never by a game's name, so custom games get them too. No sound.
 
 **Turns and events**
 
-- [ ] Clearer turns: a soft pulsing glow on the active seat and on your hand area on your
+- [x] Clearer turns: a soft pulsing glow on the active seat and on your hand area on your
       turn; the browser tab title becomes "● Your turn" when the tab isn't in front (no
       countdown timer)
 - [ ] Bid bubbles: a bid pops up as a speech bubble from the seat for a couple of seconds,
@@ -394,7 +394,7 @@ never by a game's name, so custom games get them too. No sound.
       scoreboard numbers count up to their new value
 - [ ] Big-moment banners across the felt for named events ("♥ Hearts broken", "Shot the
       moon!", "Euchred!", "Gin!", "Canasta!"), taken from labels in the game file
-- [ ] A short phone vibration on your turn, where the phone supports it
+- [x] A short phone vibration on your turn, where the phone supports it
 
 **End of a round**
 

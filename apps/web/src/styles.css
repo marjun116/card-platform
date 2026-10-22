@@ -903,6 +903,18 @@ kbd {
 }
 .seat.acting {
   border-color: var(--playable);
+  animation: turn-glow 1.8s ease-in-out infinite;
+}
+/* Whose turn it is: a soft glow that breathes in and out (a steady one with "reduce
+   motion", see the end of the file). A shadow, so nothing around it moves. */
+@keyframes turn-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 4px 0 rgb(240 180 0 / 0.35);
+  }
+  50% {
+    box-shadow: 0 0 16px 3px rgb(240 180 0 / 0.7);
+  }
 }
 /* An outline, not the border, so a dealer whose turn it is shows both. */
 .seat.dealer {
@@ -1341,6 +1353,24 @@ kbd {
 }
 .status-line button {
   vertical-align: middle;
+}
+/* Your turn: the same glow along the top edge of your hand area. */
+.you-area.your-turn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-top: 2px solid var(--playable);
+  animation: turn-glow-up 1.8s ease-in-out infinite;
+}
+@keyframes turn-glow-up {
+  0%,
+  100% {
+    box-shadow: 0 -2px 6px 0 rgb(240 180 0 / 0.3);
+  }
+  50% {
+    box-shadow: 0 -4px 18px 2px rgb(240 180 0 / 0.65);
+  }
 }
 .you-area.your-turn .status-line strong {
   background: var(--playable);
@@ -1813,6 +1843,11 @@ kbd {
   }
   .felt.many .seat.acting .seat-chip {
     border-color: var(--playable);
+    animation: turn-glow 1.8s ease-in-out infinite;
+  }
+  /* The chip carries the glow, not the (invisible) seat around it. */
+  .felt.many .seat.acting {
+    animation: none;
   }
   /* On phones the chip stands for the seat, so it carries the outline. */
   .felt.many .seat.dealer {
@@ -1928,6 +1963,19 @@ kbd {
   .fade-in,
   .tick {
     animation: none;
+  }
+  /* A steady glow instead of a breathing one. */
+  .seat.acting,
+  .felt.many .seat.acting .seat-chip {
+    animation: none;
+    box-shadow: 0 0 10px 2px rgb(240 180 0 / 0.55);
+  }
+  .felt.many .seat.acting {
+    box-shadow: none;
+  }
+  .you-area.your-turn::before {
+    animation: none;
+    box-shadow: 0 -3px 12px 1px rgb(240 180 0 / 0.5);
   }
 }
 

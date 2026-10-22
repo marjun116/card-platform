@@ -1251,3 +1251,16 @@ build checklist, done before Phase 6.
   so a lone "Called by Bot 2" floated above the badge on wide screens. The promise from
   2026-10-15 still holds: values that come and go (euchre's "Going alone") are last in the
   game file, so they don't move the others. Phones already laid them out this way.
+
+## 2026-10-22: Turns and events (UI polish)
+
+- **Whose turn it is** glows softly in and out: the seat's border (the chip on phones) and a
+  line along the top of your hand area. With "reduce motion" the glow stays still. The
+  yellow "Turn" badge and your highlighted status line stay, so it's never only a glow.
+- **Tab title:** "● Your turn – Card Table" while it's your turn and the tab is in the
+  background; it goes back as soon as you look or your turn ends.
+- **Phone buzz:** 150ms when your turn starts, not when you open the table on your turn,
+  and not again for the next step of the same turn (draw, then discard). Android only:
+  iPhones don't let web pages vibrate.
+- **Big moments come from a new `moments` list in the game file** (decided by Arjun), not
+  from labels on existing rules, so a meld reaching seven cards (a canasta) can be one.
