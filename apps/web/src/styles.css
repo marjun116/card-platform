@@ -1151,6 +1151,10 @@ kbd {
   left: clamp(112px, calc(var(--x) * 1%), calc(100% - 112px));
   top: clamp(48px, calc(var(--y) * 1%), calc(100% - 48px));
   transform: translate(-50%, -50%);
+  /* Sized by what it holds, not by where it sits: left alone, a seat near the table's
+     right edge only gets the room between its left side and that edge, so it came out
+     narrower (and taller) than the same seat on the left. */
+  width: max-content;
   min-width: 160px;
   max-width: 220px;
   padding: 0.45em 0.7em;
@@ -2310,6 +2314,7 @@ kbd {
     transform: none;
     order: var(--order);
     /* Up to four players: the others share a strip across the top. */
+    width: auto;
     min-width: 0;
     max-width: none;
     flex: 1 0 88px;

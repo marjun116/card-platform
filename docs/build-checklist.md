@@ -366,6 +366,9 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       that matters, so they should sit at the right end of a sorted hand. Generic: the game
       file should be able to set the suit order for sorting, rather than the table
       checking for hearts.
+- [x] **Table: the seat on the right is a different shape from the one on the left.** In
+      euchre, Bot 4's box (right) is narrower and squarer than Bot 2's (left), though both
+      show the same things.
 
 ## UI polish
 
