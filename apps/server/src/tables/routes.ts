@@ -243,10 +243,26 @@ export function tableRoutes(
     return tableInfo(table, game, (userId) => rooms.isConnected(table.id, userId));
   }
 
-  /** Browsers always send Origin on WebSocket requests; refuse ones from other sites. */
+  /**
+   * Browsers always send Origin on WebSocket requests; refuse ones from other sites.
+   * Outside production, pages on this computer are fine too (see Config.localOrigins).
+   */
   function originAllowed(request: FastifyRequest): boolean {
     const origin = request.headers.origin;
-    return origin === undefined || origin === new URL(config.publicUrl).origin;
+    if (origin === undefined || origin === new URL(config.publicUrl).origin) return true;
+    return config.localOrigins && isLocalOrigin(origin);
+  }
+}
+
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+/** A page served from this computer, on any port: "http://localhost:5173". */
+export function isLocalOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    return (url.protocol === 'http:' || url.protocol === 'https:') && LOCAL_HOSTS.has(url.hostname);
+  } catch {
+    return false;
   }
 }
 

@@ -278,6 +278,36 @@ describe('connecting', () => {
     await ok.waitFor((m) => m.type === 'table', 'table');
   });
 
+  it('also accepts pages on this computer outside production, whatever PUBLIC_URL says', async () => {
+    // As when PUBLIC_URL is set to the laptop's wifi address for playing with friends.
+    const { token } = await guest(server.app, 'Host');
+    const code = await createTable(server, token);
+    for (const origin of ['http://localhost:5173', 'http://127.0.0.1:5173']) {
+      const client = await TestClient.connect(baseUrl, code, token, origin, { origin });
+      clients.push(client);
+      await client.waitFor((m) => m.type === 'table', 'table');
+    }
+    // A site whose name only starts with "localhost" is someone else's.
+    await expect(
+      TestClient.connect(baseUrl, code, token, 'x', { origin: 'http://localhost.evil.example' }),
+    ).rejects.toThrow();
+  });
+
+  it('accepts only PUBLIC_URL in production', async () => {
+    await server.app.close();
+    server = await testServer({
+      config: { ...defaultConfig, publicUrl: 'http://cards.test', localOrigins: false },
+    });
+    baseUrl = await listen(server);
+    const { token } = await guest(server.app, 'Host');
+    const code = await createTable(server, token);
+    await expect(
+      TestClient.connect(baseUrl, code, token, 'x', { origin: 'http://localhost:5173' }),
+    ).rejects.toThrow();
+    const ok = await connect(code, token);
+    await ok.waitFor((m) => m.type === 'table', 'table');
+  });
+
   it('answers garbage with BAD_MESSAGE and keeps the connection', async () => {
     const { token } = await guest(server.app, 'Host');
     const client = await connect(await createTable(server, token), token);

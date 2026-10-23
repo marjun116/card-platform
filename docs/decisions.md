@@ -1471,3 +1471,12 @@ build checklist, done before Phase 6.
   tables" first, so someone coming back to a game sees it at once, then "Start a game"
   with the game tiles across the page's width (and "Join with a code" beside its
   heading), then "Past games". "Your tables" only appears once you have a table.
+
+## 2026-10-23: Table connections from localhost (dev)
+
+- **Outside production, the server also accepts table connections from pages on the same
+  computer** (`localhost`, `127.0.0.1` or `[::1]`, any port), whatever `PUBLIC_URL` says.
+  Setting `PUBLIC_URL` to the laptop's wifi address for playing with friends had locked
+  out the laptop's own `localhost` tab. Production still accepts only `PUBLIC_URL`.
+- **Clearer connection errors are planned for Launch prep (Phase 8)**, not now (decided by
+  Arjun, 2026-10-23).

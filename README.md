@@ -205,13 +205,13 @@ page with that code. Every WebSocket message is described in
 
 ### Server settings (`.env`)
 
-| Variable           | Default                 | Meaning                                        |
-| ------------------ | ----------------------- | ---------------------------------------------- |
-| `DATABASE_URL`     | (required)              | Postgres connection string                     |
-| `PUBLIC_URL`       | `http://localhost:5173` | The website's address, used in sign-in links   |
-| `RESEND_API_KEY`   | (none)                  | Send sign-in emails; otherwise they're printed |
-| `EMAIL_FROM`       | Resend's test sender    | The "from" address of sign-in emails           |
-| `IDLE_NUDGE_HOURS` | `12`                    | Nudge a player who's been away this long       |
+| Variable           | Default                 | Meaning                                                                                                                                              |
+| ------------------ | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`     | (required)              | Postgres connection string                                                                                                                           |
+| `PUBLIC_URL`       | `http://localhost:5173` | The website's address, used in sign-in links and to check where table connections come from (outside production, `localhost` is always accepted too) |
+| `RESEND_API_KEY`   | (none)                  | Send sign-in emails; otherwise they're printed                                                                                                       |
+| `EMAIL_FROM`       | Resend's test sender    | The "from" address of sign-in emails                                                                                                                 |
+| `IDLE_NUDGE_HOURS` | `12`                    | Nudge a player who's been away this long                                                                                                             |
 
 ## The website
 

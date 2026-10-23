@@ -4,6 +4,12 @@ export interface Config {
   publicUrl: string;
   /** Send cookies over HTTPS only. On in production. */
   secureCookies: boolean;
+  /**
+   * Also accept table connections from pages on this computer (localhost), whatever
+   * publicUrl says, so a PUBLIC_URL set for playing over wifi doesn't lock you out of
+   * localhost. Off in production.
+   */
+  localOrigins: boolean;
   /** How long a session lasts without being used. */
   sessionDays: number;
   /** Notify a disconnected player once their turn has lasted this long. */
@@ -27,6 +33,7 @@ const HOUR = 60 * 60 * 1000;
 export const defaultConfig: Config = {
   publicUrl: 'http://localhost:5173',
   secureCookies: false,
+  localOrigins: true,
   sessionDays: 90,
   idleNudgeAfterMs: 12 * HOUR,
   idleCheckEveryMs: 10 * 60 * 1000,
@@ -43,6 +50,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): Config {
     ...defaultConfig,
     publicUrl: env.PUBLIC_URL ?? defaultConfig.publicUrl,
     secureCookies: env.NODE_ENV === 'production',
+    localOrigins: env.NODE_ENV !== 'production',
     ...(hours > 0 && { idleNudgeAfterMs: hours * HOUR }),
   };
 }

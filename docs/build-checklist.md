@@ -601,6 +601,10 @@ Harden the platform for strangers, not just family. Several items here involve l
       your next card before your turn, and play it automatically when your turn comes if
       it's still legal. Decide which games get it, and how you see and cancel a pre-played
       card.
+- [ ] Clear connection errors: when the table can't connect, say why on the page (for
+      example "This page's address doesn't match the server's PUBLIC_URL", "You're not
+      signed in", "No table with that code") instead of retrying silently behind
+      "Connecting to the table…"
 - [ ] Closed beta with friends and family, then a wider invite-only beta
 - [ ] Landing page, help pages and a feedback form
 

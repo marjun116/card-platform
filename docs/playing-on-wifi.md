@@ -16,9 +16,9 @@ opened to the network. Only the database is online, as usual.
 PUBLIC_URL="http://192.168.1.23:5173"
 ```
 
-The server only accepts table connections from pages opened at `PUBLIC_URL`, so without this
-your friends can load the site but not join a table. It also means **you use that address
-too**, not `localhost`: a tab opened at `localhost` would be turned away.
+The server only accepts table connections from pages opened at `PUBLIC_URL` (or, outside
+production, on your own laptop at `localhost`), so without this your friends can load the
+site but not join a table. You can keep using `localhost` yourself.
 
 **3. Start it so the website listens on the wifi.** `pnpm dev` only listens to your own
 laptop. Instead, in two terminals:
@@ -51,5 +51,6 @@ Create a table and share its code, or its invite link, which already uses the ri
 
 ## Afterwards
 
-To go back to playing on your own, remove `PUBLIC_URL` from `.env` (or set it back to
-`http://localhost:5173`) and use `pnpm dev` as usual.
+To go back to playing on your own, just use `pnpm dev` as usual. You can leave `PUBLIC_URL` in
+`.env`: `localhost` works either way. (Sign-in emails link to `PUBLIC_URL`, so if you sign in
+by email on your own, remove it or set it back to `http://localhost:5173`.)
