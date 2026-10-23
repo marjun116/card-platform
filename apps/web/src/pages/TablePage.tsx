@@ -133,6 +133,7 @@ function TableScreen({ code }: { code: string }) {
         connection={connection}
         error={snapshot.error}
         nudgedBy={snapshot.nudgedBy}
+        reaction={snapshot.reaction}
         isHost={isHost}
         onShowResults={() => setResultsShown(true)}
       />

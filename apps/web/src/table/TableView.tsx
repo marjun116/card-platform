@@ -4,7 +4,7 @@
  * See docs/decisions.md ("Web client (Phase 4)") for the layout rules.
  */
 import type { Card as CardData, Move, Suit } from '@card-table/engine';
-import type { ErrorCode, TableInfo } from '@card-table/server/protocol';
+import type { ErrorCode, Reaction, TableInfo } from '@card-table/server/protocol';
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, type MenuItem } from '../components/Menu';
@@ -15,7 +15,8 @@ import { DecisionPanel, HandActions } from './ActionBar';
 import { Avatar } from './Avatar';
 import { seatInitials } from './avatars';
 import type { GameMessage, TableConnection } from './connection';
-import { eventSeat, useTableEvents } from './events';
+import { eventSeat, type ReactionMessage, useTableEvents } from './events';
+import { REACTION_CHOICES, REACTION_COOLDOWN, REACTION_LOOK } from './reactions';
 import { cardFromId, isRed, spokenLabel, SUIT_SYMBOL } from './cards';
 import { bidWords, lineText, logEntries, seatNames, teamName } from './describe';
 import { GroupSummary, Hand } from './Hand';
@@ -74,6 +75,50 @@ function TrumpBadge({ suit }: { suit: Suit }) {
   );
 }
 
+/** The React button and, once pressed, the four reactions to choose from. */
+function Reactions({ onReact }: { onReact: (reaction: Reaction) => void }) {
+  const [open, setOpen] = useState(false);
+  // One every few seconds, as the server allows.
+  const [resting, setResting] = useState(false);
+  useEffect(() => {
+    if (!resting) return;
+    const timer = setTimeout(() => setResting(false), REACTION_COOLDOWN);
+    return () => clearTimeout(timer);
+  }, [resting]);
+  return (
+    <span className="reactions">
+      <button
+        type="button"
+        className="small"
+        aria-expanded={open}
+        disabled={resting}
+        onClick={() => setOpen(!open)}
+      >
+        React
+      </button>
+      {open && (
+        <span role="group" aria-label="Reactions" className="reaction-choices">
+          {REACTION_CHOICES.map((reaction) => (
+            <button
+              key={reaction}
+              type="button"
+              className="small reaction-choice"
+              aria-label={REACTION_LOOK[reaction].said}
+              onClick={() => {
+                onReact(reaction);
+                setOpen(false);
+                setResting(true);
+              }}
+            >
+              {REACTION_LOOK[reaction].shown}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function TableView({
   table,
   game,
@@ -82,6 +127,7 @@ export function TableView({
   error,
   nudgedBy,
   isHost,
+  reaction = null,
   onShowResults,
 }: {
   table: TableInfo;
@@ -92,6 +138,8 @@ export function TableView({
   error: { code: ErrorCode; message: string } | null;
   nudgedBy: number | null;
   isHost: boolean;
+  /** The latest quick reaction at the table. */
+  reaction?: ReactionMessage | null;
   /** Once the game is over: go on to the results, when the player is ready. */
   onShowResults?: () => void;
 }) {
@@ -101,7 +149,7 @@ export function TableView({
   const initials = useMemo(() => seatInitials(table), [table]);
   const layout = useMemo(() => layoutZones(view), [view]);
   // Bids said out loud and points scored, shown at the seat for a moment.
-  const events = useTableEvents(view, names);
+  const events = useTableEvents(view, names, reaction);
   const eventsAt = (seat: number) => events.filter(({ event }) => eventSeat(event) === seat);
   const paused = table.status === 'paused';
   // While paused nobody can move, so no controls are shown.
@@ -219,7 +267,14 @@ export function TableView({
   const log = useMemo(() => logEntries(view, names), [view, names]);
   const lastEntry = log[log.length - 1];
   const lastLog = lastEntry && lineText(lastEntry);
+  // Reactions aren't in the log, so screen readers hear them here.
+  const lastReaction = events.findLast(({ event }) => event.kind === 'reaction')?.event;
+  const reactionText =
+    lastReaction?.kind === 'reaction'
+      ? `${names(lastReaction.seat)}: ${REACTION_LOOK[lastReaction.reaction].said}`
+      : null;
   const announcement = [
+    reactionText,
     lastLog ?? null,
     receivedText,
     yourTurn && !paused ? turnPrompt(controls, names) : null,
@@ -552,6 +607,7 @@ export function TableView({
               <RichLine line={received.cards.flatMap((card) => [' ', { card }])} />
             </span>
           )}
+          {!over && <Reactions onReact={(r) => send({ type: 'react', reaction: r })} />}
         </div>
         <GroupSummary arrangement={arrangement} />
         <Hand

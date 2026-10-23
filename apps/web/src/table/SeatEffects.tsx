@@ -5,6 +5,7 @@
  * which hear the same news from the game log.
  */
 import type { ShownEvent } from './events';
+import { REACTION_LOOK } from './reactions';
 import { SuitText } from './SuitText';
 
 export function SeatEffects({
@@ -23,6 +24,10 @@ export function SeatEffects({
         event.kind === 'speech' ? (
           <span key={id} className={`speech${below ? ' below' : ''}`}>
             <SuitText text={event.text} />
+          </span>
+        ) : event.kind === 'reaction' ? (
+          <span key={id} className={`speech reaction${below ? ' below' : ''}`}>
+            {REACTION_LOOK[event.reaction].shown}
           </span>
         ) : event.kind === 'points' ? (
           <span

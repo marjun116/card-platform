@@ -196,4 +196,13 @@ describe('TableConnection', () => {
     connection.dismissNudge();
     expect(connection.getSnapshot().nudgedBy).toBeNull();
   });
+
+  it('counts reactions, so the same one twice shows twice', () => {
+    const { connection, socket } = setup();
+    socket().serverOpens();
+    socket().serverSends({ type: 'reaction', seat: 2, reaction: 'laugh' });
+    expect(connection.getSnapshot().reaction).toEqual({ n: 1, seat: 2, reaction: 'laugh' });
+    socket().serverSends({ type: 'reaction', seat: 2, reaction: 'laugh' });
+    expect(connection.getSnapshot().reaction).toEqual({ n: 2, seat: 2, reaction: 'laugh' });
+  });
 });

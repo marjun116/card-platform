@@ -8,6 +8,7 @@
  * server then resends the current state.
  */
 import type { Move } from '@card-table/engine';
+import type { ReactionMessage } from './events';
 import type {
   ClientMessage,
   ErrorCode,
@@ -35,6 +36,8 @@ export interface TableSnapshot {
   error: { code: ErrorCode; message: string } | null;
   /** Seat that last nudged us, until dismissed. */
   nudgedBy: number | null;
+  /** The latest quick reaction at the table (see events.ts). */
+  reaction: ReactionMessage | null;
   /** The host deleted the table; the connection is closed for good. */
   deleted: boolean;
 }
@@ -83,6 +86,7 @@ export class TableConnection {
     over: null,
     error: null,
     nudgedBy: null,
+    reaction: null,
     deleted: false,
   };
   private readonly listeners = new Set<() => void>();
@@ -209,6 +213,15 @@ export class TableConnection {
         break;
       case 'nudged':
         this.update({ nudgedBy: message.by });
+        break;
+      case 'reaction':
+        this.update({
+          reaction: {
+            n: (this.snapshot.reaction?.n ?? 0) + 1,
+            seat: message.seat,
+            reaction: message.reaction,
+          },
+        });
         break;
       case 'deleted':
         // Nothing to reconnect to.

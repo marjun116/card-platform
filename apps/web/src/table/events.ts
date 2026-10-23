@@ -6,6 +6,7 @@
  * came. Generic: it looks at move types and score events, never at the game.
  */
 import type { PlayerView, PublicMove } from '@card-table/engine';
+import type { Reaction } from '@card-table/server/protocol';
 import { useEffect, useRef, useState } from 'react';
 import { bidLabel, momentWho, moveLabel, type SeatNames } from './describe';
 import { humanize } from './zones';
@@ -16,7 +17,16 @@ export type TableEvent =
   /** Points scored during play, floating up from the player. */
   | { kind: 'points'; seat: number; points: number; label: string | null }
   /** A big moment from the game file ("Euchred!"): a banner across the felt. */
-  | { kind: 'moment'; who: string | null; label: string };
+  | { kind: 'moment'; who: string | null; label: string }
+  /** A player's quick reaction (👍): a bubble at the seat, like a bid. */
+  | { kind: 'reaction'; seat: number; reaction: Reaction };
+
+/** A reaction the server relayed; `n` counts them, so the same one twice is two. */
+export interface ReactionMessage {
+  n: number;
+  seat: number;
+  reaction: Reaction;
+}
 
 /** The event's seat, for those shown at a seat (not big moments, which cross the felt). */
 export function eventSeat(event: TableEvent): number | null {
@@ -28,6 +38,7 @@ export const EVENT_TIME: Record<TableEvent['kind'], number> = {
   speech: 2500,
   points: 1600,
   moment: 1800,
+  reaction: 2500,
 };
 
 /** The words for a decision a player says out loud, or null for any other move. */
@@ -93,38 +104,67 @@ export interface ShownEvent {
 /** The gap between points scored together at one seat, in ms. */
 const STAGGER = 300;
 
+/** New events, timed: when each shows and goes. Points scored together float up in turn. */
+function timed(events: TableEvent[], firstId: number, now: number): ShownEvent[] {
+  const waiting = new Map<number, number>();
+  return events.map((event, i) => {
+    const queued = event.kind === 'points' ? (waiting.get(event.seat) ?? 0) : 0;
+    if (event.kind === 'points') waiting.set(event.seat, queued + 1);
+    const delay = queued * STAGGER;
+    return { id: firstId + i, event, delay, until: now + delay + EVENT_TIME[event.kind] };
+  });
+}
+
+/**
+ * The events on screen plus new ones. Only the newest bubble at each seat is said
+ * (older ones, and two at once after a reconnect, give way).
+ */
+function merged(current: ShownEvent[], added: ShownEvent[]): ShownEvent[] {
+  const bubble = (event: TableEvent) => event.kind === 'speech' || event.kind === 'reaction';
+  const saidLater = ({ event }: ShownEvent, later: ShownEvent[]) =>
+    bubble(event) && later.some((b) => bubble(b.event) && eventSeat(b.event) === eventSeat(event));
+  return [
+    ...current.filter((item) => !saidLater(item, added)),
+    ...added.filter((item, i) => !saidLater(item, added.slice(i + 1))),
+  ];
+}
+
 /**
  * The events on screen right now. Each new view adds what happened since the
- * last one, and each event goes again after its time (see EVENT_TIME). A
- * newer bubble at the same seat replaces the older one.
+ * last one, as does each reaction relayed (not ones from before you came),
+ * and each event goes again after its time (see EVENT_TIME). A newer bubble
+ * at the same seat replaces the older one.
  */
-export function useTableEvents(view: PlayerView, names: SeatNames): ShownEvent[] {
+export function useTableEvents(
+  view: PlayerView,
+  names: SeatNames,
+  reaction: ReactionMessage | null = null,
+): ShownEvent[] {
   const [shown, setShown] = useState<ShownEvent[]>([]);
   const before = useRef<PlayerView | null>(null);
   const nextId = useRef(0);
+  const reactionsSeen = useRef(reaction?.n ?? 0);
 
   useEffect(() => {
     const events = newEvents(before.current, view, names);
     before.current = view;
     if (events.length === 0) return;
-    const now = Date.now();
-    const waiting = new Map<number, number>();
-    const added = events.map((event) => {
-      const queued = event.kind === 'points' ? (waiting.get(event.seat) ?? 0) : 0;
-      if (event.kind === 'points') waiting.set(event.seat, queued + 1);
-      const delay = queued * STAGGER;
-      return { id: nextId.current++, event, delay, until: now + delay + EVENT_TIME[event.kind] };
-    });
-    // Only the newest bubble at each seat is said (older ones, and two at once after a
-    // reconnect, give way).
-    const saidLater = ({ event }: ShownEvent, later: ShownEvent[]) =>
-      event.kind === 'speech' &&
-      later.some((b) => b.event.kind === 'speech' && b.event.seat === event.seat);
-    setShown((current) => [
-      ...current.filter((item) => !saidLater(item, added)),
-      ...added.filter((item, i) => !saidLater(item, added.slice(i + 1))),
-    ]);
+    const added = timed(events, nextId.current, Date.now());
+    nextId.current += added.length;
+    setShown((current) => merged(current, added));
   }, [view, names]);
+
+  useEffect(() => {
+    if (!reaction || reaction.n <= reactionsSeen.current) return;
+    reactionsSeen.current = reaction.n;
+    const event: TableEvent = {
+      kind: 'reaction',
+      seat: reaction.seat,
+      reaction: reaction.reaction,
+    };
+    const added = timed([event], nextId.current++, Date.now());
+    setShown((current) => merged(current, added));
+  }, [reaction]);
 
   // A timer for the next event to go; it starts again whenever the list changes.
   useEffect(() => {

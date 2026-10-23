@@ -31,7 +31,17 @@ import type { WebSocket } from '@fastify/websocket';
 import { newInviteCode } from '../auth/tokens';
 import type { Deps } from '../deps';
 import { ConflictError, type GameVersion, type Table, type User } from '../store/types';
-import type { ClientMessage, ErrorCode, MessageId, ServerMessage, TableInfo } from './protocol';
+import type {
+  ClientMessage,
+  ErrorCode,
+  MessageId,
+  Reaction,
+  ServerMessage,
+  TableInfo,
+} from './protocol';
+
+/** The least time between two reactions from one seat, in ms. */
+export const REACTION_COOLDOWN_MS = 3000;
 
 /** Thrown while handling a message; becomes an `error` reply. */
 export class RoomError extends Error {
@@ -59,6 +69,8 @@ export class TableRoom {
    * Not saved: after a restart nobody has the scores open, so bots carry on.
    */
   private readingScores = new Set<number>();
+  /** When each seat last reacted (not saved). */
+  private reactedAt = new Map<number, number>();
 
   private constructor(
     private readonly deps: Deps,
@@ -274,6 +286,8 @@ export class TableRoom {
         return this.roundSeen(user);
       case 'rematch':
         return this.rematch(user);
+      case 'react':
+        return this.react(user, message.reaction);
     }
   }
 
@@ -481,6 +495,24 @@ export class TableRoom {
       await this.reloadTable();
     }
     this.broadcastTable();
+  }
+
+  /** Shows a quick reaction at the sender's seat, to everyone seated. Nothing is saved. */
+  private react(user: User, reaction: Reaction): Promise<void> {
+    const { status } = this.table;
+    if (status !== 'playing' && status !== 'paused') {
+      throw new RoomError('WRONG_STATUS', 'Reactions are for during the game');
+    }
+    const seat = this.requireSeat(user);
+    const now = this.deps.now().getTime();
+    const last = this.reactedAt.get(seat);
+    if (last !== undefined && now - last < REACTION_COOLDOWN_MS) {
+      throw new RoomError('RATE_LIMITED', 'One reaction every few seconds');
+    }
+    this.reactedAt.set(seat, now);
+    const message: ServerMessage = { type: 'reaction', seat, reaction };
+    for (const c of this.connections) if (this.seatOf(c.userId) !== null) send(c.socket, message);
+    return Promise.resolve();
   }
 
   private async nudge(user: User, target: number): Promise<void> {

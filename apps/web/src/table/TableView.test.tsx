@@ -807,3 +807,40 @@ describe('bots at the table', () => {
     expect(screen.queryByRole('button', { name: /Replace/ })).toBeNull();
   });
 });
+
+describe('quick reactions', () => {
+  it('sends one from the React button, then rests a moment', () => {
+    const { connection } = show(createGame(spades, {}, 4, 'view-react'), 0);
+    fireEvent.click(screen.getByRole('button', { name: 'React' }));
+    const choices = within(screen.getByRole('group', { name: 'Reactions' }));
+    expect(choices.getAllByRole('button').map((b) => b.textContent)).toEqual([
+      '👍',
+      '😮',
+      '😂',
+      'GG',
+    ]);
+    fireEvent.click(choices.getByRole('button', { name: 'Laughing' }));
+    expect(connection.send).toHaveBeenCalledWith({ type: 'react', reaction: 'laugh' });
+    expect(screen.queryByRole('group', { name: 'Reactions' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'React' })).toHaveProperty('disabled', true);
+  });
+
+  it("shows a reaction at the player's seat and tells screen readers", () => {
+    const state = createGame(spades, {}, 4, 'view-reaction');
+    const props = {
+      table: tableInfo(4),
+      game: gameMessage(state, 0),
+      connection: fakeConnection() as unknown as TableConnection,
+      error: null,
+      nudgedBy: null,
+      isHost: false,
+    };
+    const { rerender } = render(<TableView {...props} reaction={null} />);
+    expect(document.querySelector('.speech.reaction')).toBeNull();
+    rerender(<TableView {...props} reaction={{ n: 1, seat: 2, reaction: 'thumbsUp' }} />);
+    const bubble = document.querySelector('.speech.reaction');
+    expect(bubble?.textContent).toBe('👍');
+    expect(bubble?.closest('section')?.getAttribute('aria-label')).toMatch(/^Sam/);
+    expect(document.querySelector('[aria-live]')?.textContent).toContain('Sam: Thumbs up');
+  });
+});

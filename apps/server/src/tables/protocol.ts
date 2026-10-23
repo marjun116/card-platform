@@ -73,6 +73,13 @@ export const moveSchema = z.discriminatedUnion('type', [
   z.strictObject({ ...player, type: z.literal('endTurn') }),
 ]);
 
+/**
+ * Quick reactions: a fixed set, so nobody can send words. The client draws them
+ * (👍 😮 😂 GG).
+ */
+export const REACTIONS = ['thumbsUp', 'wow', 'laugh', 'goodGame'] as const;
+export type Reaction = (typeof REACTIONS)[number];
+
 /** Client-chosen id, echoed in the server's ack or error so the client can match them up. */
 const id = z.union([z.string().max(64), z.number()]);
 const seat = z.number().int().min(0).max(9);
@@ -107,6 +114,8 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
    * same seats, hosted by you. If someone already started one, that one stands.
    */
   z.strictObject({ id, type: z.literal('rematch') }),
+  /** A quick reaction, shown at your seat to everyone at the table (during the game). */
+  z.strictObject({ id, type: z.literal('react'), reaction: z.enum(REACTIONS) }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -233,6 +242,8 @@ export type ServerMessage =
   | { type: 'over'; winners: number[]; scores: Scores }
   /** Someone nudged you: it's your turn. */
   | { type: 'nudged'; by: number }
+  /** A player's quick reaction (see REACTIONS). Not saved. */
+  | { type: 'reaction'; seat: number; reaction: Reaction }
   /** The host deleted the table. The server closes the connection straight after. */
   | { type: 'deleted' }
   | { type: 'ack'; id: MessageId }

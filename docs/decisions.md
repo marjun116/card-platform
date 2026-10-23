@@ -1457,3 +1457,10 @@ build checklist, done before Phase 6.
   "reduce motion" or animation speed off). The host's bot and seat buttons are on each
   seat. On phones the felt becomes a band at the top and the seats a two-column grid.
   The invite link and house rules follow below the start button.
+- **Quick reactions are a fixed set** (👍 😮 😂 GG), sent as names (`thumbsUp`, `wow`,
+  `laugh`, `goodGame`), never text, so nothing anyone types can reach the table. Only
+  seated players, only while the game is playing or paused, one every 3 seconds per
+  player (the React button rests that long too). The server relays them to everyone
+  seated and saves nothing, so someone opening the table later doesn't see old ones.
+  They show as a bubble at the player's seat, like a bid (a newer bubble replaces an
+  older one), and screen readers hear "Ana: Thumbs up".

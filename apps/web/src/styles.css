@@ -2857,6 +2857,27 @@ kbd {
   animation: none;
 }
 
+/* Quick reactions: the React button at the end of your status line, opening four. */
+.reactions {
+  margin-left: auto;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.reaction-choices {
+  display: inline-flex;
+  gap: 4px;
+}
+.reaction-choice {
+  min-width: 40px;
+  font-size: 1.05rem;
+}
+.speech.reaction {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
 /* Settings (the ⚙ in the header). */
 .settings-button {
   color: inherit;
