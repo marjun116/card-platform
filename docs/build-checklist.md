@@ -333,6 +333,10 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
 - [x] **Euchre: "Called by Bot 2" isn't laid out well next to the trump badge.** On wide
       screens the game's values sat above the badge instead of beside it; they should line
       up with it.
+- [x] **Table: your own speech bubbles run off the left of the screen.** When your avatar
+      says a bid or choice, part of the bubble is cut off at the left edge. Your avatar is at
+      the start of the status line, and the bubble is centred on it, so a wide bubble
+      ("Order it up") sticks out past the edge.
 
 ## UI polish
 

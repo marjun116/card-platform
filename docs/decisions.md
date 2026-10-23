@@ -1372,3 +1372,9 @@ build checklist, done before Phase 6.
   face up, sorted as your own hand is, and their bid and tricks. Shared piles show their
   top card and a count, as at the table, and a team's piles (won tricks) just a count.
   There's no motion in it, so "reduce motion" changes nothing.
+
+## 2026-10-22: Your speech bubble (bug)
+
+- **Your own bubble opens to the right of your avatar**, its tail on the avatar, instead of
+  being centred on it: your avatar is at the left edge of the status line, so a wide bubble
+  ("Order it up") ran off the screen. Bubbles at the other seats stay centred on the seat.

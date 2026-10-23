@@ -2190,6 +2190,16 @@ kbd {
   right: auto;
   width: 1.7rem;
 }
+/* Your avatar is at the left edge of the screen, so your bubble opens to its right
+   (centred like the others, a wide one ran off the screen), its tail on the avatar. */
+.status-line > .seat-effects .speech {
+  --speech-shift: 0%;
+  left: 0;
+  transform-origin: 0.85rem calc(100% + 10px);
+}
+.status-line > .seat-effects .speech::after {
+  left: 0.85rem;
+}
 .speech {
   position: absolute;
   left: 50%;
@@ -2232,20 +2242,20 @@ kbd {
 @keyframes speech {
   0% {
     opacity: 0;
-    transform: translateX(-50%) scale(0.5);
+    transform: translateX(var(--speech-shift, -50%)) scale(0.5);
   }
   8% {
     opacity: 1;
-    transform: translateX(-50%) scale(1.06);
+    transform: translateX(var(--speech-shift, -50%)) scale(1.06);
   }
   14%,
   82% {
     opacity: 1;
-    transform: translateX(-50%) scale(1);
+    transform: translateX(var(--speech-shift, -50%)) scale(1);
   }
   100% {
     opacity: 0;
-    transform: translateX(-50%) scale(0.3);
+    transform: translateX(var(--speech-shift, -50%)) scale(0.3);
   }
 }
 .float-points {
@@ -2367,7 +2377,7 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .speech {
     animation-name: fade-in-out;
-    transform: translateX(-50%);
+    transform: translateX(var(--speech-shift, -50%));
   }
   .float-points {
     animation-name: fade-in-out;
