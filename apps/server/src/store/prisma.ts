@@ -25,6 +25,7 @@ const tableInclude = {
     include: { user: { select: { displayName: true, isBot: true } } },
     orderBy: { seat: 'asc' },
   },
+  rematch: { select: { inviteCode: true, hostId: true } },
 } as const satisfies Prisma.TableInclude;
 
 type TableRow = Prisma.TableGetPayload<{ include: typeof tableInclude }>;
@@ -51,6 +52,7 @@ function toTable(row: TableRow): Table {
       isBot: s.user.isBot,
       lastNudgeAt: s.lastNudgeAt,
     })),
+    rematch: row.rematch,
   };
 }
 
@@ -245,6 +247,29 @@ export class PrismaStore implements Store {
       this.db.table.create({
         data: { ...data, options: json(data.options) },
         include: tableInclude,
+      }),
+      'Invite code already in use',
+    );
+    return toTable(row);
+  }
+
+  async createRematch(
+    fromId: string,
+    data: NewTable,
+    seats: { seat: number; userId: string }[],
+  ): Promise<Table> {
+    const row = await conflictOnDuplicate(
+      this.db.$transaction(async (tx) => {
+        const table = await tx.table.create({
+          data: { ...data, options: json(data.options), seats: { create: seats } },
+        });
+        // Only if it has no rematch yet; otherwise the new table goes too.
+        const linked = await tx.table.updateMany({
+          where: { id: fromId, rematchId: null },
+          data: { rematchId: table.id },
+        });
+        if (linked.count === 0) throw new ConflictError('The table already has a rematch');
+        return tx.table.findUniqueOrThrow({ where: { id: table.id }, include: tableInclude });
       }),
       'Invite code already in use',
     );

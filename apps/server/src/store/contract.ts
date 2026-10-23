@@ -302,6 +302,46 @@ export function storeContract(makeStore: () => Promise<Store>): void {
       expect(saved?.turnSince).toEqual(since);
     });
 
+    it('starts a rematch with everyone seated, once, until it is deleted', async () => {
+      const { host, table } = await newTable();
+      const ana = await store.createUser({ displayName: 'Ana' });
+      expect(table.rematch).toBeNull();
+      const data = {
+        inviteCode: 'AGAIN1',
+        hostId: ana.id,
+        gameVersionId: table.gameVersionId,
+        options: table.options,
+        playerCount: 4,
+        seed: 'seed2',
+      };
+      const seats = [
+        { seat: 0, userId: host.id },
+        { seat: 2, userId: ana.id },
+      ];
+      const rematch = await store.createRematch(table.id, data, seats);
+      expect(rematch.status).toBe('lobby');
+      expect(rematch.seats.map((s) => [s.seat, s.displayName])).toEqual([
+        [0, 'Host'],
+        [2, 'Ana'],
+      ]);
+      expect((await store.getTable(table.id))?.rematch).toEqual({
+        inviteCode: 'AGAIN1',
+        hostId: ana.id,
+      });
+
+      // A second one is refused, and leaves nothing behind.
+      await expect(
+        store.createRematch(table.id, { ...data, inviteCode: 'AGAIN2' }, seats),
+      ).rejects.toThrow(ConflictError);
+      expect(await store.getTableByInviteCode('AGAIN2')).toBeNull();
+
+      // Once the rematch is deleted, the old table can have another.
+      await store.deleteTable(rematch.id);
+      expect((await store.getTable(table.id))?.rematch).toBeNull();
+      await store.createRematch(table.id, { ...data, inviteCode: 'AGAIN3' }, seats);
+      expect((await store.getTable(table.id))?.rematch?.inviteCode).toBe('AGAIN3');
+    });
+
     it('deletes a table with its seats, moves and result', async () => {
       const { host, table } = await newTable();
       const { table: other } = await newTable('KEEP01');

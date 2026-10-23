@@ -90,6 +90,16 @@ describe('bots at a table', () => {
     // Every seat played: the bots' moves are in the log like anyone's.
     const moves = await server.store.listMoves(saved?.id as string);
     expect(new Set(moves.map((m) => m.player))).toEqual(new Set([0, 1, 2, 3]));
+
+    // A rematch brings the bots back to their seats.
+    await client.ok({ type: 'rematch' });
+    const rematch = await server.store.getTableByInviteCode(client.lastTable?.rematch?.code ?? '');
+    expect(rematch?.seats.map((s) => [s.seat, s.displayName, s.isBot])).toEqual([
+      [0, 'Host', false],
+      [1, 'Bot 2', true],
+      [2, 'Bot 3', true],
+      [3, 'Bot 4', true],
+    ]);
   });
 
   it('can only be seated and removed by the host, and stay once the game starts', async () => {

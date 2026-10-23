@@ -102,6 +102,11 @@ export const clientMessageSchema = z.discriminatedUnion('type', [
   z.strictObject({ id, type: z.literal('replaceWithBot'), seat }),
   /** You've closed the last round's scores, so the bots can carry on. */
   z.strictObject({ id, type: z.literal('roundSeen') }),
+  /**
+   * Once the game is over: a new table with the same game, options and everyone in the
+   * same seats, hosted by you. If someone already started one, that one stands.
+   */
+  z.strictObject({ id, type: z.literal('rematch') }),
 ]);
 
 export type ClientMessage = z.infer<typeof clientMessageSchema>;
@@ -146,6 +151,8 @@ export interface TableInfo {
    * until every one of them has closed the scores (or left the table).
    */
   readingScores: number[];
+  /** The rematch someone started from this table: its code, and the seat of who started it. */
+  rematch: { code: string; by: number | null } | null;
 }
 
 /**

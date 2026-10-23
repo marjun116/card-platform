@@ -95,6 +95,10 @@ model Table {
   /// Seats with a move to make, and since when. Kept up to date for turn nudges.
   toAct         Int[]       @default([])
   turnSince     DateTime?
+  /// The table started from this one with "Rematch", if any (cleared if it's deleted).
+  rematchId     String?     @unique
+  rematch       Table?      @relation("rematch", fields: [rematchId], references: [id], onDelete: SetNull)
+  rematchOf     Table?      @relation("rematch")
   host          User        @relation("host", fields: [hostId], references: [id])
   gameVersion   GameVersion @relation(fields: [gameVersionId], references: [id])
   seats         Seat[]

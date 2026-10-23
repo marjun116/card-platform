@@ -69,6 +69,8 @@ export interface Table {
   turnSince: Date | null;
   /** Filled seats, sorted by seat number. */
   seats: Seat[];
+  /** The table started from this one with "Rematch", while it still exists. */
+  rematch: { inviteCode: string; hostId: string } | null;
 }
 
 export interface Result {
@@ -187,6 +189,16 @@ export interface Store {
 
   // Tables
   createTable(data: NewTable): Promise<Table>;
+  /**
+   * A new table from a finished one ("Rematch"), with these users already in their
+   * seats, linked from the old table as its rematch. All or nothing. ConflictError
+   * if the invite code is taken or the old table already has a rematch.
+   */
+  createRematch(
+    fromId: string,
+    data: NewTable,
+    seats: { seat: number; userId: string }[],
+  ): Promise<Table>;
   getTable(id: string): Promise<Table | null>;
   getTableByInviteCode(code: string): Promise<Table | null>;
   /** Unfinished tables the user hosts or sits at, newest first. */

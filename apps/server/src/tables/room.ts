@@ -28,6 +28,7 @@ import {
 } from '@card-table/engine';
 import { builtInBots } from '@card-table/games';
 import type { WebSocket } from '@fastify/websocket';
+import { newInviteCode } from '../auth/tokens';
 import type { Deps } from '../deps';
 import { ConflictError, type GameVersion, type Table, type User } from '../store/types';
 import type { ClientMessage, ErrorCode, MessageId, ServerMessage, TableInfo } from './protocol';
@@ -271,6 +272,8 @@ export class TableRoom {
         return this.replaceWithBot(user, message.seat);
       case 'roundSeen':
         return this.roundSeen(user);
+      case 'rematch':
+        return this.rematch(user);
     }
   }
 
@@ -443,6 +446,41 @@ export class TableRoom {
       await this.dealWhenRead();
       this.broadcastTable();
     }
+  }
+
+  /**
+   * A new table from this one: same game and options, a new shuffle, everyone (bots
+   * too) already in the same seat, and whoever asked as host. It waits in its lobby,
+   * so anyone who doesn't want to play can stand up before the host starts it.
+   */
+  private async rematch(user: User): Promise<void> {
+    this.requireStatus('finished', 'A rematch can start once the game is over');
+    this.requireSeat(user);
+    // Fresh from the store: a rematch that has since been deleted doesn't count.
+    await this.reloadTable();
+    const { table } = this;
+    const seats = table.seats.map(({ seat, userId }) => ({ seat, userId }));
+    for (let attempt = 0; !this.table.rematch; attempt++) {
+      try {
+        await this.deps.store.createRematch(
+          table.id,
+          {
+            inviteCode: newInviteCode(),
+            hostId: user.id,
+            gameVersionId: table.gameVersionId,
+            options: table.options,
+            playerCount: table.playerCount,
+            seed: this.deps.newSeed(),
+          },
+          seats,
+        );
+      } catch (error) {
+        // A clashing invite code: try another. (Or someone else's rematch got there first.)
+        if (!(error instanceof ConflictError) || attempt >= 4) throw error;
+      }
+      await this.reloadTable();
+    }
+    this.broadcastTable();
   }
 
   private async nudge(user: User, target: number): Promise<void> {
@@ -686,6 +724,10 @@ export function tableInfo(
     }),
     botsAllowed: botFor(game) !== null,
     readingScores,
+    rematch: table.rematch && {
+      code: table.rematch.inviteCode,
+      by: table.seats.find((s) => s.userId === table.rematch?.hostId)?.seat ?? null,
+    },
   };
 }
 

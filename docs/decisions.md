@@ -1407,3 +1407,15 @@ build checklist, done before Phase 6.
     A round counts only when the player's team had a contract, so in bridge only the side
     that won the contract counts (decided by Arjun, 2026-10-23).
   - Biggest round: the most points one team scored in one round (the earliest, if level).
+- **Rematch: any seated player can start it**, and they host the new table (decided by
+  Arjun, 2026-10-23), so a game whose host has left can still have one. Only once the
+  game is finished, not when the host ended it early.
+- **The rematch waits in its lobby with everyone already in their old seats**, bots
+  included, with the same game version, the same options and a new shuffle. Anyone who
+  doesn't want to play can stand up; the host starts it as usual.
+- **One rematch per table.** The old table remembers its rematch (`Table.rematchId`), so
+  a second press joins the same one instead of making another. If the rematch table is
+  deleted, the link is cleared and a new one can be started.
+- **Everyone still on the results page is told** through the table info (`rematch`: the
+  new code and who started it): "Ana started a rematch" with a "Join the rematch" button.
+  Whoever pressed it is taken straight to the new lobby.

@@ -15,7 +15,8 @@ export function TablePage() {
   const { code = '' } = useParams();
   return (
     <RequireUser why="Pick a name to join this table">
-      <TableLoader code={code.toUpperCase()} />
+      {/* Keyed by the code, so going to another table (a rematch) starts afresh. */}
+      <TableLoader key={code.toUpperCase()} code={code.toUpperCase()} />
     </RequireUser>
   );
 }
@@ -113,7 +114,15 @@ function TableScreen({ code }: { code: string }) {
     table.status === 'abandoned' ||
     (table.status === 'finished' && (resultsShown || !watchedEnd))
   ) {
-    body = <GameOver table={table} game={game} over={snapshot.over} celebrate={watchedEnd} />;
+    body = (
+      <GameOver
+        table={table}
+        game={game}
+        over={snapshot.over}
+        celebrate={watchedEnd}
+        connection={connection}
+      />
+    );
   } else {
     body = (
       <TableView

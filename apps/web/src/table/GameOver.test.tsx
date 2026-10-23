@@ -1,7 +1,8 @@
 import type { TableInfo } from '@card-table/server/protocol';
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { useState } from 'react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { applyMove, type GameState } from '@card-table/engine';
 import { withZones } from '@card-table/engine/testing';
 import { counting, createGame, gameMessage } from '../test/games';
@@ -18,6 +19,7 @@ const table = {
   teams: null,
   status: 'finished',
   hostId: 'u0',
+  rematch: null,
   seats: [
     { seat: 0, user: { id: 'u0', displayName: 'Arjun' }, connected: true },
     { seat: 1, user: { id: 'u1', displayName: 'Ana' }, connected: true },
@@ -143,5 +145,66 @@ describe('GameOver', () => {
     expect(stats !== null).toBe(biggest);
     expect(screen.queryByRole('columnheader', { name: 'Tricks won' })).toBeNull();
     expect(screen.queryByRole('columnheader', { name: 'Bids made' })).toBeNull();
+  });
+
+  describe('rematch', () => {
+    let setInfo: (info: TableInfo) => void = () => undefined;
+
+    /** The results page with a connection, whose table info can change (as the server's does). */
+    function Harness({
+      game,
+      connection,
+    }: {
+      game: GameMessage;
+      connection: { send: () => Promise<void> };
+    }) {
+      const [info, set] = useState(table);
+      setInfo = set;
+      return <GameOver table={info} game={game} over={null} connection={connection} />;
+    }
+
+    function showWithConnection(game: GameMessage) {
+      const connection = { send: vi.fn(() => Promise.resolve()) };
+      const router = createMemoryRouter([
+        { path: '/', element: <Harness game={game} connection={connection} /> },
+        { path: '/t/:code', element: <p>The rematch lobby</p> },
+      ]);
+      render(<RouterProvider router={router} />);
+      return { connection, router };
+    }
+
+    it('asks for a rematch, then goes to its lobby', async () => {
+      const { over, winner } = finished();
+      const { connection, router } = showWithConnection(gameMessage(over, winner));
+      fireEvent.click(screen.getByRole('button', { name: 'Rematch' }));
+      // The server's ack.
+      await act(async () => {});
+      expect(connection.send).toHaveBeenCalledWith({ type: 'rematch' });
+      act(() => setInfo({ ...table, rematch: { code: 'AGAIN00001', by: winner } }));
+      expect(router.state.location.pathname).toBe('/t/AGAIN00001');
+      expect(screen.getByText('The rematch lobby')).toBeTruthy();
+    });
+
+    it('says when someone else started one, with a link to join', () => {
+      const { over, winner, loser } = finished();
+      showWithConnection(gameMessage(over, loser));
+      act(() => setInfo({ ...table, rematch: { code: 'AGAIN00001', by: winner } }));
+      expect(screen.getByRole('status').textContent).toBe(
+        `${['Arjun', 'Ana'][winner]} started a rematch, with everyone in the same seats.`,
+      );
+      const join = screen.getByRole('link', { name: 'Join the rematch' });
+      expect(join.getAttribute('href')).toBe('/t/AGAIN00001');
+      expect(screen.queryByRole('button', { name: 'Rematch' })).toBeNull();
+    });
+
+    it('offers none for a game the host ended, or without a connection', () => {
+      const { over, winner } = finished();
+      showOver(gameMessage(over, winner), { info: { ...table, status: 'abandoned' } });
+      expect(screen.queryByRole('button', { name: 'Rematch' })).toBeNull();
+      cleanup();
+      showOver(gameMessage(over, winner));
+      expect(screen.queryByRole('button', { name: 'Rematch' })).toBeNull();
+      expect(screen.getByRole('link', { name: 'Play Counting again' })).toBeTruthy();
+    });
   });
 });

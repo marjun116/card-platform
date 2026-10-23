@@ -20,7 +20,7 @@ import {
   type Variant,
 } from './types';
 
-type StoredTable = Omit<Table, 'seats'>;
+type StoredTable = Omit<Table, 'seats' | 'rematch'> & { rematchId: string | null };
 type StoredVariant = Omit<Variant, 'ownerName' | 'slug'>;
 interface StoredSeat {
   tableId: string;
@@ -193,9 +193,28 @@ export class MemoryStore implements Store {
       endedAt: null,
       toAct: [],
       turnSince: null,
+      rematchId: null,
     };
     this.tables.set(table.id, table);
     return Promise.resolve(this.withSeats(table));
+  }
+
+  async createRematch(
+    fromId: string,
+    data: NewTable,
+    seats: { seat: number; userId: string }[],
+  ): Promise<Table> {
+    const from = this.tables.get(fromId);
+    if (!from) throw new Error(`No table ${fromId}`);
+    if (from.rematchId !== null && this.tables.has(from.rematchId)) {
+      throw new ConflictError('The table already has a rematch');
+    }
+    const table = await this.createTable(data);
+    for (const { seat, userId } of seats) {
+      this.seats.push({ tableId: table.id, seat, userId, lastNudgeAt: null });
+    }
+    from.rematchId = table.id;
+    return this.withSeats(this.tables.get(table.id) as StoredTable);
   }
 
   getTable(id: string): Promise<Table | null> {
@@ -373,6 +392,12 @@ export class MemoryStore implements Store {
         isBot: this.users.get(s.userId)?.isBot ?? false,
         lastNudgeAt: s.lastNudgeAt,
       }));
-    return copy({ ...table, seats });
+    const { rematchId, ...rest } = table;
+    const rematch = rematchId === null ? undefined : this.tables.get(rematchId);
+    return copy({
+      ...rest,
+      seats,
+      rematch: rematch ? { inviteCode: rematch.inviteCode, hostId: rematch.hostId } : null,
+    });
   }
 }

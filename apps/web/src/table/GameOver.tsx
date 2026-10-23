@@ -1,12 +1,12 @@
 /**
  * The end of a game: who won (with confetti, if you watched it end), final
  * scores counting up, a podium for three or more teams, the game's stats,
- * the last round and every round.
+ * the last round and every round, and a rematch with everyone in the same seats.
  */
 import type { TableInfo } from '@card-table/server/protocol';
-import { useState } from 'react';
-import { Link } from 'react-router';
-import type { GameMessage, OverMessage } from './connection';
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router';
+import type { GameMessage, OverMessage, TableConnection } from './connection';
 import { Confetti } from './Confetti';
 import { CountUp } from './CountUp';
 import { type SeatInitials, seatInitials, teamColour } from './avatars';
@@ -28,12 +28,15 @@ export function GameOver({
   game,
   over,
   celebrate = false,
+  connection,
 }: {
   table: TableInfo;
   game: GameMessage;
   over: OverMessage | null;
   /** You watched the game end: confetti and scores counting up (not when looking back). */
   celebrate?: boolean;
+  /** To ask for a rematch (none: no rematch button). */
+  connection?: Pick<TableConnection, 'send'>;
 }) {
   const { view } = game;
   const names = seatNames(table, view.you);
@@ -46,6 +49,28 @@ export function GameOver({
   const lastRound = view.history[view.history.length - 1];
   // A round being played back with every hand face up.
   const [handsRound, setHandsRound] = useState<number | null>(null);
+
+  // Asking for a rematch takes you to its lobby once the server says where it is.
+  const navigate = useNavigate();
+  const rematch = table.rematch;
+  const canRematch = connection !== undefined && table.status === 'finished';
+  const [asked, setAsked] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [rematchError, setRematchError] = useState<string | null>(null);
+  const rematchCode = rematch?.code ?? null;
+  useEffect(() => {
+    if (asked && rematchCode) void navigate(`/t/${rematchCode}`);
+  }, [asked, rematchCode, navigate]);
+  const startRematch = () => {
+    if (!connection) return;
+    setAsking(true);
+    setRematchError(null);
+    connection
+      .send({ type: 'rematch' })
+      .then(() => setAsked(true))
+      .catch(() => setRematchError("Couldn't start a rematch. Try again."))
+      .finally(() => setAsking(false));
+  };
 
   // If you lost, a kind word first, then who won.
   let headline: string;
@@ -118,13 +143,36 @@ export function GameOver({
       </section>
 
       <p className="actions">
-        <Link to={`/games/${table.game.slug}/new`} className="button primary">
-          Play {table.game.name} again
+        {canRematch &&
+          (rematch ? (
+            <Link to={`/t/${rematch.code}`} className="button primary">
+              {rematch.by === view.you ? 'Go to the rematch' : 'Join the rematch'}
+            </Link>
+          ) : (
+            <button type="button" className="primary" disabled={asking} onClick={startRematch}>
+              Rematch
+            </button>
+          ))}
+        <Link
+          to={`/games/${table.game.slug}/new`}
+          className={`button${canRematch ? '' : ' primary'}`}
+        >
+          {canRematch ? 'New table' : `Play ${table.game.name} again`}
         </Link>
         <Link to="/" className="button">
           Home
         </Link>
       </p>
+      <p className="rematch-note" role="status">
+        {rematch &&
+          rematch.by !== view.you &&
+          `${rematch.by === null ? 'Someone' : names(rematch.by)} started a rematch, with everyone in the same seats.`}
+      </p>
+      {rematchError && (
+        <p role="alert" className="error">
+          {rematchError}
+        </p>
+      )}
 
       {view.history.length > 0 && <StatsPanel view={view} names={names} />}
 

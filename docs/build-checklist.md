@@ -422,7 +422,7 @@ never by a game's name, so custom games get them too. No sound.
       or more teams
 - [x] A kind message when you lose: "Good game" (no "best moment": left out by Arjun)
 - [x] Game stats: tricks won, bids made per player, the biggest round
-- [ ] Rematch: one button starts a new game with the same players in the same seats
+- [x] Rematch: one button starts a new game with the same players in the same seats
       (server: new table from an old one, everyone invited back)
 
 **Around the table**

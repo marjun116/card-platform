@@ -42,6 +42,7 @@ const table: TableInfo = {
   })),
   botsAllowed: true,
   readingScores: [],
+  rematch: null,
 };
 
 const rules =

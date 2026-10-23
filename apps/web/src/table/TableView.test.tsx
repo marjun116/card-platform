@@ -44,6 +44,7 @@ function tableInfo(players: number): TableInfo {
     })),
     botsAllowed: true,
     readingScores: [],
+    rematch: null,
   };
 }
 

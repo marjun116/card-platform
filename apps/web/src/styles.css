@@ -1924,6 +1924,13 @@ kbd {
   order: 3;
   min-height: 150px;
 }
+.rematch-note {
+  margin: 0;
+}
+.rematch-note:not(:empty) {
+  margin-bottom: 16px;
+  font-weight: 600;
+}
 .game-stats p {
   margin: 0.8em 0 0;
 }
