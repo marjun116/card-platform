@@ -1,11 +1,19 @@
-import type { TableInfo } from '@card-table/server/protocol';
-import { useState } from 'react';
+/**
+ * Before the game: the table drawn as a table, with its seats around the felt
+ * where they'll be once it starts (yours at the bottom) and team colours from
+ * the start. Empty seats pulse "Sit here". The invite link and house rules
+ * follow below.
+ */
+import type { SeatInfo, TableInfo } from '@card-table/server/protocol';
+import { type CSSProperties, useState } from 'react';
 import { RulesDialog } from '../components/Rules';
 import { rulebookReady, useRulebook } from '../useRulebook';
 import { SaveVariant } from '../components/Variants';
 import { optionText } from '../gameText';
+import { Avatar } from './Avatar';
+import { seatInitials, teamColour } from './avatars';
 import type { Outgoing, TableConnection } from './connection';
-import { humanize } from './zones';
+import { humanize, seatPosition } from './zones';
 
 /** Team number for a seat, if the game has teams. */
 function teamOf(table: Pick<TableInfo, 'teams'>, seat: number): number | null {
@@ -75,135 +83,138 @@ export function Lobby({
   };
 
   const allSeated = table.seats.every((s) => s.user !== null);
+  const filled = table.seats.filter((s) => s.user !== null).length;
+  const initials = seatInitials(table);
+
+  const seatButtons = (seat: SeatInfo) => {
+    const mine = seat.seat === mySeat;
+    return (
+      <>
+        {!seat.user && (
+          <button
+            type="button"
+            className="sit-here"
+            disabled={busy}
+            onClick={() =>
+              void (mySeat === null
+                ? run({ type: 'sit', seat: seat.seat })
+                : run({ type: 'stand' }, { type: 'sit', seat: seat.seat }))
+            }
+          >
+            {mySeat === null ? 'Sit here' : 'Move here'}
+          </button>
+        )}
+        {!seat.user && isHost && table.botsAllowed && (
+          <button
+            type="button"
+            className="small"
+            disabled={busy}
+            onClick={() => void run({ type: 'addBot', seat: seat.seat })}
+          >
+            Add bot
+          </button>
+        )}
+        {isHost && seat.bot && (
+          <button
+            type="button"
+            className="small"
+            disabled={busy}
+            onClick={() => void run({ type: 'removeBot', seat: seat.seat })}
+          >
+            Remove bot
+          </button>
+        )}
+        {mine && (
+          <button
+            type="button"
+            className="small"
+            disabled={busy}
+            onClick={() => void run({ type: 'stand' })}
+          >
+            Leave seat
+          </button>
+        )}
+        {isHost && seat.user && !mine && !seat.connected && (
+          <button
+            type="button"
+            className="small"
+            disabled={busy}
+            onClick={() => void run({ type: 'freeSeat', seat: seat.seat })}
+          >
+            Free seat
+          </button>
+        )}
+      </>
+    );
+  };
 
   return (
     <div className="page lobby">
       <h1>{table.game.name}</h1>
-      <div className="lobby-grid">
-        <section className="panel">
-          <h2>Invite players</h2>
-          <InviteLink code={table.code} />
-        </section>
-
-        <section className="panel">
-          <h2>Seats</h2>
+      <section
+        className={`lobby-table${table.playerCount >= 7 ? ' crowded' : ''}`}
+        aria-labelledby="lobby-seats"
+      >
+        <h2 id="lobby-seats" className="visually-hidden">
+          Seats
+        </h2>
+        <div className="lobby-centre">
+          <strong>{table.game.name}</strong>
+          <span>
+            {filled} of {table.playerCount} seats filled
+          </span>
           {table.teams && (
-            <p className="muted">
-              {table.teams
-                .map((team, i) => `Team ${i + 1} is seats ${team.map((s) => s + 1).join(' and ')}`)
-                .join('; ')}
-              .
-            </p>
-          )}
-          <ul className="seat-list">
-            {table.seats.map((seat) => {
-              const team = teamOf(table, seat.seat);
-              const mine = seat.seat === mySeat;
-              return (
-                <li key={seat.seat} className={mine ? 'mine' : undefined}>
-                  <span className="seat-number">
-                    Seat {seat.seat + 1}
-                    {team !== null && <span className="muted"> · Team {team + 1}</span>}
-                  </span>
-                  <span className="seat-name">
-                    {seat.user ? (
-                      <>
-                        <span
-                          className={`presence ${seat.connected ? 'on' : 'off'}`}
-                          role="img"
-                          aria-label={seat.connected ? 'here' : 'away'}
-                        />
-                        {seat.user.displayName}
-                        {mine && ' (you)'}
-                        {seat.bot && <span className="bot-badge">Bot</span>}
-                      </>
-                    ) : (
-                      <span className="muted">Empty</span>
-                    )}
-                  </span>
-                  <span className="seat-actions">
-                    {!seat.user && isHost && table.botsAllowed && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void run({ type: 'addBot', seat: seat.seat })}
-                      >
-                        Add bot
-                      </button>
-                    )}
-                    {isHost && seat.bot && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void run({ type: 'removeBot', seat: seat.seat })}
-                      >
-                        Remove bot
-                      </button>
-                    )}
-                    {!seat.user && mySeat === null && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void run({ type: 'sit', seat: seat.seat })}
-                      >
-                        Sit here
-                      </button>
-                    )}
-                    {!seat.user && mySeat !== null && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() =>
-                          void run({ type: 'stand' }, { type: 'sit', seat: seat.seat })
-                        }
-                      >
-                        Move here
-                      </button>
-                    )}
-                    {mine && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void run({ type: 'stand' })}
-                      >
-                        Leave seat
-                      </button>
-                    )}
-                    {isHost && seat.user && !mine && !seat.connected && (
-                      <button
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void run({ type: 'freeSeat', seat: seat.seat })}
-                      >
-                        Free seat
-                      </button>
-                    )}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        {Object.keys(table.options).length > 0 && (
-          <section className="panel">
-            <h2>House rules</h2>
-            <dl className="options">
-              {Object.entries(table.options).map(([name, value]) => (
-                <div key={name}>
-                  <dt>{optionDefs?.[name]?.label ?? humanize(name)}</dt>
-                  <dd>{optionText(value, optionDefs?.[name])}</dd>
-                </div>
+            <span className="lobby-teams">
+              {table.teams.map((team, i) => (
+                <span key={i} style={{ '--team': teamColour(i) } as CSSProperties}>
+                  Team {i + 1}: seats {team.map((s) => s + 1).join(' & ')}
+                </span>
               ))}
-            </dl>
-            <SaveVariant
-              game={table.game.slug}
-              options={table.options}
-              playerCount={table.playerCount}
-            />
-          </section>
-        )}
-      </div>
+            </span>
+          )}
+        </div>
+        <ul className="lobby-seats">
+          {table.seats.map((seat) => {
+            const team = teamOf(table, seat.seat);
+            const mine = seat.seat === mySeat;
+            // Where the seat will be at the table, with yours (or the first) at the bottom.
+            const { x, y } = seatPosition(seat.seat, mySeat ?? 0, table.playerCount);
+            return (
+              <li
+                key={seat.seat}
+                className={`lobby-seat${seat.user ? '' : ' empty'}${mine ? ' mine' : ''}`}
+                style={
+                  { '--x': x, '--y': y, '--team': teamColour(team ?? seat.seat) } as CSSProperties
+                }
+              >
+                <span className="seat-number">
+                  Seat {seat.seat + 1}
+                  {team !== null && <> · Team {team + 1}</>}
+                </span>
+                {seat.user ? (
+                  <span className="lobby-player">
+                    <Avatar initials={initials(seat.seat)} team={team ?? seat.seat}>
+                      <span
+                        className={`presence ${seat.connected ? 'on' : 'off'}`}
+                        role="img"
+                        aria-label={seat.connected ? 'here' : 'away'}
+                      />
+                    </Avatar>
+                    <span className="seat-name">
+                      {seat.user.displayName}
+                      {mine && ' (you)'}
+                    </span>
+                    {seat.bot && <span className="bot-badge">Bot</span>}
+                  </span>
+                ) : (
+                  <span className="visually-hidden">Empty</span>
+                )}
+                <span className="seat-actions">{seatButtons(seat)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      </section>
 
       {error && (
         <p role="alert" className="error">
@@ -231,6 +242,33 @@ export function Lobby({
           Rules
         </button>
       </div>
+
+      <div className="lobby-grid">
+        <section className="panel">
+          <h2>Invite players</h2>
+          <InviteLink code={table.code} />
+        </section>
+
+        {Object.keys(table.options).length > 0 && (
+          <section className="panel">
+            <h2>House rules</h2>
+            <dl className="options">
+              {Object.entries(table.options).map(([name, value]) => (
+                <div key={name}>
+                  <dt>{optionDefs?.[name]?.label ?? humanize(name)}</dt>
+                  <dd>{optionText(value, optionDefs?.[name])}</dd>
+                </div>
+              ))}
+            </dl>
+            <SaveVariant
+              game={table.game.slug}
+              options={table.options}
+              playerCount={table.playerCount}
+            />
+          </section>
+        )}
+      </div>
+
       {/* The rules are loaded with the lobby; if they're still on their way, the pop-up
           opens as soon as they arrive rather than empty. */}
       {showRules && rulebookReady(book) && (

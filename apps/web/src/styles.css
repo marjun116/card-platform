@@ -432,7 +432,6 @@ kbd {
 
 .card-list,
 .game-grid,
-.seat-list,
 .standings {
   list-style: none;
   padding: 0;
@@ -643,6 +642,181 @@ kbd {
 
 /* ---- lobby ---- */
 
+/* The lobby drawn as a table: the felt (as at the table, see .felt) with the seats around
+   it where they'll be once the game starts (positions from seatPosition()). */
+.lobby-table {
+  position: relative;
+  min-height: 460px;
+  margin: 0 0 16px;
+  border: var(--rail-w) solid transparent;
+  border-radius: 160px / 110px;
+  background:
+    radial-gradient(ellipse 55% 50% at 50% 48%, var(--felt-light), transparent 75%) padding-box,
+    radial-gradient(ellipse at center, var(--felt) 45%, var(--felt-edge)) padding-box,
+    linear-gradient(160deg, var(--rail-light), var(--rail) 45%, var(--rail-dark)) border-box;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.35),
+    0 6px 16px rgb(0 0 0 / 0.25),
+    inset 0 0 28px rgb(0 0 0 / 0.4);
+}
+.lobby-table.crowded {
+  min-height: 540px;
+}
+.lobby-centre {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  color: var(--felt-text);
+  max-width: 40%;
+}
+.lobby-centre strong {
+  font-family: var(--display);
+  font-size: 1.6rem;
+}
+.lobby-teams {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.85rem;
+}
+.lobby-teams span::before {
+  content: '';
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  margin-right: 0.35em;
+  border-radius: 50%;
+  background: var(--team);
+  vertical-align: -0.05em;
+}
+.lobby-seats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lobby-seat {
+  position: absolute;
+  left: clamp(90px, calc(var(--x) * 1%), calc(100% - 90px));
+  top: clamp(56px, calc(var(--y) * 1%), calc(100% - 56px));
+  transform: translate(-50%, -50%);
+  width: 170px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px 10px;
+  text-align: center;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-top: 5px solid var(--team);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+}
+.lobby-table.crowded .lobby-seat {
+  width: 140px;
+}
+.lobby-seat.mine {
+  box-shadow:
+    0 0 0 2px var(--team),
+    0 2px 6px rgb(0 0 0 / 0.3);
+}
+/* An empty seat: see-through, edged in its team's colour. */
+.lobby-seat.empty {
+  background: rgb(255 255 255 / 0.12);
+  color: var(--felt-text);
+  border: 2px dashed color-mix(in srgb, var(--team) 60%, white);
+  border-top-width: 5px;
+  box-shadow: none;
+}
+.lobby-seat .seat-number {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+.lobby-player {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  font-weight: 600;
+}
+.lobby-seat .seat-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+.lobby-seat .seat-actions:empty {
+  display: none;
+}
+/* "Sit here" gently pulses, so it's clear where to go. */
+.sit-here {
+  animation: sit-pulse 1.8s ease-in-out infinite;
+}
+@keyframes sit-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(240 180 0 / 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgb(240 180 0 / 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sit-here {
+    animation: none;
+    box-shadow: 0 0 0 2px var(--playable);
+  }
+}
+:root[data-motion='off'] .sit-here {
+  animation: none;
+  box-shadow: 0 0 0 2px var(--playable);
+}
+/* Phones: the felt becomes a band at the top, and the seats a grid of cards below it. */
+@media (max-width: 700px) {
+  .lobby-table,
+  .lobby-table.crowded {
+    min-height: 0;
+    padding: 72px 10px 12px;
+    border-radius: 60px / 40px;
+  }
+  .lobby-centre {
+    top: 12px;
+    transform: translateX(-50%);
+    max-width: 90%;
+  }
+  .lobby-centre strong {
+    font-size: 1.2rem;
+  }
+  .lobby-teams {
+    flex-direction: row;
+    gap: 10px;
+  }
+  .lobby-table:has(.lobby-teams) {
+    padding-top: 96px;
+  }
+  .lobby-seats {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  /* The same height filled or empty, so taking a seat doesn't move the others. */
+  .lobby-seat,
+  .lobby-table.crowded .lobby-seat {
+    position: static;
+    transform: none;
+    width: auto;
+    min-height: 104px;
+    justify-content: center;
+  }
+}
+
 .invite {
   display: flex;
   flex-wrap: wrap;
@@ -658,42 +832,6 @@ kbd {
 .code {
   font-family: ui-monospace, monospace;
   letter-spacing: 0.08em;
-}
-.seat-list li {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  column-gap: 0.5em;
-  padding: 0.5em 0;
-  border-top: 1px solid var(--border);
-}
-.seat-list li.mine {
-  font-weight: 600;
-}
-/* The seat number sits in a small line above the name, so the buttons get the rest of
-   the row and fit inside the panel even at its narrowest. */
-.seat-list .seat-number {
-  grid-column: 1;
-  grid-row: 1;
-  font-size: 0.85rem;
-}
-.seat-list .seat-name {
-  grid-column: 1;
-  grid-row: 2;
-}
-/* Every seat row is the same height, whatever it holds, so adding a bot or taking a seat
-   never changes the list's height (and nothing below it jumps). The buttons stay on one
-   line; a long name is cut short instead. Wrapping is only a fallback for a panel too
-   narrow for two buttons. */
-.seat-actions {
-  grid-column: 2;
-  grid-row: 1 / 3;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4em;
-  justify-content: end;
-  align-items: center;
-  min-height: 40px;
 }
 .seat-actions button {
   white-space: nowrap;

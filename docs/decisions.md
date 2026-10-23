@@ -1450,3 +1450,10 @@ build checklist, done before Phase 6.
   and a colour picked from the game's slug. Every built-in game sets all three.
 - **Home's "Start a game" shows every game as a compact tile**, one tap to a new table;
   the games list keeps the full tiles, with house rules and the Rules link.
+- **The lobby is drawn as the table it will become:** the felt with the seats around it,
+  placed where they'll be once the game starts (your seat, or seat 1 if you have none, at
+  the bottom), each edged in its team's colour from the start (a seat's own colour in
+  games without teams). Empty seats pulse "Sit here" or "Move here" (a steady ring with
+  "reduce motion" or animation speed off). The host's bot and seat buttons are on each
+  seat. On phones the felt becomes a band at the top and the seats a two-column grid.
+  The invite link and house rules follow below the start button.

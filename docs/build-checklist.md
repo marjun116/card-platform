@@ -432,7 +432,7 @@ never by a game's name, so custom games get them too. No sound.
 
 - [x] Game tiles on Home and Library: an accent colour per game, a small fan of real cards,
       chips for player count and typical length
-- [ ] Lobby drawn as a table: seats around it, empty ones gently pulsing "Sit here", team
+- [x] Lobby drawn as a table: seats around it, empty ones gently pulsing "Sit here", team
       colours shown before the game starts
 - [x] Setting for animation speed (normal, fast, off), saved in the browser
 - [ ] Quick reactions: a fixed set (👍 😮 😂 GG), shown as bubbles at the seat; no free
