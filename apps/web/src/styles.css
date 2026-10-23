@@ -1707,18 +1707,89 @@ kbd {
     --card-w: 62px;
   }
 }
-/* One small button tall, so buttons appearing in it (Continue, See results) don't move
-   your hand. */
-.status-line {
+/* Your hand area: what's happening on top, centred; then your seat card, your cards in
+   the middle (centred, as if you're holding them) and the React button. The side
+   columns are the same width, so the cards sit in the true middle of the table. */
+.you-message {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 10px;
+  /* One small button tall, so Continue or See results appearing doesn't move your hand. */
   min-height: 32px;
+  text-align: center;
 }
-.status-line > .avatar {
-  --size: 1.7rem;
-  margin-right: 0.5em;
+.turn-pill {
+  padding: 0.2em 0.9em;
+  border-radius: 999px;
+  background: var(--playable);
+  color: #1d1d1b;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+}
+.you-waiting {
+  font-weight: 600;
+  color: var(--felt-muted);
+}
+.you-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) minmax(0, max-content) minmax(130px, 1fr);
+  align-items: end;
+  gap: 8px;
+}
+.your-seat {
+  align-self: center;
+  justify-self: start;
+  max-width: 100%;
+  padding: 0.45em 0.7em;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.28);
+}
+.your-seat-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.45em;
+}
+.your-seat-head > .avatar {
+  --size: 1.9rem;
   box-shadow: none;
 }
-.status-line button {
-  vertical-align: middle;
+.your-facts {
+  list-style: none;
+  margin: 0.35em 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 0.8rem;
+}
+.your-facts li {
+  padding: 0 0.55em;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.14);
+  white-space: nowrap;
+}
+.your-cards {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+/* Centred, but a hand too wide to fit still scrolls from its first card. */
+.your-cards .hand > :first-child {
+  margin-left: auto;
+}
+.your-cards .hand > :last-child {
+  margin-right: auto;
+}
+.your-cards .group-summary,
+.your-cards .action-row {
+  justify-content: center;
+}
+.your-react {
+  align-self: center;
+  justify-self: end;
 }
 /* Your turn: your edge of the table glows gold and breathes, like an active seat: along
    the rail at the sides and bottom of your part, never across the felt. */
@@ -1742,12 +1813,6 @@ kbd {
   50% {
     box-shadow: 0 0 18px 3px rgb(240 180 0 / 0.65);
   }
-}
-.you-area.your-turn .status-line strong {
-  background: var(--playable);
-  color: #1d1d1b;
-  padding: 0 0.4em;
-  border-radius: 4px;
 }
 .your-zones {
   display: flex;
@@ -2496,6 +2561,31 @@ kbd {
     border-bottom-left-radius: 0;
     border-bottom-right-radius: 0;
   }
+  /* Phones: your seat card and the React button share a row, your cards below them. */
+  .you-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'seat react'
+      'cards cards';
+    align-items: center;
+  }
+  .your-seat {
+    grid-area: seat;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    padding: 0.3em 0.55em;
+  }
+  .your-facts {
+    margin: 0;
+  }
+  .your-cards {
+    grid-area: cards;
+  }
+  .your-react {
+    grid-area: react;
+  }
   /* The same thinner rail and smaller corners as the table on phones. */
   .you-area {
     --rail-w: 6px;
@@ -2685,23 +2775,20 @@ kbd {
 .felt.many .seat.has-effects:not(.open) {
   z-index: 2;
 }
-/* Yours start from your avatar at the start of the status line. */
-.status-line {
-  position: relative;
-}
-.status-line > .seat-effects {
+/* Yours start from your avatar on your seat card. */
+.your-seat-head > .seat-effects {
   right: auto;
-  width: 1.7rem;
+  width: 1.9rem;
 }
-/* Your avatar is at the left edge of the screen, so your bubble opens to its right
+/* Your seat card is at the left edge of the table, so your bubble opens to its right
    (centred like the others, a wide one ran off the screen), its tail on the avatar. */
-.status-line > .seat-effects .speech {
+.your-seat-head > .seat-effects .speech {
   --speech-shift: 0%;
   left: 0;
-  transform-origin: 0.85rem calc(100% + 10px);
+  transform-origin: 0.95rem calc(100% + 10px);
 }
-.status-line > .seat-effects .speech::after {
-  left: 0.85rem;
+.your-seat-head > .seat-effects .speech::after {
+  left: 0.95rem;
 }
 .speech {
   position: absolute;
@@ -3009,21 +3096,101 @@ kbd {
   animation: none;
 }
 
-/* Quick reactions: the React button at the end of your status line, opening four. */
+/* Quick reactions: a round smiley in your corner of the table, opening a bubble of four.
+   While it rests between reactions it dims, with a ring filling in round it. */
 .reactions {
-  margin-left: auto;
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
+  position: relative;
+  display: inline-block;
 }
-.reaction-choices {
-  display: inline-flex;
-  gap: 4px;
+.react-button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-height: 0;
+  padding: 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--felt-text);
+  background: rgb(0 0 0 / 0.28);
+  border: 1px solid rgb(255 255 255 / 0.25);
+}
+.react-button:hover:not(:disabled),
+.react-button[aria-expanded='true'] {
+  background: rgb(0 0 0 / 0.42);
+  border-color: var(--playable);
+}
+.react-button.resting {
+  opacity: 0.55;
+}
+.react-button.resting::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  border: 2px solid var(--playable);
+  animation: react-rest 3s linear both;
+}
+@keyframes react-rest {
+  from {
+    clip-path: polygon(50% 50%, 50% 0, 50% 0, 50% 0, 50% 0, 50% 0);
+  }
+  25% {
+    clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 50%, 100% 50%, 100% 50%);
+  }
+  50% {
+    clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 50% 100%, 50% 100%);
+  }
+  75% {
+    clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 50%);
+  }
+  to {
+    clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .react-button.resting::after {
+    display: none;
+  }
+}
+:root[data-motion='off'] .react-button.resting::after {
+  display: none;
+}
+.reaction-bubble {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 10px);
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.35);
+  z-index: 5;
+}
+.reaction-bubble::after {
+  content: '';
+  position: absolute;
+  right: 16px;
+  top: 100%;
+  border: 7px solid transparent;
+  border-top-color: #fff;
 }
 .reaction-choice {
-  min-width: 40px;
-  font-size: 1.05rem;
+  width: 40px;
+  height: 40px;
+  min-height: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #1d1d1b;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+.reaction-choice:hover,
+.reaction-choice:focus-visible {
+  background: #f1ead9;
 }
 .speech.reaction {
   font-size: 1.3rem;

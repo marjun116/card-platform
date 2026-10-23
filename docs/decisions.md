@@ -1526,3 +1526,20 @@ build checklist, done before Phase 6.
   darkening only toward the table's outer edges, with no line between them. The rail's
   grain and shading run left to right, so the two rails line up. On your turn the glow
   runs along the rail at the sides and bottom of your part only, never across the felt.
+
+## 2026-10-23: Your hand area, reworked
+
+- **Your cards are centred**, as if you're holding them, with the buttons for them
+  centred underneath. The columns either side are the same width, so the cards sit in
+  the true middle of the table; a hand too wide to fit still scrolls from its first card.
+- **What's happening goes in one spot above your cards:** a gold "Your turn: …" pill on
+  your turn; otherwise who you're waiting for, the paused note, the round's Show scores
+  and Continue buttons, See results, and the "From Raj" note for cards passed to you.
+- **Your own seat card** on the left, like the others round the table: your avatar and
+  short chips (Dealer, Bid 3, Won 2 or Taken 9, Pass to Ana, Raj passes to you, Cards
+  face down, Played by Sam). Your speech bubbles open from its avatar.
+- **The React button is a round smiley icon** (drawn, so it looks the same on every
+  device) opening a bubble of the four reactions; it closes on a choice, Escape or a tap
+  elsewhere, then dims with a ring filling in while it rests (no ring with "reduce
+  motion" or animation speed off). On phones the seat card and React button share a row
+  above your cards.

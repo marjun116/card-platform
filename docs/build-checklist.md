@@ -378,7 +378,7 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       cornered block of plain page colour (without the linen pattern around it), and on
       your turn a straight yellow line pulses along its top edge. It doesn't match the
       table or the panels beside it.
-- [ ] **Table: rework the text and React button in your hand area.** The status line
+- [x] **Table: rework the text and React button in your hand area.** The status line
       above your cards (your turn prompt, dealer, bid, tricks, pass and "From Raj" notes)
       and the React button at its end should be reworked. To be designed: what's said
       there, how it's laid out, and where the React button goes.

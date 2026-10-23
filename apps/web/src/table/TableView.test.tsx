@@ -78,6 +78,11 @@ function show(
 }
 
 const hand = () => within(screen.getByRole('group', { name: /^Your hand/ }));
+/** The chips on your own seat card, under your avatar. */
+const yourFacts = () =>
+  within(screen.getByRole('region', { name: 'Your seat' }))
+    .queryAllByRole('listitem')
+    .map((li) => li.textContent);
 
 /** The first legal move of whoever is to act. */
 function firstMove(state: GameState): Move {
@@ -215,10 +220,10 @@ describe('TableView', () => {
     const dealer = screen.getByRole('region', { name: `${NAMES[state.dealer]}, dealer` });
     expect(dealer.classList.contains('dealer')).toBe(true);
     expect(within(dealer).getByText('Dealer').className).toBe('dealer-tag');
-    expect(screen.queryByText(/You're the dealer/)).toBeNull();
+    expect(yourFacts()).not.toContain('Dealer');
     cleanup();
     show(state, state.dealer);
-    expect(screen.getByText(/You're the dealer\./)).toBeTruthy();
+    expect(yourFacts()).toContain('Dealer');
   });
 
   it('lets you hide the round scores to look at the table, then show them or carry on', () => {
@@ -327,9 +332,9 @@ describe('TableView', () => {
     // Round 1 passes left, so to the next seat; the seat before passes to you.
     const to = NAMES[(seat + 1) % 4];
     expect(screen.getByText(new RegExp(`Choose 3 cards to pass to ${to}`))).toBeTruthy();
-    expect(
-      screen.getByText(new RegExp(`You pass to ${to}; ${NAMES[(seat + 3) % 4]} passes to you`)),
-    ).toBeTruthy();
+    expect(yourFacts()).toEqual(
+      expect.arrayContaining([`Pass to ${to}`, `${NAMES[(seat + 3) % 4]} passes to you`]),
+    );
     const target = gameMessage(state, seat).legalMoves[0] as Extract<Move, { type: 'pass' }>;
     const buttons = hand().getAllByRole('button');
     for (const id of target.cards) {
@@ -496,7 +501,7 @@ describe('TableView', () => {
     expect(sam?.querySelector('.avatar-letters')?.getAttribute('aria-hidden')).toBe('true');
     expect(within(sam as HTMLElement).getByRole('img', { name: 'here' })).toBeTruthy();
     // Your own avatar uses your name, not "You".
-    expect(document.querySelector('.status-line .avatar')?.textContent).toBe('A');
+    expect(document.querySelector('.your-seat .avatar')?.textContent).toBe('A');
   });
 
   it('keeps the space under the hand, and puts focus back on the card after Clear', () => {
@@ -759,7 +764,7 @@ describe('a hand played by another seat (bridge-style dummy)', () => {
   it('tells the dummy who is playing their cards, and offers them nothing', () => {
     const { state, declarer, dummy } = atDummysTurn();
     show(state, dummy);
-    expect(screen.getByText(new RegExp(`${NAMES[declarer]} is playing your cards`))).toBeTruthy();
+    expect(yourFacts()).toContain(`Played by ${NAMES[declarer]}`);
     expect(screen.getByText(/^Waiting for/)).toBeTruthy();
   });
 
@@ -821,6 +826,19 @@ describe('bots at the table', () => {
   });
 });
 
+describe('your hand area', () => {
+  it('says "your turn" in a gold pill, only on your turn', () => {
+    const state = createGame(spades, {}, 4, 'view-pill');
+    const seat = state.cursor.current;
+    show(state, seat);
+    expect(document.querySelector('.turn-pill')?.textContent).toMatch(/^Your turn/);
+    cleanup();
+    show(state, (seat + 1) % 4);
+    expect(document.querySelector('.turn-pill')).toBeNull();
+    expect(document.querySelector('.you-waiting')?.textContent).toMatch(/^Waiting for/);
+  });
+});
+
 describe('quick reactions', () => {
   it('sends one from the React button, then rests a moment', () => {
     const { connection } = show(createGame(spades, {}, 4, 'view-react'), 0);
@@ -836,6 +854,15 @@ describe('quick reactions', () => {
     expect(connection.send).toHaveBeenCalledWith({ type: 'react', reaction: 'laugh' });
     expect(screen.queryByRole('group', { name: 'Reactions' })).toBeNull();
     expect(screen.getByRole('button', { name: 'React' })).toHaveProperty('disabled', true);
+  });
+
+  it('closes the reactions on Escape, without sending one', () => {
+    const { connection } = show(createGame(spades, {}, 4, 'view-react-escape'), 0);
+    fireEvent.click(screen.getByRole('button', { name: 'React' }));
+    expect(screen.getByRole('group', { name: 'Reactions' })).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('group', { name: 'Reactions' })).toBeNull();
+    expect(connection.send).not.toHaveBeenCalled();
   });
 
   it("shows a reaction at the player's seat and tells screen readers", () => {
@@ -881,7 +908,7 @@ describe("the game's own seat values", () => {
       />,
     );
     expect(screen.queryByText(/You've won/)).toBeNull();
-    expect(screen.getByText(/Taken: 0\./)).toBeTruthy();
+    expect(yourFacts()).toEqual(['Taken 0']);
     const sam = screen.getByRole('region', { name: /^Sam/ });
     expect(within(sam).getAllByText(/Taken 6/).length).toBeGreaterThan(0);
     expect(within(sam).queryByText(/^Won /)).toBeNull();

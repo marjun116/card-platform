@@ -5,7 +5,7 @@
  */
 import type { Card as CardData, Move, Suit } from '@card-table/engine';
 import type { ErrorCode, Reaction, TableInfo } from '@card-table/server/protocol';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Menu, type MenuItem } from '../components/Menu';
 import { RulesDialog } from '../components/Rules';
@@ -75,35 +75,64 @@ function TrumpBadge({ suit }: { suit: Suit }) {
   );
 }
 
-/** The React button and, once pressed, the four reactions to choose from. */
+/** A smiley face, drawn so it looks the same everywhere (an emoji varies by device). */
+function SmileIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="8.8" cy="10" r="1.3" fill="currentColor" />
+      <circle cx="15.2" cy="10" r="1.3" fill="currentColor" />
+      <path
+        d="M7.8 14.2c1 1.6 2.5 2.4 4.2 2.4s3.2-.8 4.2-2.4"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * The React button: a round smiley that opens a bubble of the four reactions. It closes
+ * on a choice, Escape or a tap elsewhere, then rests a few seconds (as the server
+ * allows), with a ring filling in round it.
+ */
 function Reactions({ onReact }: { onReact: (reaction: Reaction) => void }) {
   const [open, setOpen] = useState(false);
-  // One every few seconds, as the server allows.
   const [resting, setResting] = useState(false);
+  const root = useRef<HTMLSpanElement>(null);
   useEffect(() => {
     if (!resting) return;
     const timer = setTimeout(() => setResting(false), REACTION_COOLDOWN);
     return () => clearTimeout(timer);
   }, [resting]);
+  useEffect(() => {
+    if (!open) return;
+    const away = (event: PointerEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', away);
+    document.addEventListener('keydown', escape);
+    return () => {
+      document.removeEventListener('pointerdown', away);
+      document.removeEventListener('keydown', escape);
+    };
+  }, [open]);
   return (
-    <span className="reactions">
-      <button
-        type="button"
-        className="small"
-        aria-expanded={open}
-        disabled={resting}
-        onClick={() => setOpen(!open)}
-      >
-        React
-      </button>
+    <span className="reactions" ref={root}>
       {open && (
-        <span role="group" aria-label="Reactions" className="reaction-choices">
+        <span role="group" aria-label="Reactions" className="reaction-bubble">
           {REACTION_CHOICES.map((reaction) => (
             <button
               key={reaction}
               type="button"
-              className="small reaction-choice"
+              className="reaction-choice"
               aria-label={REACTION_LOOK[reaction].said}
+              title={REACTION_LOOK[reaction].said}
               onClick={() => {
                 onReact(reaction);
                 setOpen(false);
@@ -115,6 +144,17 @@ function Reactions({ onReact }: { onReact: (reaction: Reaction) => void }) {
           ))}
         </span>
       )}
+      <button
+        type="button"
+        className={`react-button${resting ? ' resting' : ''}`}
+        aria-label="React"
+        aria-expanded={open}
+        title="React"
+        disabled={resting}
+        onClick={() => setOpen(!open)}
+      >
+        <SmileIcon />
+      </button>
     </span>
   );
 }
@@ -300,6 +340,19 @@ export function TableView({
           : dealWaiting
             ? 'The next hand is dealt once everyone has closed the round scores.'
             : `Waiting for ${toAct.map(names).join(', ') || 'the next round'}…`;
+
+  // Your seat's details, as short chips like the other seats show.
+  const me = view.players[view.you];
+  const yourFacts = [
+    view.dealer === view.you ? 'Dealer' : null,
+    myBid != null ? `Bid ${bidWords(myBid, view.bidLabels)}` : null,
+    showTricks && me ? `Won ${me.tricks}` : null,
+    ...(me?.shown ?? []).map(({ label, value }) => `${label} ${String(value)}`),
+    view.passing ? `Pass to ${names(view.passing.to)}` : null,
+    view.passing && view.passing.from !== null ? `${names(view.passing.from)} passes to you` : null,
+    layout.hand?.view.kind === 'count' ? 'Cards face down' : null,
+    view.control?.seat === view.you ? `Played by ${names(view.control.by)}` : null,
+  ].filter((fact): fact is string => fact !== null);
 
   const others = view.players.filter((p) => p.id !== view.you);
   // A finished trick stays on the table until the next one starts, so everyone can see
@@ -572,42 +625,31 @@ export function TableView({
             ))}
           </div>
         )}
-        <div className="status-line">
-          <Avatar initials={initials(view.you)} team={view.players[view.you]?.team ?? view.you} />
-          <SeatEffects events={eventsAt(view.you)} />
+        {/* What's happening, centred over your cards: your turn (a gold pill), who
+            you're waiting for, the round's buttons, and cards just passed to you. */}
+        <div className="you-message">
           {hiddenScores ? (
             <>
-              <strong>Round {hiddenScores.round} is over.</strong>{' '}
+              <strong>Round {hiddenScores.round} is over.</strong>
               <button type="button" className="small" onClick={() => setHiddenRound(null)}>
                 Show scores
-              </button>{' '}
+              </button>
               <button type="button" className="small primary" onClick={closeScores}>
                 Continue
               </button>
             </>
           ) : (
             <>
-              <strong>{status}</strong>
+              <strong className={yourTurn && !paused ? 'turn-pill' : 'you-waiting'}>
+                {status}
+              </strong>
               {over && onShowResults && (
-                <>
-                  {' '}
-                  <button type="button" className="small primary" onClick={onShowResults}>
-                    See results
-                  </button>
-                </>
+                <button type="button" className="small primary" onClick={onShowResults}>
+                  See results
+                </button>
               )}
             </>
           )}
-          <span className="muted">
-            {view.dealer === view.you && " You're the dealer."}
-            {layout.hand?.view.kind === 'count' && ' Your cards are face down.'}
-            {myBid != null && <SuitText text={` Your bid: ${bidWords(myBid, view.bidLabels)}.`} />}
-            {view.control?.seat === view.you && ` ${names(view.control.by)} is playing your cards.`}
-            {view.passing &&
-              ` You pass to ${names(view.passing.to)}${view.passing.from === null ? '' : `; ${names(view.passing.from)} passes to you`}.`}
-            {showTricks && ` You've won ${view.players[view.you]?.tricks ?? 0}.`}
-            {view.players[view.you]?.shown.map((s) => ` ${s.label}: ${String(s.value)}.`)}
-          </span>
           {/* Screen readers hear this in the announcement and on each card. */}
           {received && (
             <span className="received-note" aria-hidden="true">
@@ -615,36 +657,62 @@ export function TableView({
               <RichLine line={received.cards.flatMap((card) => [' ', { card }])} />
             </span>
           )}
-          {!over && <Reactions onReact={(r) => send({ type: 'react', reaction: r })} />}
         </div>
-        <GroupSummary arrangement={arrangement} />
-        <Hand
-          zone={layout.hand?.view ?? null}
-          controls={controls}
-          arrangement={arrangement}
-          trump={view.trump}
-          sortSuits={view.sortSuits}
-          seat={view.you}
-          received={received}
-          selected={selected}
-          onPress={press}
-          onClear={() => setSelection({ seq, cards: [] })}
-        />
-        {moveError && (
-          <p role="alert" className="error">
-            {moveError}
-          </p>
-        )}
-        <HandActions
-          controls={controls}
-          arrangement={arrangement}
-          selected={selected}
-          names={names}
-          busy={busy}
-          onMove={act}
-          onClear={clearFromButton}
-          passTo={view.passing?.to ?? null}
-        />
+        <div className="you-row">
+          {/* Your seat, like the others round the table. */}
+          <section className="your-seat" aria-label="Your seat">
+            <span className="your-seat-head">
+              <Avatar
+                initials={initials(view.you)}
+                team={view.players[view.you]?.team ?? view.you}
+              />
+              <SeatEffects events={eventsAt(view.you)} />
+              <strong>You</strong>
+            </span>
+            {yourFacts.length > 0 && (
+              <ul className="your-facts">
+                {yourFacts.map((fact) => (
+                  <li key={fact}>
+                    <SuitText text={fact} />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <div className="your-cards">
+            <GroupSummary arrangement={arrangement} />
+            <Hand
+              zone={layout.hand?.view ?? null}
+              controls={controls}
+              arrangement={arrangement}
+              trump={view.trump}
+              sortSuits={view.sortSuits}
+              seat={view.you}
+              received={received}
+              selected={selected}
+              onPress={press}
+              onClear={() => setSelection({ seq, cards: [] })}
+            />
+            {moveError && (
+              <p role="alert" className="error">
+                {moveError}
+              </p>
+            )}
+            <HandActions
+              controls={controls}
+              arrangement={arrangement}
+              selected={selected}
+              names={names}
+              busy={busy}
+              onMove={act}
+              onClear={clearFromButton}
+              passTo={view.passing?.to ?? null}
+            />
+          </div>
+          <div className="your-react">
+            {!over && <Reactions onReact={(r) => send({ type: 'react', reaction: r })} />}
+          </div>
+        </div>
       </div>
 
       <div className="visually-hidden" aria-live="polite">
