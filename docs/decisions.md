@@ -1480,3 +1480,13 @@ build checklist, done before Phase 6.
   out the laptop's own `localhost` tab. Production still accepts only `PUBLIC_URL`.
 - **Clearer connection errors are planned for Launch prep (Phase 8)**, not now (decided by
   Arjun, 2026-10-23).
+
+## 2026-10-23: More UI polish (planned)
+
+- **Past games** (chosen by Arjun): filters by game and by outcome, grouping by date,
+  richer rows like the results page, and "Play again with these players". Filtering by
+  who played and fuller stats (win rate, streaks) wait until people have more history.
+  The server does the filtering, since the list loads a page at a time.
+- **Page background** (chosen by Arjun): warm linen with a very faint ♠ ♥ ♦ ♣ pattern,
+  over a soft green wash, a dark card-room look (too close to a casino for a points-only
+  site) or corner card motifs (busier, and hidden on phones).

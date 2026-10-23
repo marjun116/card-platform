@@ -447,6 +447,24 @@ never by a game's name, so custom games get them too. No sound.
       text (server: a new reaction message, rate limited)
 - [x] A shuffle animation while connecting instead of "Loading…"
 
+**Past games**
+
+- [ ] Filter by game: chips ("All · Spades · Hearts · Euchre…") for the games you've played
+- [ ] Filter by outcome: all, won, lost, ended early
+- [ ] Grouped by date: Today, This week, Earlier this month, Older
+- [ ] Richer rows: team avatars in their colours, and the final score with the winner
+      marked, like the results page
+- [ ] "Play again with these players" on each row, starting a rematch from your history
+- [ ] Server: the history request takes the filters, so filtering covers every past game,
+      not just the ones loaded so far
+
+**Page background**
+
+- [ ] A warm linen background with a very faint repeating ♠ ♥ ♦ ♣ pattern (CSS only, no
+      images), in light and dark mode; behind long text like the rulebook, fainter or off.
+      Panels and text stay as easy to read as now. Mostly seen on Home, the games list, the
+      lobby and results, since the felt fills the screen during a game
+
 ```text
 Read CLAUDE.md, docs/decisions.md ("UI polish") and the "UI polish" section
 of docs/build-checklist.md. Build [ITEM OR GROUP].
