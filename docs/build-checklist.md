@@ -352,6 +352,16 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
 - [x] **Lobby on a phone: the team lines overlap the top row of seats.** In a euchre lobby,
       "Team 1: seats 1 & 3" and the line for the other team, in the felt band at the top,
       run into the first row of seat cards below.
+- [ ] **Hearts: passing doesn't say who your cards go to or come from.** When you choose
+      cards to pass, nothing says which player will get them (it changes each round: left,
+      right, across, or no pass). Once the passed cards arrive, it should be just as clear
+      who sent them, before play starts.
+- [ ] **Hearts: the table counts tricks won, which don't matter; it should show the points
+      taken.** In hearts only the hearts and the queen of spades you take count, but the
+      seats and your status line show "Won 3" tricks. Show each player's hearts and Q♠
+      taken this round (or their points so far) instead, so you can tell when someone,
+      you included, is going for the moon. Generic: the game file should say what's worth
+      showing, not the table code checking for hearts.
 
 ## UI polish
 
@@ -490,7 +500,7 @@ Real games with family, on your own devices. These can happen in any order and d
 other work; note what you find under "Bugs and playtest feedback". (Spades was playtested
 in Phase 4.)
 
-- [ ] Hearts
+- [x] Hearts
 - [ ] Crazy eights
 - [ ] Rummy
 - [ ] Gin rummy
