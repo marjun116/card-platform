@@ -601,10 +601,22 @@ Harden the platform for strangers, not just family. Several items here involve l
       your next card before your turn, and play it automatically when your turn comes if
       it's still legal. Decide which games get it, and how you see and cancel a pre-played
       card.
-- [ ] Clear connection errors: when the table can't connect, say why on the page (for
-      example "This page's address doesn't match the server's PUBLIC_URL", "You're not
-      signed in", "No table with that code") instead of retrying silently behind
-      "Connecting to the table…"
+- [ ] Graceful errors, across the whole app:
+  - [ ] One way to show errors: the same look and tone everywhere, plain words about what
+        happened and what to do next ("Try again", "Go home"), never raw server text
+  - [ ] Table connection: say why it can't connect (the page's address doesn't match
+        PUBLIC_URL, signed out, no table with that code, server down) instead of retrying
+        silently behind "Connecting to the table…"
+  - [ ] Crashes: if part of a page breaks, a friendly "Something broke" page with Reload
+        and Home, instead of React Router's "Unexpected Application Error!"; at the table,
+        keep the seat and offer to reconnect
+  - [ ] Loading failures: every page that loads data (games, history, rules, variants)
+        says what failed and offers "Try again"
+  - [ ] Server errors: friendly words for every error code; unexpected ones logged with
+        enough detail to find the cause (feeds the error monitoring above)
+  - [ ] Offline: a clear note when the device itself is offline, separate from the server
+        being unreachable
+  - [ ] Tests for what each kind of failure shows
 - [ ] Closed beta with friends and family, then a wider invite-only beta
 - [ ] Landing page, help pages and a feedback form
 
