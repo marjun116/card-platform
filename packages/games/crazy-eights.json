@@ -189,18 +189,30 @@
     }
   ],
   "scoring": {
-    "cardValue": { "8": 50, "K": 10, "Q": 10, "J": 10, "A": 1, "default": "rankNumber" },
-    "playerValues": { "handValue": "sum(player.hand, cardValue)" },
+    "cardValue": {
+      "8": 50,
+      "K": 10,
+      "Q": 10,
+      "J": 10,
+      "A": 1,
+      "default": "rankNumber"
+    },
+    "playerValues": {
+      "handValue": "sum(player.hand, cardValue)"
+    },
     "perPlayer": [
       {
+        "label": "Going out",
         "if": "options.scoring == 'winnerCollects' && player.hand.count == 0",
         "add": "sum(activePlayers, handValue)"
       },
       {
+        "label": "Lowest hand",
         "if": "options.scoring == 'winnerCollects' && everyPlayer.hand.count > 0 && handValue(player) == min(activePlayers, handValue)",
         "add": "sum(activePlayers, handValue) - activePlayers.count * handValue(player)"
       },
       {
+        "label": "Cards left",
         "if": "options.scoring == 'penalty'",
         "add": "handValue(player)"
       }
@@ -208,7 +220,8 @@
   },
   "endCondition": {
     "when": "options.targetScore == 'oneHand' || anyPlayer.score >= options.targetScore",
-    "winner": "options.scoring == 'penalty' ? 'lowestScore' : 'highestScore'"
+    "winner": "options.scoring == 'penalty' ? 'lowestScore' : 'highestScore'",
+    "target": "options.targetScore"
   },
   "display": [
     {

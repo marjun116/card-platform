@@ -223,22 +223,30 @@
   "scoring": {
     "perTeam": [
       {
+        "label": "Made it",
         "if": "team.id == state.makerTeam && team.tricks >= 3 && team.tricks < 5",
         "add": 1
       },
       {
+        "label": "March",
         "if": "team.id == state.makerTeam && team.tricks == 5",
         "add": "state.alone == true ? options.loneMarch : 2"
       },
       {
+        "label": "Euchre",
         "if": "state.makerTeam != null && team.id != state.makerTeam && team.tricks >= 3",
         "add": "state.defenderAlone == true || (state.alone == true && options.euchreLoner4) ? 4 : 2"
       }
-    ]
+    ],
+    "contract": {
+      "if": "team.id == state.makerTeam",
+      "made": "team.tricks >= 3"
+    }
   },
   "endCondition": {
     "when": "anyTeam.score >= options.targetScore",
-    "winner": "highestScore"
+    "winner": "highestScore",
+    "target": "options.targetScore"
   },
   "display": [
     { "label": "Called by", "value": "state.maker", "format": "player" },

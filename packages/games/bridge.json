@@ -343,13 +343,25 @@
   "scoring": {
     "perTeam": [
       {
+        "label": "Tricks",
         "if": "state.made && team.id == state.declTeam",
-        "add": "state.trickPts + state.overPts + state.bonusPts",
+        "add": "state.trickPts",
         "track": {
           "below": "state.trickPts"
         }
       },
       {
+        "label": "Overtricks",
+        "if": "state.made && team.id == state.declTeam",
+        "add": "state.overPts"
+      },
+      {
+        "label": "Bonuses",
+        "if": "state.made && team.id == state.declTeam",
+        "add": "state.bonusPts"
+      },
+      {
+        "label": "Undertricks",
         "if": "state.made == false && team.id != state.declTeam",
         "add": "state.downPts"
       },
@@ -368,6 +380,7 @@
         }
       },
       {
+        "label": "Rubber",
         "if": "options.scoring == 'rubber' && team.games == 2",
         "add": "team.oppGames == 0 ? 700 : 500"
       },
@@ -380,6 +393,7 @@
         }
       },
       {
+        "label": "Game bonus",
         "if": "options.scoring == 'chicago' && state.gameMade && team.id == state.declTeam",
         "add": "state.declVul ? 500 : 300"
       },
@@ -390,6 +404,7 @@
         }
       },
       {
+        "label": "Part score",
         "if": "options.scoring == 'chicago' && state.made && !state.gameMade && team.id == state.declTeam && team.deals % 4 == 3",
         "add": 100
       },
@@ -409,21 +424,28 @@
     ],
     "perPlayer": [
       {
+        "label": "Honors",
         "if": "options.honors && state.trump != null && player.honors == 4",
         "add": 100,
         "to": "team"
       },
       {
+        "label": "Honors",
         "if": "options.honors && state.trump != null && player.honors == 5",
         "add": 150,
         "to": "team"
       },
       {
+        "label": "Honors",
         "if": "options.honors && state.trump == null && player.aces == 4",
         "add": 150,
         "to": "team"
       }
     ],
+    "contract": {
+      "if": "state.contract != null && team.id == state.declTeam",
+      "made": "state.made == true"
+    },
     "trackLabels": {
       "below": "Part score",
       "games": "Games",

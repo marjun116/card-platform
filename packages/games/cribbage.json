@@ -210,6 +210,7 @@
   "endCondition": {
     "when": "anyTeam.score >= options.targetScore",
     "winner": "highestScore",
+    "target": "options.targetScore",
     "immediate": true,
     "notes": [
       {

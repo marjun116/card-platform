@@ -156,18 +156,24 @@
     },
     "perPlayer": [
       {
+        "label": "Made the bid",
         "if": "player.tricks == player.bid",
         "add": "(10 + player.bid) * (player.blind == true ? 2 : 1)"
       },
       {
+        "label": "Tricks",
         "if": "options.scoring == 'perTrick' && player.tricks != player.bid",
         "add": "player.tricks"
       },
       {
+        "label": "Missed the bid",
         "if": "options.scoring == 'penalty' && player.tricks != player.bid",
         "add": "-abs(player.tricks - player.bid)"
       }
-    ]
+    ],
+    "contract": {
+      "made": "team.tricks == team.bid"
+    }
   },
   "endCondition": {
     "when": "round >= (options.sequence == 'up' || options.sequence == 'down' ? (options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count])) : 2 * (options.maxCards == 'max' ? (52 - 52 % activePlayers.count) / activePlayers.count : min([options.maxCards, (51 - 51 % activePlayers.count) / activePlayers.count])) - 1)",

@@ -160,21 +160,29 @@
     }
   ],
   "scoring": {
-    "cardValue": { "hearts": 1, "QS": 13, "default": 0 },
+    "cardValue": {
+      "hearts": 1,
+      "QS": 13,
+      "default": 0
+    },
     "perPlayer": [
       {
+        "label": "Points taken",
         "if": "sum(everyPlayer.won, cardValue) < 26",
         "add": "sum(player.won, cardValue)"
       },
       {
+        "label": "Shot the moon",
         "if": "anyPlayer.id != player.id && sum(anyPlayer.won, cardValue) == 26 && (options.moon == 'shooterChooses' ? state.moonChoice : options.moon) == 'othersGet26'",
         "add": 26
       },
       {
+        "label": "Shot the moon",
         "if": "sum(player.won, cardValue) == 26 && (options.moon == 'shooterChooses' ? state.moonChoice : options.moon) == 'shooterMinus26'",
         "add": -26
       },
       {
+        "label": "J♦",
         "if": "options.jackOfDiamonds && player.won.hasCard('JD')",
         "add": -10
       }
@@ -183,6 +191,7 @@
   "endCondition": {
     "when": "anyPlayer.score >= options.targetScore",
     "winner": "lowestScore",
+    "target": "options.targetScore",
     "ties": "options.shareTies ? 'share' : 'playOn'"
   },
   "moments": [

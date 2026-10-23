@@ -212,14 +212,25 @@
     }
   ],
   "scoring": {
-    "cardValue": { "J": 10, "Q": 10, "K": 10, "A": 1, "JOKER": 0, "default": "rankNumber" },
-    "playerValues": { "deadwood": "player.deadwood" },
+    "cardValue": {
+      "J": 10,
+      "Q": 10,
+      "K": 10,
+      "A": 1,
+      "JOKER": 0,
+      "default": "rankNumber"
+    },
+    "playerValues": {
+      "deadwood": "player.deadwood"
+    },
     "perPlayer": [
       {
+        "label": "Going out",
         "if": "options.scoring == 'winnerCollects' && (player.hand.count == 0 || state.out == player.id)",
         "add": "sum(activePlayers, deadwood) * (options.rummyBonus && options.melding == 'asYouGo' && !(player.hasMelded == true) ? 2 : 1)"
       },
       {
+        "label": "Deadwood",
         "if": "options.scoring == 'penalty'",
         "add": "deadwood(player)"
       }
@@ -227,6 +238,7 @@
   },
   "endCondition": {
     "when": "anyPlayer.score >= options.targetScore",
-    "winner": "options.scoring == 'penalty' ? 'lowestScore' : 'highestScore'"
+    "winner": "options.scoring == 'penalty' ? 'lowestScore' : 'highestScore'",
+    "target": "options.targetScore"
   }
 }

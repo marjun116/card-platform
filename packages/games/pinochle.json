@@ -348,12 +348,12 @@
   ],
   "scoring": {
     "cardValue": {
-      "A": 11,
+      "9": 0,
       "10": 10,
+      "A": 11,
       "K": 4,
       "Q": 3,
-      "J": 2,
-      "9": 0
+      "J": 2
     },
     "playerValues": {
       "passedOut": "player.bid == 'pass' ? 1 : 0",
@@ -369,22 +369,40 @@
     },
     "perPlayer": [
       {
+        "label": "Meld",
         "if": "player.id == state.bidder && team.tricks > 0 && team.meld + cardPoints(player) >= state.highBid",
-        "add": "team.meld + cardPoints(player)"
+        "add": "team.meld"
       },
       {
+        "label": "Counters",
+        "if": "player.id == state.bidder && team.tricks > 0 && team.meld + cardPoints(player) >= state.highBid",
+        "add": "cardPoints(player)"
+      },
+      {
+        "label": "Set",
         "if": "player.id == state.bidder && !(team.tricks > 0 && team.meld + cardPoints(player) >= state.highBid)",
         "add": "-state.highBid"
       },
       {
+        "label": "Meld",
         "if": "state.bidder != null && player.id == (state.bidder + 1) % 4 && (team.tricks > 0 || state.decision == 'throwIn')",
-        "add": "team.meld + cardPoints(player)"
+        "add": "team.meld"
+      },
+      {
+        "label": "Counters",
+        "if": "state.bidder != null && player.id == (state.bidder + 1) % 4 && (team.tricks > 0 || state.decision == 'throwIn')",
+        "add": "cardPoints(player)"
       }
-    ]
+    ],
+    "contract": {
+      "if": "team.id == state.bidTeam",
+      "made": "team.tricks > 0 && team.meld + (options.classic ? sum(team.won, cardValue) + (state.lastTrick != null && state.lastTrick % 2 == team.id ? 10 : 0) : team.won.countRank('A') + team.won.countRank('10') + team.won.countRank('K') + (state.lastTrick != null && state.lastTrick % 2 == team.id ? 1 : 0)) >= state.highBid"
+    }
   },
   "endCondition": {
     "when": "anyTeam.score >= options.targetScore * (options.classic ? 10 : 1)",
     "winner": "highestScore",
+    "target": "options.targetScore * (options.classic ? 10 : 1)",
     "priority": "team.id == state.bidTeam && team.score >= options.targetScore * (options.classic ? 10 : 1)"
   }
 }

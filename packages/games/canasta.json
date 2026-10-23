@@ -305,31 +305,39 @@
   ],
   "scoring": {
     "cardValue": {
-      "JOKER": 50,
       "2": 20,
+      "8": 10,
+      "9": 10,
+      "10": 10,
+      "JOKER": 50,
       "A": 20,
       "K": 10,
       "Q": 10,
       "J": 10,
-      "10": 10,
-      "9": 10,
-      "8": 10,
       "default": 5
     },
     "perTeam": [
       {
-        "add": "sum(team.melds, cardValue) + 500 * team.melds.countNaturalMelds(7) + 300 * (team.melds.countMelds(7) - team.melds.countNaturalMelds(7))"
+        "label": "Melded cards",
+        "add": "sum(team.melds, cardValue)"
       },
       {
+        "label": "Canastas",
+        "add": "500 * team.melds.countNaturalMelds(7) + 300 * (team.melds.countMelds(7) - team.melds.countNaturalMelds(7))"
+      },
+      {
+        "label": "Red threes",
         "if": "team.redThrees.count > 0",
         "add": "(team.redThrees.count == 4 ? 800 : team.redThrees.count * 100) * (team.melds.melds > 0 ? 1 : -1)"
       }
     ],
     "perPlayer": [
       {
+        "label": "Cards in hand",
         "add": "-sum(player.hand, cardValue)"
       },
       {
+        "label": "Going out",
         "if": "player.id == state.wentOut",
         "add": "state.concealed ? 200 : 100"
       }
@@ -337,7 +345,8 @@
   },
   "endCondition": {
     "when": "anyTeam.score >= options.targetScore",
-    "winner": "highestScore"
+    "winner": "highestScore",
+    "target": "options.targetScore"
   },
   "moments": [{ "per": "team", "each": "team.melds.countMelds(7)", "label": "Canasta!" }]
 }

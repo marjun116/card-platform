@@ -239,34 +239,64 @@
     }
   ],
   "scoring": {
-    "cardValue": { "J": 10, "Q": 10, "K": 10, "A": 1, "default": "rankNumber" },
-    "playerValues": { "deadwood": "player.deadwood", "points": "player.score" },
+    "cardValue": {
+      "J": 10,
+      "Q": 10,
+      "K": 10,
+      "A": 1,
+      "default": "rankNumber"
+    },
+    "playerValues": {
+      "deadwood": "player.deadwood",
+      "points": "player.score"
+    },
     "perPlayer": [
       {
+        "label": "Knock",
         "if": "state.knocker == player.id && state.knockType == 'knock' && sum(activePlayers, deadwood) > 2 * deadwood(player)",
         "add": "(sum(activePlayers, deadwood) - 2 * deadwood(player)) * (state.double ? 2 : 1)",
-        "track": { "boxes": 1 }
+        "track": {
+          "boxes": 1
+        }
       },
       {
+        "label": "Undercut",
         "if": "state.knockType == 'knock' && state.knocker != player.id && 2 * deadwood(player) <= sum(activePlayers, deadwood)",
         "add": "(sum(activePlayers, deadwood) - 2 * deadwood(player) + options.undercutBonus) * (state.double ? 2 : 1)",
-        "track": { "boxes": 1 }
+        "track": {
+          "boxes": 1
+        }
       },
       {
+        "label": "Gin",
         "if": "state.knocker == player.id && state.knockType == 'gin'",
         "add": "(sum(activePlayers, deadwood) + options.ginBonus) * (state.double ? 2 : 1)",
-        "track": { "boxes": 1 }
+        "track": {
+          "boxes": 1
+        }
       },
       {
+        "label": "Big gin",
         "if": "state.knocker == player.id && state.knockType == 'bigGin'",
         "add": "(sum(activePlayers, deadwood) + options.bigGin) * (state.double ? 2 : 1)",
-        "track": { "boxes": 1 }
+        "track": {
+          "boxes": 1
+        }
       }
     ],
     "atGameEnd": [
-      { "if": "options.bonuses && player.score >= options.targetScore", "add": 100 },
-      { "if": "options.bonuses", "add": "25 * player.boxes" },
       {
+        "label": "Game bonus",
+        "if": "options.bonuses && player.score >= options.targetScore",
+        "add": 100
+      },
+      {
+        "label": "Boxes",
+        "if": "options.bonuses",
+        "add": "25 * player.boxes"
+      },
+      {
+        "label": "Shutout",
         "if": "options.bonuses && player.score > 0 && sum(activePlayers, points) == player.score",
         "add": "player.score"
       }
@@ -274,7 +304,8 @@
   },
   "endCondition": {
     "when": "anyPlayer.score >= options.targetScore",
-    "winner": "highestScore"
+    "winner": "highestScore",
+    "target": "options.targetScore"
   },
   "moments": [
     {
