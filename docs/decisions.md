@@ -1522,3 +1522,7 @@ build checklist, done before Phase 6.
   of the table glows gold and breathes, like an active seat (a steady glow with "reduce
   motion" or animation speed off). On a very short window, where your hand sticks to the
   bottom as the page scrolls, the two parts can come apart while scrolling.
+- **The table and your hand are shaded as one surface:** lightest where they meet,
+  darkening only toward the table's outer edges, with no line between them. The rail's
+  grain and shading run left to right, so the two rails line up. On your turn the glow
+  runs along the rail at the sides and bottom of your part only, never across the felt.

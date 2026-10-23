@@ -12,6 +12,18 @@
 }
 
 :root {
+  /* The table's wooden rail where your hand joins the table: grain and shading that only
+     change from left to right, so the two parts' rails line up. */
+  --table-rail:
+    repeating-linear-gradient(90deg, rgb(255 255 255 / 0.05) 0 2px, transparent 2px 9px),
+    linear-gradient(
+      90deg,
+      var(--rail-dark),
+      var(--rail) 12%,
+      var(--rail-light) 50%,
+      var(--rail) 88%,
+      var(--rail-dark)
+    );
   /* The page: warm linen, a faint weave, and a very faint pattern of the four suits. */
   --bg: #f4efe4;
   --bg-weave: rgb(120 92 52 / 0.035);
@@ -1641,29 +1653,39 @@ kbd {
   bottom: 0;
   z-index: 2;
   /* The near edge of the table: the felt carries on down around your hand, and the rail
-     wraps both (the table's own bottom edge is left off; see .table-main > .felt). */
+     wraps both (the table's own bottom edge is left off; see .table-main > .felt). The
+     two are shaded as one surface: lightest where they meet, darkening only toward the
+     table's outer edges, with the rail's shading running left to right so it lines up. */
   border: var(--rail-w) solid transparent;
   border-top-width: 0;
   border-radius: 0 0 28px 28px;
   background:
-    radial-gradient(ellipse 60% 70% at 50% 100%, rgb(0 0 0 / 0.18), transparent 70%) padding-box,
-    linear-gradient(var(--felt-edge), var(--felt) 30%, var(--felt-edge)) padding-box,
-    repeating-linear-gradient(100deg, rgb(255 255 255 / 0.05) 0 2px, transparent 2px 9px) border-box,
-    linear-gradient(160deg, var(--rail-light), var(--rail) 45%, var(--rail-dark)) border-box;
+    radial-gradient(ellipse 120% 100% at 50% 0%, var(--felt) 55%, var(--felt-edge)) padding-box,
+    var(--table-rail) border-box;
   color: var(--felt-text);
   box-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.35),
+    -1px 0 0 rgb(0 0 0 / 0.35),
+    1px 0 0 rgb(0 0 0 / 0.35),
+    0 1px 0 rgb(0 0 0 / 0.35),
     0 6px 16px rgb(0 0 0 / 0.25),
-    inset 0 -14px 24px -10px rgb(0 0 0 / 0.4);
+    inset 14px 0 28px -14px rgb(0 0 0 / 0.35),
+    inset -14px 0 28px -14px rgb(0 0 0 / 0.35),
+    inset 0 -14px 24px -10px rgb(0 0 0 / 0.35);
 }
 /* The table above your hand: no rail or rounded corners along its bottom edge, and no
-   shadow there, so the two read as one table. */
+   shadow there. Its felt is lightest along the bottom, where your hand carries it on. */
 .table-main > .felt {
   border-bottom-width: 0;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
+  background:
+    radial-gradient(ellipse 55% 50% at 50% 48%, var(--felt-light), transparent 75%) padding-box,
+    radial-gradient(ellipse 120% 100% at 50% 100%, var(--felt) 55%, var(--felt-edge)) padding-box,
+    var(--table-rail) border-box;
   box-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.35),
+    0 -1px 0 rgb(0 0 0 / 0.35),
+    -1px 0 0 rgb(0 0 0 / 0.35),
+    1px 0 0 rgb(0 0 0 / 0.35),
     inset 0 14px 28px -10px rgb(0 0 0 / 0.4),
     inset 14px 0 28px -14px rgb(0 0 0 / 0.35),
     inset -14px 0 28px -14px rgb(0 0 0 / 0.35);
@@ -1698,8 +1720,8 @@ kbd {
 .status-line button {
   vertical-align: middle;
 }
-/* Your turn: your edge of the table glows gold and breathes, like an active seat: the
-   rail round your part of the table, and a line where it meets the rest. */
+/* Your turn: your edge of the table glows gold and breathes, like an active seat: along
+   the rail at the sides and bottom of your part, never across the felt. */
 .you-area.your-turn::before {
   content: '';
   position: absolute;
@@ -1707,6 +1729,9 @@ kbd {
   border-radius: inherit;
   pointer-events: none;
   border: 2px solid var(--playable);
+  border-top: none;
+  /* Nothing above where your hand meets the table, so no line or glow crosses it. */
+  clip-path: inset(0 -40px -40px -40px);
   animation: turn-glow-tray 1.8s ease-in-out infinite;
 }
 @keyframes turn-glow-tray {
