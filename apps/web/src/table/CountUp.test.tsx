@@ -57,6 +57,22 @@ describe('CountUp', () => {
     expect(waiting).toBeNull();
   });
 
+  it('counts from a given value when first shown', () => {
+    const { container } = render(<CountUp value={312} from={151} />);
+    expect(shown(container)).toBe('151');
+    expect(container.querySelector('.visually-hidden')?.textContent).toBe('312');
+    frame(0);
+    frame(600);
+    expect(shown(container)).toBe('312');
+  });
+
+  it('shows the value at once with reduce motion, even from another value', () => {
+    reduced = true;
+    const { container } = render(<CountUp value={312} from={151} />);
+    expect(shown(container)).toBe('312');
+    expect(waiting).toBeNull();
+  });
+
   it('counts down too', () => {
     const { container, rerender } = render(<CountUp value={50} />);
     rerender(<CountUp value={-50} />);

@@ -5,28 +5,16 @@ import { Avatar, TeamDot } from './Avatar';
 import { CountUp } from './CountUp';
 import { type SeatInitials, teamColour } from './avatars';
 import { type BidLabels, bidWords, type SeatNames, teamName } from './describe';
+import { ScoreTrend } from './ScoreTrend';
 import { SuitText } from './SuitText';
+import { leaders, signed, tracksText } from './summary';
 import { ZoneDisplay } from './ZoneViews';
 import { humanize, type PlacedZone, zoneCount } from './zones';
 
 type Team = PlayerView['teams'][number];
 
-/** Words for tracked counters (`view.trackLabels`); null hides a counter. */
-export type TrackLabels = Record<string, string | null>;
-
-function tracksText(tracks: Record<string, number>, labels: TrackLabels = {}): string {
-  return Object.entries(tracks)
-    .filter(([name]) => labels[name] !== null)
-    .map(([name, value]) => `${labels[name] ?? humanize(name)} ${value}`)
-    .join(' · ');
-}
-
 function bidText(bid: BidValue | null, labels: BidLabels = {}): string {
   return bid === null ? '–' : bidWords(bid, labels);
-}
-
-function signed(n: number): string {
-  return n > 0 ? `+${n}` : String(n);
 }
 
 /** Current scores, and this round's bids and tricks so far. */
@@ -44,6 +32,7 @@ export function Scoreboard({
   showTricks: boolean;
 }) {
   const showBids = view.players.some((p) => p.bid !== null);
+  const lead = leaders(view.teams, view.goal.winner);
   return (
     <section className="scoreboard" aria-label="Scores">
       <h2>Scores</h2>
@@ -59,7 +48,17 @@ export function Scoreboard({
             >
               <div className="team-row">
                 <TeamAvatars team={team} initials={initials} />
-                <span className="team-name">{teamName(team, names)}</span>
+                <span className="team-name">
+                  {teamName(team, names)}
+                  {lead.includes(team.id) && (
+                    <>
+                      <span className="crown" aria-hidden="true">
+                        ♛
+                      </span>
+                      <span className="visually-hidden"> (leading)</span>
+                    </>
+                  )}
+                </span>
                 <CountUp value={team.score} className="team-score" />
               </div>
               {tracks && <div className="muted">{tracks}</div>}
@@ -133,117 +132,49 @@ export function TeamAvatars({
   );
 }
 
-/** One finished round: what each team bid, took and scored. */
-export function RoundTable({
-  result,
-  teams,
-  names,
-  initials,
-  bidLabels = {},
-  trackLabels = {},
-}: {
-  result: RoundResult;
-  /** Who is on which team (teams never change during a game). */
-  teams: Pick<Team, 'id' | 'players'>[];
-  names: SeatNames;
-  initials: SeatInitials;
-  bidLabels?: BidLabels;
-  trackLabels?: TrackLabels;
-}) {
-  const showBids = result.players.some((p) => p.bid !== null);
-  const showTricks = result.players.some((p) => p.tricks > 0);
-  return (
-    <table className="round-table">
-      <caption className="visually-hidden">Round {result.round} results</caption>
-      <thead>
-        <tr>
-          <th scope="col">Player</th>
-          {showBids && <th scope="col">Bid</th>}
-          {showTricks && <th scope="col">Won</th>}
-          <th scope="col">Points</th>
-          <th scope="col">Total</th>
-        </tr>
-      </thead>
-      {result.teams.map((team) => {
-        const members = teams.find((t) => t.id === team.id)?.players ?? [];
-        const players = result.players.filter((p) => members.includes(p.id));
-        const tracks = tracksText({ ...team.tracks, ...team.held }, trackLabels);
-        return (
-          <tbody
-            key={team.id}
-            className="team-entry"
-            style={{ ['--team' as string]: teamColour(team.id) }}
-          >
-            {players.map((player, i) => (
-              <tr key={player.id}>
-                <th scope="row">
-                  <Avatar initials={initials(player.id)} team={team.id} size="small" />{' '}
-                  {names(player.id)}
-                  {player.eliminated && <span className="muted"> (out)</span>}
-                </th>
-                {showBids && (
-                  <td>
-                    <SuitText text={bidText(player.bid, bidLabels)} />
-                  </td>
-                )}
-                {showTricks && <td>{player.tricks}</td>}
-                {i === 0 && (
-                  <>
-                    <td rowSpan={players.length} className="points">
-                      {signed(team.points)}
-                    </td>
-                    <td rowSpan={players.length} className="total">
-                      {team.score}
-                      {tracks && <div className="muted">{tracks}</div>}
-                    </td>
-                  </>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        );
-      })}
-    </table>
-  );
-}
-
-/** All rounds so far, with each team's running total. */
+/** All rounds so far, with each team's running total, drawn as a chart and in a table. */
 export function HistoryTable({
   history,
   teams,
   names,
+  target = null,
 }: {
   history: RoundResult[];
   teams: Pick<Team, 'id' | 'players'>[];
   names: SeatNames;
+  /** The score the game is played to, drawn as a dashed line on the chart. */
+  target?: number | null;
 }) {
   if (history.length === 0) return <p className="muted">No rounds finished yet.</p>;
   return (
-    <table className="history-table">
-      <caption className="visually-hidden">Scores after each round</caption>
-      <thead>
-        <tr>
-          <th scope="col">Round</th>
-          {teams.map((team) => (
-            <th scope="col" key={team.id}>
-              <TeamDot team={team.id} /> {teamName(team, names)}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {history.map((result) => (
-          <tr key={result.round}>
-            <th scope="row">{result.round}</th>
-            {result.teams.map((team) => (
-              <td key={team.id}>
-                {team.score} <span className="muted">({signed(team.points)})</span>
-              </td>
+    <>
+      <ScoreTrend history={history} target={target} />
+      <table className="history-table">
+        <caption className="visually-hidden">Scores after each round</caption>
+        <thead>
+          <tr>
+            <th scope="col">Round</th>
+            {teams.map((team) => (
+              <th scope="col" key={team.id}>
+                <TeamDot team={team.id} /> {teamName(team, names)}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {history.map((result) => (
+            <tr key={result.round}>
+              <th scope="row">{result.round}</th>
+              {result.teams.map((team) => (
+                <td key={team.id}>
+                  {team.score} <span className="muted">({signed(team.points)})</span>
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 

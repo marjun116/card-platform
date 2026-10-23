@@ -1579,13 +1579,10 @@ kbd {
   flex-wrap: wrap;
   gap: 8px;
 }
-.round-table,
 .history-table {
   width: 100%;
   border-collapse: collapse;
 }
-.round-table th,
-.round-table td,
 .history-table th,
 .history-table td {
   text-align: left;
@@ -1593,20 +1590,180 @@ kbd {
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
-.round-table tbody + tbody {
-  border-top: 2px solid var(--border);
+
+/* "Every round": each team's total as a line, the target dashed. */
+.score-trend {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-bottom: 0.8em;
 }
-.round-table .team-entry th[scope='row'] {
-  box-shadow: inset 4px 0 0 var(--team);
-  padding-left: 0.8em;
+.trend-label {
+  font-size: 9px;
+  fill: var(--muted);
 }
-.round-table .points,
-.round-table .total {
+.trend-axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.trend-target {
+  stroke: var(--muted);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+}
+.trend-line {
+  fill: none;
+  stroke: var(--team);
+  stroke-width: 2.25;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.trend-end {
+  fill: var(--team);
+}
+
+/* The round summary: one card per team in its colour, two across where there's room. */
+.round-summary {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+.summary-team {
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--team);
+  border-radius: var(--radius);
+  padding: 0.6em 0.75em 0.7em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3em;
+}
+.summary-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+.summary-name {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.25;
+}
+.crown {
+  margin-left: 0.3em;
+  color: #c08a00;
+}
+.made-badge {
+  border-radius: 999px;
+  padding: 0.1em 0.65em;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fff;
+}
+.made-badge.made {
+  background: #1d7a3e;
+}
+.made-badge.set {
+  background: #b3322a;
+}
+.summary-line {
+  margin: 0;
+}
+.summary-parts {
+  font-size: 0.92rem;
+}
+.trick-dots {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.dots {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+/* A bid trick is a ring in the team's colour, filled once taken; tricks past the bid are smaller. */
+.dot {
+  flex: none;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--team);
+  box-sizing: border-box;
+}
+.dot.taken {
+  background: var(--team);
+}
+.dot.extra {
+  width: 8px;
+  height: 8px;
+  align-self: center;
+  opacity: 0.6;
+}
+.summary-score {
+  margin: 0.15em 0 0;
+  display: flex;
+  align-items: baseline;
+  gap: 0.45em;
+}
+/* The round's points in the body font: the display font's plus sign is too light. */
+.summary-points {
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.summary-total-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.summary-total {
   font-family: var(--display);
   font-variant-numeric: lining-nums tabular-nums;
+  font-size: 1.5rem;
+  line-height: 1;
 }
-.round-table .points {
-  font-weight: 700;
+.goal-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.goal-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  overflow: hidden;
+}
+/* Grows from last round's progress to this round's. */
+.goal-fill {
+  display: block;
+  height: 100%;
+  width: var(--to);
+  background: var(--team);
+  animation: goal-grow 0.6s ease-out both;
+}
+@keyframes goal-grow {
+  from {
+    width: var(--from);
+  }
+}
+.round-highlights {
+  list-style: none;
+  margin: 0.8em 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+.highlight-star {
+  color: #c08a00;
 }
 .standings li {
   display: flex;
@@ -2168,7 +2325,8 @@ kbd {
     transition: none;
   }
   .fade-in,
-  .tick {
+  .tick,
+  .goal-fill {
     animation: none;
   }
   /* A steady glow instead of a breathing one. */

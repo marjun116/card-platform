@@ -1,6 +1,7 @@
 /**
  * A score that counts up (or down) to its new value when it changes, so you
- * see the points go in. Shows the value straight away on first showing, with
+ * see the points go in. Shows the value straight away on first showing (unless
+ * given a value to count `from`, as the round summary does), with
  * "reduce motion" switched on, and where the browser can't animate (tests).
  * Screen readers only ever get the final number.
  */
@@ -17,10 +18,19 @@ function canCount(): boolean {
   );
 }
 
-export function CountUp({ value, className }: { value: number; className?: string }) {
-  const [shown, setShown] = useState(value);
+export function CountUp({
+  value,
+  from = value,
+  className,
+}: {
+  value: number;
+  /** Where to count from when first shown. */
+  from?: number;
+  className?: string;
+}) {
+  const [shown, setShown] = useState(from);
   // Where the count is now, so a change in the middle of a count starts from there.
-  const at = useRef(value);
+  const at = useRef(from);
 
   useEffect(() => {
     const from = at.current;

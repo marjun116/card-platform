@@ -22,7 +22,8 @@ import { GroupSummary, Hand } from './Hand';
 import type { CardMotion } from './motion/animate';
 import { useCardMotion } from './motion/useCardMotion';
 import { buildControls, quickMove, turnPrompt } from './moves';
-import { Dialog, HistoryTable, RoundTable, Scoreboard } from './Scores';
+import { Dialog, HistoryTable, Scoreboard } from './Scores';
+import { RoundSummary } from './RoundSummary';
 import { Seat } from './Seat';
 import { SeatEffects } from './SeatEffects';
 import { RichLine, SuitText, SuitWord } from './SuitText';
@@ -576,14 +577,7 @@ export function TableView({
             onSelect: () => setHiddenRound(newRound.round),
           }}
         >
-          <RoundTable
-            result={newRound}
-            teams={view.teams}
-            names={names}
-            initials={initials}
-            bidLabels={view.bidLabels}
-            trackLabels={view.trackLabels}
-          />
+          <RoundSummary result={newRound} view={view} names={names} initials={initials} />
         </Dialog>
       )}
       {/* Loaded with the table, so the pop-up opens complete (see the lobby). */}
@@ -592,7 +586,12 @@ export function TableView({
       )}
       {showHistory && !newRound && (
         <Dialog title="Every round" onClose={() => setShowHistory(false)}>
-          <HistoryTable history={view.history} teams={view.teams} names={names} />
+          <HistoryTable
+            history={view.history}
+            teams={view.teams}
+            names={names}
+            target={view.goal.target}
+          />
         </Dialog>
       )}
     </div>

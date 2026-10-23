@@ -375,7 +375,7 @@ describe('TableView', () => {
     const last = gameMessage(almost, seat).legalMoves[0] as Move;
     update(applyMove(almost, last));
     expect(screen.getByText('Round 1 scores')).toBeTruthy();
-    expect(screen.getByRole('table', { name: 'Round 1 results' })).toBeTruthy();
+    expect(screen.getByRole('list', { name: 'Round 1 results' })).toBeTruthy();
 
     // Closing it tells the server, so the bots can carry on.
     expect(connection.send).not.toHaveBeenCalled();

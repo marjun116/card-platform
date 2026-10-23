@@ -1334,3 +1334,25 @@ build checklist, done before Phase 6.
   lowest score.
 - **Show all hands can be opened from the results screen too** (decided by Arjun), as well
   as from the round summary and "Every round".
+- **The built-in games' labels and contracts:** spades splits its first rule into Tricks
+  and Bags (the same points as before), and has a contract for a team that bid more than
+  0. Euchre's contract is the makers taking 3 tricks, Oh Hell's an exact bid, bridge's the
+  declarers making the contract (`state.made`), pinochle's the bidders making their bid.
+  Pinochle's contract repeats its counter points in team terms, because `cardPoints` needs
+  a player and the contract is checked for a team. Bridge splits the contract's points into
+  Tricks, Overtricks and Bonuses. Canasta splits its meld points into Melded cards and
+  Canastas. Hearts, the rummies, crazy eights and cribbage have no contract.
+- **No target, so no progress bar:** bridge (played to rubbers), Oh Hell (a set number of
+  rounds) and crazy eights played as one hand.
+- **The round summary** shows one card per team (two across where there's room, one on
+  phones). The bid is a row of hollow dots in the team's colour, filled for each trick
+  taken, with smaller, paler dots for tricks past the bid; it's shown only for number bids
+  without words of their own (so not bridge's "1♣"), and games without bids say "Took 5
+  tricks". Partners' bids are listed too ("Bids: Raj 4, Ana Nil"). The total counts up from
+  last round's, and the progress bar grows from where it was. "N to go", or "game ends at
+  100" where the lowest score wins. The leader's crown is also on the scoreboard during play.
+- **Highlights:** at most two, from this round's big moments first ("Ana: Nil broken"),
+  then whoever took the most tricks, then the team that scored the most; ties are left out.
+- **Score trend:** a line per team above the "Every round" table, from the scores the
+  game began with, with the target dashed. It's hidden from screen readers, which have the
+  table.

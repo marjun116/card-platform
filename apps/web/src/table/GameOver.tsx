@@ -4,7 +4,8 @@ import { Link } from 'react-router';
 import type { GameMessage, OverMessage } from './connection';
 import { seatInitials, teamColour } from './avatars';
 import { seatNames, teamName } from './describe';
-import { HistoryTable, RoundTable, TeamAvatars } from './Scores';
+import { RoundSummary } from './RoundSummary';
+import { HistoryTable, TeamAvatars } from './Scores';
 
 export function GameOver({
   table,
@@ -65,20 +66,18 @@ export function GameOver({
       {lastRound && (
         <section className="panel">
           <h2>Last round</h2>
-          <RoundTable
-            result={lastRound}
-            teams={view.teams}
-            names={names}
-            initials={initials}
-            bidLabels={view.bidLabels}
-            trackLabels={view.trackLabels}
-          />
+          <RoundSummary result={lastRound} view={view} names={names} initials={initials} />
         </section>
       )}
 
       <section className="panel">
         <h2>Every round</h2>
-        <HistoryTable history={view.history} teams={view.teams} names={names} />
+        <HistoryTable
+          history={view.history}
+          teams={view.teams}
+          names={names}
+          target={view.goal.target}
+        />
       </section>
 
       <p className="actions">

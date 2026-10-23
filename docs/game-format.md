@@ -212,22 +212,25 @@ This is a complete built-in game in about 90 lines, with four house rule toggles
   ],
   "scoring": {
     "perTeam": [
-      { "if": "team.tricks >= team.bid",
-        "add": "team.bid * 10 + (team.tricks - team.bid)",
+      { "label": "Tricks", "if": "team.tricks >= team.bid", "add": "team.bid * 10" },
+      { "label": "Bags", "if": "team.tricks >= team.bid",
+        "add": "team.tricks - team.bid",
         "track": { "bags": "team.tricks - team.bid" } },
-      { "if": "team.tricks < team.bid", "add": "-team.bid * 10" },
-      { "if": "team.bags >= 10", "add": -100, "track": { "bags": -10 } }
+      { "label": "Set", "if": "team.tricks < team.bid", "add": "-team.bid * 10" },
+      { "label": "Bag penalty", "if": "team.bags >= 10", "add": -100, "track": { "bags": -10 } }
     ],
     "perPlayer": [
-      { "if": "player.bid == 'nil'",
+      { "label": "Nil", "if": "player.bid == 'nil'",
         "add": "player.tricks == 0 ? 100 : -100", "to": "team" },
-      { "if": "player.bid == 'blindNil'",
+      { "label": "Blind nil", "if": "player.bid == 'blindNil'",
         "add": "player.tricks == 0 ? 200 : -200", "to": "team" }
-    ]
+    ],
+    "contract": { "if": "team.bid > 0", "made": "team.tricks >= team.bid" }
   },
   "endCondition": {
     "when": "anyTeam.score >= options.targetScore || (options.mercyRule && anyTeam.score <= -200)",
-    "winner": "highestScore"
+    "winner": "highestScore",
+    "target": "options.targetScore"
   }
 }
 ```
