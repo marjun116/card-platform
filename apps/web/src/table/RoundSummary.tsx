@@ -19,11 +19,14 @@ export function RoundSummary({
   view,
   names,
   initials,
+  onShowHands,
 }: {
   result: RoundResult;
   view: View;
   names: SeatNames;
   initials: SeatInitials;
+  /** Opens the round played back with every hand face up. */
+  onShowHands?: () => void;
 }) {
   const showTricks = result.players.some((p) => p.tricks > 0);
   const lead = leaders(result.teams, view.goal.winner);
@@ -130,6 +133,13 @@ export function RoundSummary({
             </li>
           ))}
         </ul>
+      )}
+      {onShowHands && (
+        <p className="summary-actions">
+          <button type="button" className="small" onClick={onShowHands}>
+            Show all hands
+          </button>
+        </p>
       )}
     </>
   );

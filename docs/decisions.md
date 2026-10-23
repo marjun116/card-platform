@@ -1362,3 +1362,13 @@ build checklist, done before Phase 6.
   to players seated at the table (403 for anyone else, even with the invite code). A player
   a bot replaced no longer holds the seat, so can't see it either. Nothing is stored: the
   round is rebuilt on each request, and the seed and game file never leave the server.
+- **Show all hands, in the browser:** a "Show all hands" button on the round summary (at
+  the table and on the results screen) and a "Hands" button on each row of "Every round"
+  open the round in a dialog over whatever opened it. It starts at the deal; Start, Back,
+  Play/Pause, Forward and End step through it (Play moves on every 1.1 seconds and stops at
+  the end of the round). Each move is said in words, as in the log, and announced to screen
+  readers. It's laid out as a list rather than the felt, so it reads the same on a phone:
+  the trick (drawn as at the table, a little smaller), then each player with their cards
+  face up, sorted as your own hand is, and their bid and tricks. Shared piles show their
+  top card and a count, as at the table, and a team's piles (won tricks) just a count.
+  There's no motion in it, so "reduce motion" changes nothing.

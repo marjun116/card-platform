@@ -138,12 +138,15 @@ export function HistoryTable({
   teams,
   names,
   target = null,
+  onShowHands,
 }: {
   history: RoundResult[];
   teams: Pick<Team, 'id' | 'players'>[];
   names: SeatNames;
   /** The score the game is played to, drawn as a dashed line on the chart. */
   target?: number | null;
+  /** Opens a round played back with every hand face up. */
+  onShowHands?: (round: number) => void;
 }) {
   if (history.length === 0) return <p className="muted">No rounds finished yet.</p>;
   return (
@@ -159,6 +162,11 @@ export function HistoryTable({
                 <TeamDot team={team.id} /> {teamName(team, names)}
               </th>
             ))}
+            {onShowHands && (
+              <th scope="col">
+                <span className="visually-hidden">All hands</span>
+              </th>
+            )}
           </tr>
         </thead>
         <tbody>
@@ -170,6 +178,18 @@ export function HistoryTable({
                   {team.score} <span className="muted">({signed(team.points)})</span>
                 </td>
               ))}
+              {onShowHands && (
+                <td>
+                  <button
+                    type="button"
+                    className="small"
+                    onClick={() => onShowHands(result.round)}
+                    aria-label={`Show all hands, round ${result.round}`}
+                  >
+                    Hands
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

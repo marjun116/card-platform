@@ -1,7 +1,8 @@
 import type { PlayerView, RoundResult } from '@card-table/engine';
-import { cleanup, render, screen, within } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RoundSummary } from './RoundSummary';
+import { HistoryTable } from './Scores';
 
 afterEach(cleanup);
 
@@ -126,5 +127,39 @@ describe('RoundSummary', () => {
     expect(container.querySelector('.dot')).toBeNull();
     expect(container.querySelector('.summary-parts')).toBeNull();
     expect(screen.getByText('Took 7 tricks')).toBeTruthy();
+  });
+
+  it('offers to show all hands, where it can', () => {
+    const onShowHands = vi.fn();
+    render(
+      <RoundSummary
+        result={result}
+        view={view}
+        names={names}
+        initials={initials}
+        onShowHands={onShowHands}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Show all hands' }));
+    expect(onShowHands).toHaveBeenCalledOnce();
+    cleanup();
+    render(<RoundSummary result={result} view={view} names={names} initials={initials} />);
+    expect(screen.queryByRole('button', { name: 'Show all hands' })).toBeNull();
+  });
+});
+
+describe('HistoryTable', () => {
+  it("offers each round's hands", () => {
+    const onShowHands = vi.fn();
+    render(
+      <HistoryTable
+        history={[{ ...result, round: 1 }, result]}
+        teams={view.teams}
+        names={names}
+        onShowHands={onShowHands}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Show all hands, round 3' }));
+    expect(onShowHands).toHaveBeenCalledWith(3);
   });
 });

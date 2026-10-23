@@ -1,4 +1,4 @@
-import { applyMove, type GameState, type Move } from '@card-table/engine';
+import { applyMove, type GameState, type Move, replayRound } from '@card-table/engine';
 import type { TableInfo } from '@card-table/server/protocol';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -15,6 +15,7 @@ import {
   wildRummy,
 } from '../test/games';
 import { withZones } from '@card-table/engine/testing';
+import { api } from '../api';
 import { SUIT_SYMBOL } from './cards';
 import type { TableConnection } from './connection';
 import { TableView } from './TableView';
@@ -229,6 +230,30 @@ describe('TableView', () => {
     expect(connection.send).toHaveBeenCalledWith({ type: 'roundSeen' });
     expect(screen.queryByText('Round 1 is over.')).toBeNull();
     expect(dialog()).toBeNull();
+  });
+
+  it('shows all hands of the round that just ended, over its scores', async () => {
+    const before = playUntil(createGame(spades, {}, 4, 'view-hands'), (s) => applyMoveEndsRound(s));
+    const after = applyMove(before, firstMove(before), { holdNextRound: true });
+    const replay = replayRound(spades, {}, 4, 'view-hands', after.log, 1);
+    if (!replay) throw new Error('Round 1 should be over');
+    const load = vi.spyOn(api, 'roundReplay').mockResolvedValue(replay);
+    const { update } = show(before, 0);
+    update(after);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Show all hands' }));
+    await act(async () => {});
+    expect(load).toHaveBeenCalledWith(expect.any(String), 1);
+    expect(screen.getByRole('heading', { name: 'Round 1: all hands' })).toBeTruthy();
+
+    // Closing it goes back to the round's scores.
+    const dialogs = document.querySelectorAll('dialog');
+    const replayDialog = dialogs[dialogs.length - 1] as HTMLDialogElement;
+    replayDialog.removeAttribute('open');
+    fireEvent(replayDialog, new Event('close'));
+    expect(screen.queryByRole('heading', { name: 'Round 1: all hands' })).toBeNull();
+    expect(screen.getByRole('heading', { name: 'Round 1 scores' })).toBeTruthy();
+    load.mockRestore();
   });
 
   it('stays on the finished table until you ask for the results', () => {

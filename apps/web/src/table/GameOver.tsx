@@ -1,9 +1,11 @@
 /** The end of a game: who won, final scores and every round. */
 import type { TableInfo } from '@card-table/server/protocol';
+import { useState } from 'react';
 import { Link } from 'react-router';
 import type { GameMessage, OverMessage } from './connection';
 import { seatInitials, teamColour } from './avatars';
 import { seatNames, teamName } from './describe';
+import { ReplayDialog } from './ReplayDialog';
 import { RoundSummary } from './RoundSummary';
 import { HistoryTable, TeamAvatars } from './Scores';
 
@@ -24,6 +26,8 @@ export function GameOver({
   const youWon = winners.includes(view.you);
   const standings = [...view.teams].sort((a, b) => b.score - a.score);
   const lastRound = view.history[view.history.length - 1];
+  // A round being played back with every hand face up.
+  const [handsRound, setHandsRound] = useState<number | null>(null);
 
   let headline: string;
   if (abandoned) headline = 'The host ended the game';
@@ -66,7 +70,13 @@ export function GameOver({
       {lastRound && (
         <section className="panel">
           <h2>Last round</h2>
-          <RoundSummary result={lastRound} view={view} names={names} initials={initials} />
+          <RoundSummary
+            result={lastRound}
+            view={view}
+            names={names}
+            initials={initials}
+            onShowHands={() => setHandsRound(lastRound.round)}
+          />
         </section>
       )}
 
@@ -77,8 +87,19 @@ export function GameOver({
           teams={view.teams}
           names={names}
           target={view.goal.target}
+          onShowHands={setHandsRound}
         />
       </section>
+      {handsRound !== null && (
+        <ReplayDialog
+          code={table.code}
+          round={handsRound}
+          view={view}
+          names={names}
+          initials={initials}
+          onClose={() => setHandsRound(null)}
+        />
+      )}
 
       <p className="actions">
         <Link to={`/games/${table.game.slug}/new`} className="button primary">

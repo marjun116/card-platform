@@ -2,7 +2,7 @@
  * The server's HTTP API. Every call goes to /api on the same origin, which
  * Vite forwards to the Fastify server during development.
  */
-import type { OptionValue } from '@card-table/engine';
+import type { OptionValue, RoundReplay } from '@card-table/engine';
 import type {
   GameStats,
   GameSummary,
@@ -68,6 +68,12 @@ export const api = {
       (r) => r.table,
     ),
   myTables: () => request<{ tables: TableInfo[] }>('GET', '/tables/mine').then((r) => r.tables),
+  /** A finished round with every hand face up (players at the table only). */
+  roundReplay: (code: string, round: number) =>
+    request<{ replay: RoundReplay }>(
+      'GET',
+      `/tables/${encodeURIComponent(code)}/rounds/${round}`,
+    ).then((r) => r.replay),
   table: (code: string) =>
     request<{ table: TableInfo }>('GET', `/tables/${encodeURIComponent(code)}`).then(
       (r) => r.table,

@@ -23,6 +23,7 @@ import type { CardMotion } from './motion/animate';
 import { useCardMotion } from './motion/useCardMotion';
 import { buildControls, quickMove, turnPrompt } from './moves';
 import { Dialog, HistoryTable, Scoreboard } from './Scores';
+import { ReplayDialog } from './ReplayDialog';
 import { RoundSummary } from './RoundSummary';
 import { Seat } from './Seat';
 import { SeatEffects } from './SeatEffects';
@@ -114,6 +115,8 @@ export function TableView({
   const [moveError, setMoveError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  // A finished round being played back with every hand face up.
+  const [handsRound, setHandsRound] = useState<number | null>(null);
   const [showRules, setShowRules] = useState(false);
   const book = useRulebook(table.game.slug);
   // Which finished trick you're looking back at, if any (so it ends when the next one does).
@@ -577,7 +580,13 @@ export function TableView({
             onSelect: () => setHiddenRound(newRound.round),
           }}
         >
-          <RoundSummary result={newRound} view={view} names={names} initials={initials} />
+          <RoundSummary
+            result={newRound}
+            view={view}
+            names={names}
+            initials={initials}
+            onShowHands={() => setHandsRound(newRound.round)}
+          />
         </Dialog>
       )}
       {/* Loaded with the table, so the pop-up opens complete (see the lobby). */}
@@ -591,8 +600,20 @@ export function TableView({
             teams={view.teams}
             names={names}
             target={view.goal.target}
+            onShowHands={setHandsRound}
           />
         </Dialog>
+      )}
+      {/* After the dialog it was opened from, so it opens on top of it. */}
+      {handsRound !== null && (
+        <ReplayDialog
+          code={table.code}
+          round={handsRound}
+          view={view}
+          names={names}
+          initials={initials}
+          onClose={() => setHandsRound(null)}
+        />
       )}
     </div>
   );

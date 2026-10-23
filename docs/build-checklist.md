@@ -398,13 +398,13 @@ never by a game's name, so custom games get them too. No sound.
 
 **End of a round**
 
-- [ ] Round summary redesigned as one card per team, in its colour: bid against tricks
+- [x] Round summary redesigned as one card per team, in its colour: bid against tricks
       taken as a row of dots, a Made or Set badge, where the points came from ("Tricks 60 ·
       Bags +2 · Nil +100"), and this round's points counting up into the total
-- [ ] Progress bar per team toward the winning score; a small crown for the leader
-- [ ] One or two round highlights ("Raj took 6 tricks", "Ana's nil failed")
-- [ ] Score trend: a small line chart of each team's total in "Every round" (plain SVG)
-- [ ] Show all hands after the round: replay the finished round with every hand face up
+- [x] Progress bar per team toward the winning score; a small crown for the leader
+- [x] One or two round highlights ("Raj took 6 tricks", "Ana's nil failed")
+- [x] Score trend: a small line chart of each team's total in "Every round" (plain SVG)
+- [x] Show all hands after the round: replay the finished round with every hand face up
       (server: a round's hands become public once it's over, never before)
 
 **End of the game**
