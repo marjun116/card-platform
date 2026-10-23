@@ -362,6 +362,10 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       taken this round (or their points so far) instead, so you can tell when someone,
       you included, is going for the moon. Generic: the game file should say what's worth
       showing, not the table code checking for hearts.
+- [ ] **Hearts: sorting your hand should put hearts last (rightmost).** Hearts are the suit
+      that matters, so they should sit at the right end of a sorted hand. Generic: the game
+      file should be able to set the suit order for sorting, rather than the table
+      checking for hearts.
 
 ## UI polish
 
