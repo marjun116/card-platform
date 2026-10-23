@@ -114,6 +114,29 @@ describe('passing', () => {
     expect(viewFor(state, receiver).passes).toHaveLength(2);
   });
 
+  it('says who you pass to and who passes to you, before anyone has passed', () => {
+    // Round 1 passes left: each seat to the next, so each hears from the one before.
+    const state = createGame(passing, {}, 4, 'plan');
+    for (let seat = 0; seat < 4; seat++) {
+      expect(viewFor(state, seat).passing).toEqual({ to: (seat + 1) % 4, from: (seat + 3) % 4 });
+    }
+    // Round 2 passes right.
+    const second = draft(state);
+    second.round = 2;
+    expect(viewFor(second, 0).passing).toEqual({ to: 3, from: 1 });
+    // Once the passes are delivered and the tricks start, there's no pass under way.
+    const passed = [0, 1, 2, 3].reduce((s) => applyMove(s, firstThree(s, s.cursor.current)), state);
+    expect(viewFor(passed, 0).passing).toBeNull();
+  });
+
+  it('says nothing about passing on a hold round', () => {
+    const state = draft(createGame(passing, {}, 4, 'hold-plan'));
+    state.round = 4;
+    startRound(state);
+    settle(state);
+    expect(viewFor(state, 0).passing).toBeNull();
+  });
+
   it('forgets the passes when the next round starts', () => {
     const state = draft(createGame(passing, {}, 4, 'reset'));
     state.passes.push({ from: 0, to: 1, cards: [], delivered: true });

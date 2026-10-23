@@ -324,14 +324,19 @@ describe('TableView', () => {
     const state = createGame(passing, {}, 4, 'view-pass');
     const seat = state.cursor.current;
     const { connection } = show(state, seat);
-    expect(screen.getByText(/Choose 3 cards to pass/)).toBeTruthy();
+    // Round 1 passes left, so to the next seat; the seat before passes to you.
+    const to = NAMES[(seat + 1) % 4];
+    expect(screen.getByText(new RegExp(`Choose 3 cards to pass to ${to}`))).toBeTruthy();
+    expect(
+      screen.getByText(new RegExp(`You pass to ${to}; ${NAMES[(seat + 3) % 4]} passes to you`)),
+    ).toBeTruthy();
     const target = gameMessage(state, seat).legalMoves[0] as Extract<Move, { type: 'pass' }>;
     const buttons = hand().getAllByRole('button');
     for (const id of target.cards) {
       const label = buttons.find((b) => b.querySelector(`img[src*="${id.split('.')[0]}"]`));
       fireEvent.click(label as HTMLElement);
     }
-    fireEvent.click(screen.getByRole('button', { name: 'Pass 3 cards' }));
+    fireEvent.click(screen.getByRole('button', { name: `Pass 3 cards to ${to}` }));
     const sent = connection.move.mock.calls[0]?.[0] as Extract<Move, { type: 'pass' }>;
     expect([...sent.cards].sort()).toEqual([...target.cards].sort());
   });
@@ -344,7 +349,7 @@ describe('TableView', () => {
       return { state, last: state.cursor.current };
     }
 
-    it('raises them for a few seconds with who sent them', () => {
+    it('raises them with who sent them, until you play', () => {
       vi.useFakeTimers();
       try {
         const { state, last } = allButLast();
@@ -363,9 +368,17 @@ describe('TableView', () => {
         expect(document.querySelector('[aria-live]')?.textContent).toContain(
           `${NAMES[last]} passed you`,
         );
+        // Still there a while later, and while others play: until your own first move.
         act(() => {
-          vi.advanceTimersByTime(4000);
+          vi.advanceTimersByTime(10_000);
         });
+        let s = after;
+        while (s.cursor.current !== receiver) {
+          s = applyMove(s, firstMove(s));
+          act(() => update(s));
+          expect(screen.getByText(`From ${NAMES[last]}:`, { exact: false })).toBeTruthy();
+        }
+        act(() => update(applyMove(s, firstMove(s))));
         expect(screen.queryByText(`From ${NAMES[last]}:`, { exact: false })).toBeNull();
       } finally {
         vi.useRealTimers();

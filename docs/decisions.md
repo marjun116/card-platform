@@ -1500,3 +1500,8 @@ build checklist, done before Phase 6.
 - **Hearts sorts hearts last** with a new `cardOrder.sortSuits` in the game file (only how
   hands look, never a rule): ♠ ♦ ♣ ♥, so colours still alternate. Other games keep the
   usual ♠ ♥ ♣ ♦. The "show all hands" replay sorts the same way.
+- **Passing says who your cards go to and come from.** The view has `passing` (who you
+  pass to and who passes to you) while a pass is under way, worked out with the same rule
+  that delivers the cards. The hint and button say "Pass 3 cards to Ana", and your status
+  line says "You pass to Ana; Raj passes to you" for the whole pass. Cards passed to you
+  stay raised with "From Raj" until your first move after the pass (not for 4 seconds).

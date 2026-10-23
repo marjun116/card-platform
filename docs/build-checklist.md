@@ -352,7 +352,7 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
 - [x] **Lobby on a phone: the team lines overlap the top row of seats.** In a euchre lobby,
       "Team 1: seats 1 & 3" and the line for the other team, in the felt band at the top,
       run into the first row of seat cards below.
-- [ ] **Hearts: passing doesn't say who your cards go to or come from.** When you choose
+- [x] **Hearts: passing doesn't say who your cards go to or come from.** When you choose
       cards to pass, nothing says which player will get them (it changes each round: left,
       right, across, or no pass). Once the passed cards arrive, it should be just as clear
       who sent them, before play starts.

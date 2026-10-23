@@ -47,8 +47,8 @@ function errorText(error: unknown): string {
   return 'Something went wrong. Try again.';
 }
 
-/** How long cards passed to you stay raised, in ms. */
-const RECEIVED_FOR = 4000;
+/** Moves that only tidy your own hand: they don't count as playing after a pass. */
+const TIDYING: ReadonlySet<string> = new Set(['arrange', 'sortHand', 'lookAtHand']);
 
 /** How long the table stays in view after a round ends before its scores open, in ms:
     long enough to see the last card land and a big moment's banner sweep past. */
@@ -245,14 +245,13 @@ export function TableView({
   const pass = view.passes.find((p) => p.to === view.you && p.delivered && p.cards.length > 0);
   const passKey = pass ? `${view.round}:${pass.from}:${pass.cards.join(',')}` : null;
   const [passOnOpen] = useState(passKey);
-  const [passDone, setPassDone] = useState<string | null>(null);
-  useEffect(() => {
-    if (passKey === null || passKey === passOnOpen) return;
-    const timer = setTimeout(() => setPassDone(passKey), RECEIVED_FOR);
-    return () => clearTimeout(timer);
-  }, [passKey, passOnOpen]);
+  // They stay raised, with who sent them, until you make your first move after the pass.
+  const lastPass = view.log.findLastIndex((m) => m.type === 'pass');
+  const movedSince = view.log
+    .slice(lastPass + 1)
+    .some((m) => m.player === view.you && !TIDYING.has(m.type));
   const received =
-    pass && passKey !== passOnOpen && passKey !== passDone
+    pass && passKey !== passOnOpen && !movedSince
       ? { cards: pass.cards, from: names(pass.from) }
       : null;
   const receivedText =
@@ -598,6 +597,8 @@ export function TableView({
             {layout.hand?.view.kind === 'count' && ' Your cards are face down.'}
             {myBid != null && <SuitText text={` Your bid: ${bidWords(myBid, view.bidLabels)}.`} />}
             {view.control?.seat === view.you && ` ${names(view.control.by)} is playing your cards.`}
+            {view.passing &&
+              ` You pass to ${names(view.passing.to)}${view.passing.from === null ? '' : `; ${names(view.passing.from)} passes to you`}.`}
             {showTricks && ` You've won ${view.players[view.you]?.tricks ?? 0}.`}
           </span>
           {/* Screen readers hear this in the announcement and on each card. */}
@@ -635,6 +636,7 @@ export function TableView({
           busy={busy}
           onMove={act}
           onClear={clearFromButton}
+          passTo={view.passing?.to ?? null}
         />
       </div>
 

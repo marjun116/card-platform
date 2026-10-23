@@ -4,6 +4,7 @@
  */
 import { type Card, type CardId, isJoker, type Suit } from './cards/card';
 import { controlOf, currentPhase, turnSteps } from './game/legal';
+import { passTarget } from './actions/cardMovement';
 import { leadingPlayer } from './effects';
 import { checkedGroups, deadwood } from './game/arrangement';
 import type { BidValue, Move, PlayerId, ZoneKey } from './game/move';
@@ -130,6 +131,11 @@ export interface PlayerView {
    * `cards` are listed for your own passes, and for passes to you once delivered.
    */
   passes: { from: PlayerId; to: PlayerId; cards: CardId[]; delivered: boolean }[];
+  /**
+   * While cards are being passed (hearts): who yours go to and who passes to you. Null
+   * outside a pass, and in a round with no pass (a "hold" round).
+   */
+  passing: { to: PlayerId; from: PlayerId | null } | null;
   /** One seat playing for another (bridge's declarer for the dummy), or null. */
   control: { seat: PlayerId; by: PlayerId } | null;
   /**
@@ -408,6 +414,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
         ...p,
         cards: p.from === viewer || p.delivered ? [...p.cards] : [],
       })),
+    passing: passingOf(state, viewer),
     control: controlOf(state),
     // A hand that is still face down (blind bids) shows no groups either.
     arrangement:
@@ -425,6 +432,23 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
 }
 
 /** The validator keeps `target` to public values, like a display. */
+
+/** Who the viewer passes to, and who passes to them, in the pass under way (if any). */
+function passingOf(state: GameState, viewer: PlayerId): PlayerView['passing'] {
+  if (state.status !== 'inProgress') return null;
+  for (const step of turnSteps(currentPhase(state))) {
+    for (const action of step.actions) {
+      if (action.type !== 'pass') continue;
+      const to = passTarget(state, viewer, action.direction);
+      if (to === null) return null;
+      const from = state.players.find(
+        (p) => p.id !== viewer && passTarget(state, p.id, action.direction) === viewer,
+      );
+      return { to, from: from?.id ?? null };
+    }
+  }
+  return null;
+}
 function goalOf(state: GameState): PlayerView['goal'] {
   const { target, winner } = state.file.endCondition;
   const value =

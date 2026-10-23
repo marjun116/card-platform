@@ -154,13 +154,17 @@ export function HandActions({
   selected,
   onClear,
   arrangement = null,
+  passTo = null,
   ...props
 }: ButtonProps & {
   controls: Controls;
   selected: readonly string[];
   onClear: () => void;
   arrangement?: Arrangement;
+  /** Who the cards you pass go to, so the hint and button can say so. */
+  passTo?: number | null;
 }) {
+  const to = passTo === null ? '' : ` to ${props.names(passTo)}`;
   const grouped = new Set(arrangement?.groups.flatMap((g) => g.cards) ?? []);
   const arrange = (action: 'group' | 'ungroup') =>
     arrangement &&
@@ -174,7 +178,7 @@ export function HandActions({
           .map(
             ({ type, sizes }) =>
               `Choose ${sizes.join(' or ')} cards to ${
-                type === 'pass' ? 'pass' : type === 'meld' ? 'meld' : 'take the pile with'
+                type === 'pass' ? `pass${to}` : type === 'meld' ? 'meld' : 'take the pile with'
               }`,
           )
           .join('; ')}${selected.length > 0 ? ` (${selected.length} chosen)` : ''}.`
@@ -188,7 +192,14 @@ export function HandActions({
       {!empty && (
         <div className="action-row fade-in" key={selected.join(',')}>
           {hint && <span className="hint">{hint}</span>}
-          {forSelection.map((move) => moveButton(move, props, undefined, 'primary'))}
+          {forSelection.map((move) =>
+            moveButton(
+              move,
+              props,
+              move.type === 'pass' ? `${moveLabel(move, props.names)}${to}` : undefined,
+              'primary',
+            ),
+          )}
           {arrangement && selected.length >= 2 && (
             <button type="button" disabled={props.busy} onClick={() => arrange('group')}>
               Group
