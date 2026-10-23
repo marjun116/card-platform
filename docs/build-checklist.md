@@ -337,6 +337,10 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       says a bid or choice, part of the bubble is cut off at the left edge. Your avatar is at
       the start of the status line, and the bubble is centred on it, so a wide bubble
       ("Order it up") sticks out past the edge.
+- [ ] **Table: a big-moment banner at the end of a round is hidden by the round summary.**
+      Banners for moments that happen as a round ends ("Shot the moon!", "Set!", "Euchred!",
+      "Gin!") play across the felt at the same moment the round's scores open, so the
+      summary covers them and they can't be seen.
 
 ## UI polish
 
