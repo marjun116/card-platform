@@ -1387,3 +1387,23 @@ build checklist, done before Phase 6.
   scores only when a banner plays, so that every round's end feels the same and the last
   trick never disappears instantly. Opening a table after a round has ended shows no
   summary, as before.
+
+## 2026-10-23: End of the game (UI polish)
+
+- **Confetti only when you watched the game end.** Opening a finished game later (from
+  your history, say) shows the same page without confetti, and the scores don't count up.
+  The confetti is plain CSS in the winners' team colours, in a fixed pattern rather than
+  random, and isn't drawn at all with "reduce motion" switched on.
+- **Finishing order:** the winners first, then by score (lowest first where the lowest
+  score wins, so hearts reads the right way round). Level teams share a place.
+- **One or two teams get score cards side by side; three or more get a podium** (1st in
+  the middle and tallest), with anyone after 3rd listed below it. The list stays in
+  finishing order for screen readers; only the boxes are drawn 2nd, 1st, 3rd.
+- **If you lost, the headline is "Good game"**, with who won on the line below.
+- **Game stats are worked out in the browser from the rounds the client already has**, so
+  the server didn't change. A column appears only if the game has it:
+  - Tricks won: each player's total over the game.
+  - Bids made: rounds where the player bid and their team made its contract ("6 of 8").
+    A round counts only when the player's team had a contract, so in bridge only the side
+    that won the contract counts (decided by Arjun, 2026-10-23).
+  - Biggest round: the most points one team scored in one round (the earliest, if level).

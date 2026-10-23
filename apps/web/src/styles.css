@@ -1837,16 +1837,132 @@ kbd {
   font-size: 1.2rem;
   font-variant-numeric: lining-nums tabular-nums;
 }
-.standings li.winner {
-  font-weight: 700;
-}
-.standings li.winner .standing-name::after {
-  content: ' ★ winner';
+.standing-place {
+  min-width: 2.4em;
   color: var(--muted);
-  font-weight: 400;
+  font-variant-numeric: tabular-nums;
 }
 .game-over .panel {
   margin-bottom: 16px;
+}
+
+/* The end of a game: the winners in large type, then each team's final score on a card
+   (a podium for three or more teams: first in the middle and tallest). */
+.victory {
+  text-align: center;
+  margin: 8px 0 20px;
+}
+.victory h1 {
+  font-size: clamp(2rem, 7vw, 3.2rem);
+  margin: 0;
+}
+.victory-sub {
+  margin: 0.2em 0 0;
+  font-family: var(--display);
+  font-size: clamp(1.3rem, 4vw, 1.8rem);
+}
+.game-over .result-notes {
+  text-align: center;
+}
+.final-scores {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 12px;
+}
+.final-team {
+  flex: 0 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4em;
+  padding: 14px 10px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 6px solid var(--team);
+  border-radius: var(--radius);
+}
+.final-team.winner {
+  box-shadow: 0 0 0 2px var(--team);
+}
+.final-name {
+  overflow-wrap: anywhere;
+}
+.final-team.winner .final-name {
+  font-weight: 700;
+}
+.final-score {
+  font-family: var(--display);
+  font-size: 2rem;
+  line-height: 1;
+  font-variant-numeric: lining-nums tabular-nums;
+}
+.final-place {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  color: var(--muted);
+}
+/* The podium: the list stays in finishing order for screen readers; only the boxes
+   are drawn 2nd, 1st, 3rd, stepping up to the middle. */
+.podium .final-team {
+  justify-content: flex-end;
+}
+.podium .place-1 {
+  order: 2;
+  min-height: 210px;
+}
+.podium .place-2 {
+  order: 1;
+  min-height: 175px;
+}
+.podium .place-3 {
+  order: 3;
+  min-height: 150px;
+}
+.game-stats p {
+  margin: 0.8em 0 0;
+}
+
+/* Confetti: one burst falling down the page, then gone. Never with "reduce motion". */
+.confetti {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 20;
+}
+.confetti span {
+  position: absolute;
+  top: -16px;
+  left: var(--x);
+  width: 8px;
+  height: 13px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: confetti-fall 2200ms cubic-bezier(0.3, 0.5, 0.6, 1) var(--delay) both;
+}
+@keyframes confetti-fall {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift), 85vh) rotate(var(--spin));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti {
+    display: none;
+  }
 }
 
 /* ---- phones and small tablets ---- */

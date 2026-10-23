@@ -113,7 +113,7 @@ function TableScreen({ code }: { code: string }) {
     table.status === 'abandoned' ||
     (table.status === 'finished' && (resultsShown || !watchedEnd))
   ) {
-    body = <GameOver table={table} game={game} over={snapshot.over} />;
+    body = <GameOver table={table} game={game} over={snapshot.over} celebrate={watchedEnd} />;
   } else {
     body = (
       <TableView

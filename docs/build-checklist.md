@@ -417,11 +417,11 @@ never by a game's name, so custom games get them too. No sound.
 
 **End of the game**
 
-- [ ] Victory screen: a short confetti burst in the team colours (not with "reduce
+- [x] Victory screen: a short confetti burst in the team colours (not with "reduce
       motion"), winners' names in large type, final scores counting up, a podium for three
       or more teams
-- [ ] A kind message when you lose: "Good game" (no "best moment": left out by Arjun)
-- [ ] Game stats: tricks won, bids made per player, the biggest round
+- [x] A kind message when you lose: "Good game" (no "best moment": left out by Arjun)
+- [x] Game stats: tricks won, bids made per player, the biggest round
 - [ ] Rematch: one button starts a new game with the same players in the same seats
       (server: new table from an old one, everyone invited back)
 
