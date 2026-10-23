@@ -8,9 +8,10 @@
  *   GET  /api/tables/mine            my unfinished tables
  *   GET  /api/tables/:code           a table's lobby info
  *   DELETE /api/tables/:code         the host deletes a table (and its game) for everyone
+ *   GET  /api/tables/:code/rounds/:n a finished round with every hand face up (seated players)
  *   GET  /api/tables/:code/ws        the table's WebSocket (see protocol.ts)
  */
-import type { OptionValue } from '@card-table/engine';
+import { type OptionValue, replayRound } from '@card-table/engine';
 import type { WebSocket } from '@fastify/websocket';
 import type { FastifyInstance, FastifyRequest } from 'fastify';
 import { z } from 'zod';
@@ -29,6 +30,7 @@ const createBody = z.strictObject({
   playerCount: z.number().int().min(1).max(10).optional(),
 });
 const codeParams = z.object({ code: z.string().min(1).max(32) });
+const roundParams = codeParams.extend({ round: z.coerce.number().int().min(1).max(10_000) });
 const slugParams = z.object({ slug: z.string().min(1).max(64) });
 
 const PING_EVERY_MS = 30_000;
@@ -81,6 +83,34 @@ export function tableRoutes(
     const table = await tableFromParams(request);
     if (!table) return reply.code(404).send({ error: 'No table with that code' });
     return { table: await infoFor(table) };
+  });
+
+  // A round's hands become public once the round is over, and only to the table's players:
+  // the engine plays back nothing of a round still being played.
+  app.get('/api/tables/:code/rounds/:round', async (request, reply) => {
+    if (!request.user) return reply.code(401).send({ error: 'Not signed in' });
+    const params = roundParams.safeParse(request.params);
+    if (!params.success) return reply.code(400).send({ error: 'Invalid round' });
+    const table = await store.getTableByInviteCode(params.data.code.toUpperCase());
+    if (!table) return reply.code(404).send({ error: 'No table with that code' });
+    const userId = request.user.id;
+    if (!table.seats.some((seat) => seat.userId === userId)) {
+      return reply.code(403).send({ error: "Only the table's players can see its hands" });
+    }
+    const game = await catalog.version(table.gameVersionId);
+    const moves = table.startedAt ? await store.listMoves(table.id) : [];
+    const replay = table.startedAt
+      ? replayRound(
+          game.file,
+          table.options,
+          table.playerCount,
+          table.seed,
+          moves,
+          params.data.round,
+        )
+      : null;
+    if (!replay) return reply.code(404).send({ error: "That round isn't over" });
+    return { replay };
   });
 
   app.delete('/api/tables/:code', async (request, reply) => {

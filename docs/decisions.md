@@ -1356,3 +1356,9 @@ build checklist, done before Phase 6.
 - **Score trend:** a line per team above the "Every round" table, from the scores the
   game began with, with the target dashed. It's hidden from screen readers, which have the
   table.
+- **Show all hands, on the server:** `GET /api/tables/:code/rounds/:n` plays the game back
+  from its seed and saved moves (`replayRound` in the engine) and sends round *n* move by
+  move, every zone face up. It answers only once that round is over (404 before) and only
+  to players seated at the table (403 for anyone else, even with the invite code). A player
+  a bot replaced no longer holds the seat, so can't see it either. Nothing is stored: the
+  round is rebuilt on each request, and the seed and game file never leave the server.

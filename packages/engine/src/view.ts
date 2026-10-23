@@ -213,7 +213,7 @@ function offTable(state: GameState): string[] {
     .map(([name]) => name);
 }
 
-function trickZones(state: GameState): string[] {
+export function trickZones(state: GameState): string[] {
   const names = new Set<string>();
   for (const phase of state.file.phases) {
     for (const step of turnSteps(phase)) {
@@ -254,9 +254,14 @@ export function choiceLabelsOf(file: GameFile): Record<string, string> {
   return labels;
 }
 
-function trickView(state: GameState, trick: TrickState | null, viewer: PlayerId): TrickView | null {
+/** A trick as `viewer` sees it, or with every card shown (null viewer: see openView). */
+function trickView(
+  state: GameState,
+  trick: TrickState | null,
+  viewer: PlayerId | null,
+): TrickView | null {
   if (!trick) return null;
-  const visible = access(state, trick.zone, viewer) === 'cards';
+  const visible = viewer === null || access(state, trick.zone, viewer) === 'cards';
   const rule = currentPhase(state).afterTrick?.find((e) => e.resolveTrick)?.resolveTrick;
   const leading =
     trick.winner ??
@@ -426,6 +431,37 @@ function goalOf(state: GameState): PlayerView['goal'] {
   return {
     target: typeof value === 'number' ? value : null,
     winner: resolveSetting(state, winner, WINNERS, 'Winner'),
+  };
+}
+
+/**
+ * The table with every card face up, for showing a round once it's over (see
+ * replayRound). Never for a round still being played.
+ */
+export interface OpenView {
+  zones: Record<ZoneKey, ZoneView>;
+  trick: TrickView | null;
+  lastTrick: TrickView | null;
+  players: { id: PlayerId; bid: BidValue | null; tricks: number }[];
+  teams: { id: number; score: number }[];
+  trump: PlayerView['trump'];
+}
+
+export function openView(state: GameState): OpenView {
+  const zones: Record<ZoneKey, ZoneView> = {};
+  for (const [key, cards] of Object.entries(state.zones)) {
+    zones[key] = { kind: 'cards', cards: [...cards] };
+  }
+  for (const [key, melds] of Object.entries(state.melds)) {
+    zones[key] = { kind: 'melds', melds: melds.map((m) => [...m]) };
+  }
+  return {
+    zones,
+    trick: trickView(state, state.trick, null),
+    lastTrick: trickView(state, state.lastTrick, null),
+    players: state.players.map((p) => ({ id: p.id, bid: p.bid, tricks: p.tricks })),
+    teams: state.teams.map((t) => ({ id: t.id, score: t.score })),
+    trump: trumpView(state),
   };
 }
 

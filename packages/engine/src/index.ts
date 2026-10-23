@@ -40,9 +40,11 @@ export {
   type ValidationResult,
 } from './schema/validate';
 export type { Scores } from './scoring';
+export { replayRound, type RoundReplay } from './roundReplay';
 export {
   bidLabelsOf,
   choiceLabelsOf,
+  type OpenView,
   type PlayerView,
   type PublicMove,
   type TrickView,
