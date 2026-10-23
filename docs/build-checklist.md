@@ -344,6 +344,14 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
 - [x] **Euchre: the dealer can discard the card they just picked up.** When the upcard is
       ordered up, the dealer takes it into their hand and discards one card, but the
       discard offered every card in the hand, including the upcard itself.
+- [ ] **Home: the games are one long column, squeezed beside "Your tables".** On a laptop,
+      the game tiles in "Start a game" sit one per row instead of several per row, and the
+      "Your tables" panel sits next to them. The tiles went inside the "Start a game"
+      panel, which is only one column of Home's grid. They should get the page's width,
+      a few per row, with "Your tables" not beside them.
+- [ ] **Lobby on a phone: the team lines overlap the top row of seats.** In a euchre lobby,
+      "Team 1: seats 1 & 3" and the line for the other team, in the felt band at the top,
+      run into the first row of seat cards below.
 
 ## UI polish
 
