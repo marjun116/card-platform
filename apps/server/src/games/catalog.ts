@@ -4,7 +4,7 @@
  * always replays with the exact file it started with.
  */
 import { createHash } from 'node:crypto';
-import { type GameFile, teamsFor } from '@card-table/engine';
+import { type GameFile, RANKS, teamsFor } from '@card-table/engine';
 import { builtInGames, builtInRules } from '@card-table/games';
 import type { GameVersion, Store } from '../store/types';
 import type { GameSummary } from '../tables/protocol';
@@ -14,6 +14,34 @@ export function playerCounts(file: GameFile): number[] {
     ? file.meta.players
     : [file.meta.players, file.meta.players];
   return Array.from({ length: max - min + 1 }, (_, i) => min + i);
+}
+
+const TILE_SUITS = ['spades', 'hearts', 'diamonds', 'clubs'] as const;
+const ACCENTS = 8;
+
+/**
+ * What a game's tile shows, from its file's meta. Where the file says nothing (a
+ * custom game, say): no length, a fan of the deck's highest cards, and a colour
+ * picked from the game's slug, so it's the same every time.
+ */
+export function tileOf(
+  slug: string,
+  file: GameFile,
+): Pick<GameSummary, 'minutes' | 'cards' | 'accent'> {
+  const { minutes, cards, accent } = file.meta;
+  return {
+    minutes: minutes === undefined ? null : Array.isArray(minutes) ? minutes : [minutes, minutes],
+    cards: cards ?? highestCards(file),
+    accent: accent ?? [...slug].reduce((sum, c) => sum + c.charCodeAt(0), 0) % ACCENTS,
+  };
+}
+
+function highestCards(file: GameFile): string[] {
+  const inDeck = file.deck.ranks ?? RANKS;
+  const ranks = (file.cardOrder?.ranks ?? RANKS).filter((r) => inDeck.includes(r)).reverse();
+  const suits = TILE_SUITS.filter((s) => (file.deck.suits ?? TILE_SUITS).includes(s));
+  const codes = ranks.flatMap((rank) => suits.map((s) => `${rank}${s[0]?.toUpperCase()}`));
+  return codes.slice(0, 3);
 }
 
 export class GameCatalog {
@@ -45,6 +73,7 @@ export class GameCatalog {
       teams: Array.isArray(file.meta.teams) ? file.meta.teams : null,
       partnersWith: playerCounts(file).filter((n) => teamsFor(file, n) !== null),
       options: file.options ?? {},
+      ...tileOf(slug, file),
     }));
   }
 

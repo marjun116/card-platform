@@ -18,6 +18,9 @@ const spades: GameSummary = {
     [1, 3],
   ],
   partnersWith: [4],
+  minutes: null,
+  cards: ['AS', 'KS', 'QS'],
+  accent: 0,
   options: {
     nil: { label: 'Allow nil bids', type: 'boolean', default: true },
     targetScore: { label: 'Play to', type: 'choice', values: [300, 500, 1000], default: 500 },

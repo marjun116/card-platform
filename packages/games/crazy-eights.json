@@ -2,6 +2,9 @@
   "$schema": "../engine/game-file.schema.json",
   "meta": {
     "name": "Crazy Eights",
+    "minutes": [10, 20],
+    "cards": ["8D", "8S", "8H"],
+    "accent": 1,
     "players": [2, 10],
     "description": "Match the top card by suit or rank. Eights are wild. First to empty their hand wins."
   },

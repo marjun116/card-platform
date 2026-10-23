@@ -430,7 +430,7 @@ never by a game's name, so custom games get them too. No sound.
 
 **Around the table**
 
-- [ ] Game tiles on Home and Library: an accent colour per game, a small fan of real cards,
+- [x] Game tiles on Home and Library: an accent colour per game, a small fan of real cards,
       chips for player count and typical length
 - [ ] Lobby drawn as a table: seats around it, empty ones gently pulsing "Sit here", team
       colours shown before the game starts

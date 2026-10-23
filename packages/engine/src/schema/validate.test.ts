@@ -30,6 +30,29 @@ describe('validate', () => {
     expect(result.ok && result.file).toEqual(spades);
   });
 
+  describe("the game's tile", () => {
+    it('accepts how long a game takes, three cards and an accent colour', () => {
+      const file = {
+        ...spades,
+        meta: { ...spades.meta, minutes: [30, 60], cards: ['AS', 'KS', 'JOKER'], accent: 3 },
+      };
+      expect(errors(file)).toEqual([]);
+      expect(errors({ ...spades, meta: { ...spades.meta, minutes: 20 } })).toEqual([]);
+    });
+
+    it('refuses cards that are not cards, times the wrong way round and odd colours', () => {
+      const meta = (extra: object) => ({ ...spades, meta: { ...spades.meta, ...extra } });
+      expect(errors(meta({ cards: ['AS', 'XX', 'QS'] }))).toEqual([
+        `meta.cards[1]: "XX" isn't a card (use e.g. "QS", "10H" or "JOKER")`,
+      ]);
+      expect(errors(meta({ minutes: [60, 30] }))).toEqual([
+        'meta.minutes: Write the shorter time first, e.g. [30, 60]',
+      ]);
+      expect(errors(meta({ cards: ['AS'] }))).not.toEqual([]);
+      expect(errors(meta({ accent: 9 }))).not.toEqual([]);
+    });
+  });
+
   describe('shape (schema)', () => {
     it('rejects things that are not game files', () => {
       expect(errors(null)).toEqual([': Expected object, received null']);

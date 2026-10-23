@@ -2,6 +2,9 @@
   "$schema": "../engine/game-file.schema.json",
   "meta": {
     "name": "Oh Hell",
+    "minutes": [30, 60],
+    "cards": ["2C", "QD", "AS"],
+    "accent": 5,
     "players": [3, 7],
     "description": "Bid exactly how many tricks you'll take, then take exactly that many. Hands grow and shrink each round."
   },

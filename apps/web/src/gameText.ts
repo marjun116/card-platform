@@ -13,6 +13,13 @@ export function playersText(game: GameSummary): string {
   return `${range} players${teams}`;
 }
 
+/** "About 20 min" or "30–60 min", or null if the game doesn't say. */
+export function minutesText(game: Pick<GameSummary, 'minutes'>): string | null {
+  if (!game.minutes) return null;
+  const [low, high] = game.minutes;
+  return low === high ? `About ${low} min` : `${low}–${high} min`;
+}
+
 /** "You won", "You lost", "You shared the win" or "Ended early". */
 export function outcomeText(game: PastGame): string {
   if (game.status === 'abandoned') return 'Ended early';

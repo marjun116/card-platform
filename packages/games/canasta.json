@@ -2,6 +2,9 @@
   "$schema": "../engine/game-file.schema.json",
   "meta": {
     "name": "Canasta",
+    "minutes": [60, 120],
+    "cards": ["2C", "JOKER", "AH"],
+    "accent": 6,
     "players": [2, 4],
     "teams": {
       "4": [

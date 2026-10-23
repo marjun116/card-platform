@@ -1443,3 +1443,10 @@ build checklist, done before Phase 6.
   "Dealing…"): three card backs, the outer two sliding out and back in turn, with the
   words underneath for everyone (and screen readers). A still stack with "reduce motion"
   or animation speed off. "Loading…" on other pages stays plain.
+- **Game tiles take three optional `meta` fields** (decided by Arjun, 2026-10-23):
+  `minutes` (a number or a range), `cards` (three card codes for the fan) and `accent`
+  (0 to 7, the team colour palette). The server fills in what a file leaves out, so
+  custom games get tiles too: no length chip, a fan of the deck's three highest cards,
+  and a colour picked from the game's slug. Every built-in game sets all three.
+- **Home's "Start a game" shows every game as a compact tile**, one tap to a new table;
+  the games list keeps the full tiles, with house rules and the Rules link.

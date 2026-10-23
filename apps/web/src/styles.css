@@ -466,6 +466,96 @@ kbd {
   padding-top: 0.5em;
 }
 
+/* Game tiles: an accent stripe in the game's colour, a fan of three cards, and chips. */
+.game-tile {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 5px solid var(--game);
+  border-radius: var(--radius);
+  padding: 0.9em 1.1em 1em;
+}
+.game-tile .tile-name {
+  margin: 0.4em 0 0.3em;
+}
+.tile-fan {
+  display: flex;
+  height: calc(var(--small-w) * 1.5 + 6px);
+  align-items: flex-end;
+  padding-left: 4px;
+}
+.tile-fan .card {
+  transform-origin: 50% 100%;
+}
+.tile-fan .card + .card {
+  margin-left: calc(var(--small-w) * -0.55);
+}
+.tile-fan .card:nth-child(1) {
+  transform: rotate(-12deg);
+}
+.tile-fan .card:nth-child(3) {
+  transform: rotate(12deg);
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 0.6em;
+  padding: 0;
+}
+.chip {
+  border-radius: 999px;
+  padding: 0.15em 0.7em;
+  font-size: 0.85rem;
+  background: color-mix(in srgb, var(--game) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--game) 45%, transparent);
+}
+/* Home: a row of small tiles, each one link to a new table (the link covers the tile). */
+.tile-row {
+  list-style: none;
+  margin: 0 0 0.8em;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr));
+}
+.game-tile.compact {
+  padding: 0.6em 0.8em 0.4em;
+}
+.game-tile.compact .tile-fan {
+  height: calc(var(--tiny-w) * 1.5 + 6px);
+}
+.game-tile.compact .tile-fan .card + .card {
+  margin-left: calc(var(--tiny-w) * -0.45);
+}
+.game-tile.compact .tile-name {
+  font-size: 1.05rem;
+}
+.game-tile.compact .chip {
+  font-size: 0.75rem;
+}
+.tile-link {
+  color: inherit;
+  text-decoration: none;
+}
+.tile-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+}
+.game-tile.compact:hover,
+.game-tile.compact:focus-within {
+  border-color: var(--game);
+}
+.tile-link:focus-visible {
+  outline: none;
+}
+.tile-link:focus-visible::after {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
 /* ---- rulebook ---- */
 
 .rules-text {

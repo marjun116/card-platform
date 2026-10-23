@@ -2,6 +2,9 @@
   "$schema": "../engine/game-file.schema.json",
   "meta": {
     "name": "Gin Rummy",
+    "minutes": [30, 60],
+    "cards": ["KD", "KS", "KH"],
+    "accent": 3,
     "players": 2,
     "description": "Build melds in your hand and knock when your deadwood is low enough. Gin is no deadwood at all."
   },

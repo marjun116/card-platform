@@ -284,6 +284,7 @@ class Checker {
     this.checkMeldRules();
     this.checkZones();
     this.checkDeck();
+    this.checkTile();
     this.checkSetup();
     this.file.phases.forEach((phase, i) => this.checkPhase(phase, ['phases', i]));
     this.checkScoring();
@@ -547,6 +548,22 @@ class Checker {
     const { ranks = RANKS, suits = SUITS } = this.file.deck;
     const card = parseCardCode(code);
     return card !== null && ranks.includes(card.rank) && suits.includes(card.suit);
+  }
+
+  /** The game's tile: its cards are real cards, and its minutes run from low to high. */
+  private checkTile(): void {
+    const { cards = [], minutes } = this.file.meta;
+    cards.forEach((code, i) => {
+      if (!isCardCode(code)) {
+        this.error(
+          ['meta', 'cards', i],
+          `"${code}" isn't a card (use e.g. "QS", "10H" or "JOKER")`,
+        );
+      }
+    });
+    if (Array.isArray(minutes) && minutes[0] > minutes[1]) {
+      this.error(['meta', 'minutes'], 'Write the shorter time first, e.g. [30, 60]');
+    }
   }
 
   private checkDeck(): void {

@@ -46,6 +46,12 @@ export const metaSchema = z.strictObject({
     .optional(),
   custom: z.boolean().optional(),
   description: z.string().optional(),
+  /** How long a game usually takes in minutes, for its tile: about 20, or 30 to 60. */
+  minutes: z.union([count(1).max(600), z.tuple([count(1).max(600), count(1).max(600)])]).optional(),
+  /** Three cards fanned on the game's tile, e.g. ["AS", "KS", "QS"]. */
+  cards: z.array(cardCode).length(3).optional(),
+  /** The tile's accent colour, 0 to 7. */
+  accent: z.int().min(0).max(7).optional(),
 });
 
 export const deckSchema = z.strictObject({

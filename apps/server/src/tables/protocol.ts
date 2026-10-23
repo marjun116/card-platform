@@ -132,6 +132,12 @@ export interface GameSummary {
   /** Player counts that play in partnerships, for games where only some do. */
   partnersWith: number[];
   options: Record<string, OptionDef>;
+  /** How long a game usually takes in minutes (low, high), if the game file says. */
+  minutes: [number, number] | null;
+  /** Three card codes fanned on the game's tile. */
+  cards: string[];
+  /** The tile's accent colour, 0 to 7. */
+  accent: number;
 }
 
 /** What anyone with the invite code may see: the lobby, never any cards. */

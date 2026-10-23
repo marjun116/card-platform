@@ -2,6 +2,9 @@
   "$schema": "../engine/game-file.schema.json",
   "meta": {
     "name": "Bridge",
+    "minutes": [60, 120],
+    "cards": ["QD", "KH", "AS"],
+    "accent": 2,
     "players": 4,
     "teams": [
       [0, 2],

@@ -1,4 +1,4 @@
-import type { GameStats, PastGame, TableInfo } from '@card-table/server/protocol';
+import type { GameStats, GameSummary, PastGame, TableInfo } from '@card-table/server/protocol';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +7,21 @@ import { SessionContext } from '../useSession';
 import { Home } from './Home';
 
 const me: User = { id: 'me', displayName: 'Me', signedIn: false };
+
+const spades: GameSummary = {
+  slug: 'spades',
+  name: 'Spades',
+  players: [4],
+  teams: [
+    [0, 2],
+    [1, 3],
+  ],
+  partnersWith: [4],
+  options: {},
+  minutes: [45, 90],
+  cards: ['AS', 'KS', 'QS'],
+  accent: 0,
+};
 
 function past(code: string, winners: number[], status: PastGame['status'] = 'finished'): PastGame {
   return {
@@ -50,6 +65,7 @@ beforeEach(() => {
     }
     if (url === '/api/tables/mine') return reply({ tables: myTables });
     if (url === '/api/stats') return reply({ stats });
+    if (url === '/api/games') return reply({ games: [spades] });
     const offset = Number(/offset=(\d+)/.exec(url)?.[1] ?? 0);
     return reply(pages[offset] ?? { games: [], more: false });
   });
@@ -140,5 +156,16 @@ describe('Past games', () => {
     show();
     const section = await pastGames();
     expect(await section.findByText('Games you finish will show up here.')).toBeTruthy();
+  });
+});
+
+describe('Home: start a game', () => {
+  it('shows every game as a tile that starts a new table', async () => {
+    show();
+    const games = await screen.findByRole('list', { name: 'Games' });
+    const link = within(games).getByRole('link', { name: 'Spades' });
+    expect(link.getAttribute('href')).toBe('/games/spades/new');
+    expect(within(games).getByText('4 players, 2 teams')).toBeTruthy();
+    expect(within(games).getByText('45–90 min')).toBeTruthy();
   });
 });

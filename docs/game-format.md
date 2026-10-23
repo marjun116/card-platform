@@ -20,7 +20,7 @@ A game file has eight top-level sections. The engine supplies the behavior for e
 
 | Section | What it defines | Example values |
 | --- | --- | --- |
-| `meta` | Name, player count, description | 4 players, partnerships |
+| `meta` | Name, player count, description; optionally, how the game's tile looks | 4 players, partnerships; 45–90 minutes |
 | `deck` | Which cards are in play | 1 deck, no jokers |
 | `cardOrder` | Rank order, trump, wild cards | Aces high; spades always trump |
 | `zones` | Places cards can be | Each hand, stock, discard, current trick, won tricks, melds |
@@ -28,6 +28,12 @@ A game file has eight top-level sections. The engine supplies the behavior for e
 | `phases` | The ordered stages of a round | Bid, then play 13 tricks |
 | `scoring` | Points at the end of a round | 10 per trick bid, 1 per overtrick |
 | `endCondition` | When the whole game ends | First team to 500 |
+
+Three optional `meta` fields only change how the game's tile looks on Home and in the games list:
+
+- `minutes`: how long a game usually takes, as a number (`20`, "about 20 min") or a range (`[30, 60]`). Without it, the tile shows no length.
+- `cards`: three card codes fanned on the tile, e.g. `["AS", "KS", "QS"]`. Without it, the tile fans the deck's three highest cards.
+- `accent`: the tile's colour, `0` to `7`. Without it, a colour is picked from the game's name (the same one every time).
 
 Inside `phases`, each phase lists the **actions** players may take on their turn, drawn from a fixed library:
 

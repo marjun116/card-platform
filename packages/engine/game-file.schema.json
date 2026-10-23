@@ -64,6 +64,46 @@
         },
         "description": {
           "type": "string"
+        },
+        "minutes": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 600
+            },
+            {
+              "type": "array",
+              "prefixItems": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 600
+                },
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 600
+                }
+              ],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          ]
+        },
+        "cards": {
+          "minItems": 3,
+          "maxItems": 3,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        "accent": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 7
         }
       },
       "required": [
@@ -83,7 +123,7 @@
               "maximum": 6
             },
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             }
           ]
         },
@@ -91,14 +131,14 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema4"
+            "$ref": "#/$defs/__schema5"
           }
         },
         "suits": {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema5"
+            "$ref": "#/$defs/__schema6"
           }
         },
         "jokers": {
@@ -109,7 +149,7 @@
               "maximum": 2
             },
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             }
           ]
         },
@@ -117,7 +157,7 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema6"
+            "$ref": "#/$defs/__schema7"
           }
         }
       },
@@ -130,13 +170,13 @@
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema4"
+            "$ref": "#/$defs/__schema5"
           }
         },
         "trump": {
           "anyOf": [
             {
-              "$ref": "#/$defs/__schema5"
+              "$ref": "#/$defs/__schema6"
             },
             {
               "type": "string",
@@ -145,7 +185,7 @@
           ]
         },
         "wild": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "bowers": {
           "type": "boolean"
@@ -220,7 +260,7 @@
               ]
             },
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             }
           ]
         },
@@ -230,7 +270,7 @@
               "type": "boolean"
             },
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             }
           ]
         },
@@ -240,7 +280,7 @@
               "type": "boolean"
             },
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             }
           ]
         },
@@ -255,7 +295,7 @@
           ]
         },
         "allowed": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         }
       },
       "additionalProperties": false
@@ -294,10 +334,10 @@
             "type": "boolean"
           },
           "reveal": {
-            "$ref": "#/$defs/__schema3"
+            "$ref": "#/$defs/__schema4"
           },
           "showOnTable": {
-            "$ref": "#/$defs/__schema3"
+            "$ref": "#/$defs/__schema4"
           }
         },
         "required": [
@@ -326,7 +366,7 @@
                   "maximum": 9007199254740991
                 },
                 {
-                  "$ref": "#/$defs/__schema3"
+                  "$ref": "#/$defs/__schema4"
                 }
               ]
             }
@@ -365,7 +405,7 @@
               ]
             },
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             }
           ]
         }
@@ -420,7 +460,7 @@
             "$ref": "#/$defs/__schema8"
           },
           "additionalProperties": {
-            "$ref": "#/$defs/__schema3"
+            "$ref": "#/$defs/__schema4"
           }
         },
         "atGameEnd": {
@@ -450,10 +490,10 @@
           "type": "object",
           "properties": {
             "if": {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             },
             "made": {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             }
           },
           "required": [
@@ -468,7 +508,7 @@
       "type": "object",
       "properties": {
         "when": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         }
       },
       "required": [
@@ -480,7 +520,7 @@
       "type": "object",
       "properties": {
         "when": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "winner": {
           "anyOf": [
@@ -493,7 +533,7 @@
               ]
             },
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             }
           ]
         },
@@ -507,17 +547,17 @@
               ]
             },
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             }
           ]
         },
         "priority": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "target": {
           "anyOf": [
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             },
             {
               "type": "number"
@@ -559,7 +599,7 @@
       "type": "object",
       "properties": {
         "if": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "to": {
           "$ref": "#/$defs/__schema8"
@@ -608,9 +648,14 @@
     "__schema3": {
       "type": "string",
       "minLength": 1,
-      "description": "An expression, e.g. \"hand.count == 0\""
+      "description": "A card code, e.g. \"QS\" (queen of spades), \"10H\" or \"2C\""
     },
     "__schema4": {
+      "type": "string",
+      "minLength": 1,
+      "description": "An expression, e.g. \"hand.count == 0\""
+    },
+    "__schema5": {
       "type": "string",
       "enum": [
         "2",
@@ -628,7 +673,7 @@
         "A"
       ]
     },
-    "__schema5": {
+    "__schema6": {
       "type": "string",
       "enum": [
         "clubs",
@@ -637,17 +682,17 @@
         "spades"
       ]
     },
-    "__schema6": {
+    "__schema7": {
       "type": "object",
       "properties": {
         "if": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "cards": {
           "minItems": 1,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema7"
+            "$ref": "#/$defs/__schema3"
           }
         }
       },
@@ -655,11 +700,6 @@
         "cards"
       ],
       "additionalProperties": false
-    },
-    "__schema7": {
-      "type": "string",
-      "minLength": 1,
-      "description": "A card code, e.g. \"QS\" (queen of spades), \"10H\" or \"2C\""
     },
     "__schema8": {
       "type": "string",
@@ -693,7 +733,7 @@
       "type": "object",
       "properties": {
         "if": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "from": {
           "$ref": "#/$defs/__schema8"
@@ -714,7 +754,7 @@
           }
         },
         "reflipIf": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         }
       },
       "required": [
@@ -726,7 +766,7 @@
     "__schema13": {
       "anyOf": [
         {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         {
           "type": "number"
@@ -747,7 +787,7 @@
           "minLength": 1
         },
         "if": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "order": {
           "type": "string",
@@ -769,7 +809,7 @@
           "maximum": 9007199254740991
         },
         "until": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "leader": {
           "type": "object",
@@ -784,7 +824,7 @@
                   ]
                 },
                 {
-                  "$ref": "#/$defs/__schema3"
+                  "$ref": "#/$defs/__schema4"
                 }
               ]
             },
@@ -826,10 +866,10 @@
           "type": "object",
           "properties": {
             "seat": {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             },
             "by": {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             }
           },
           "required": [
@@ -860,7 +900,7 @@
                     "const": "endRound"
                   },
                   "if": {
-                    "$ref": "#/$defs/__schema3"
+                    "$ref": "#/$defs/__schema4"
                   }
                 },
                 "required": [
@@ -883,12 +923,12 @@
                         "maximum": 9007199254740991
                       },
                       {
-                        "$ref": "#/$defs/__schema3"
+                        "$ref": "#/$defs/__schema4"
                       }
                     ]
                   },
                   "if": {
-                    "$ref": "#/$defs/__schema3"
+                    "$ref": "#/$defs/__schema4"
                   }
                 },
                 "required": [
@@ -956,10 +996,10 @@
               "type": "object",
               "properties": {
                 "cannotLead": {
-                  "$ref": "#/$defs/__schema5"
+                  "$ref": "#/$defs/__schema6"
                 },
                 "unless": {
-                  "$ref": "#/$defs/__schema3"
+                  "$ref": "#/$defs/__schema4"
                 }
               },
               "required": [
@@ -1007,7 +1047,7 @@
                   "maximum": 9007199254740991
                 },
                 {
-                  "$ref": "#/$defs/__schema3"
+                  "$ref": "#/$defs/__schema4"
                 }
               ]
             },
@@ -1079,7 +1119,7 @@
                   ]
                 },
                 {
-                  "$ref": "#/$defs/__schema3"
+                  "$ref": "#/$defs/__schema4"
                 }
               ]
             },
@@ -1301,7 +1341,7 @@
               "minItems": 1,
               "type": "array",
               "items": {
-                "$ref": "#/$defs/__schema5"
+                "$ref": "#/$defs/__schema6"
               }
             }
           },
@@ -1381,7 +1421,7 @@
       ]
     },
     "__schema16": {
-      "$ref": "#/$defs/__schema3"
+      "$ref": "#/$defs/__schema4"
     },
     "__schema17": {
       "type": "array",
@@ -1393,7 +1433,7 @@
       "type": "object",
       "properties": {
         "if": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "set": {
           "anyOf": [
@@ -1443,7 +1483,7 @@
                   "maximum": 9007199254740991
                 },
                 {
-                  "$ref": "#/$defs/__schema3"
+                  "$ref": "#/$defs/__schema4"
                 }
               ]
             },
@@ -1466,18 +1506,18 @@
           "type": "boolean"
         },
         "breakSuit": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema6"
         },
         "layOutMelds": {
           "$ref": "#/$defs/__schema8"
         },
         "sitOut": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "score": {
           "anyOf": [
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             },
             {
               "type": "number"
@@ -1501,7 +1541,7 @@
           "$ref": "#/$defs/__schema8"
         },
         "ask": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "values": {
           "minItems": 1,
@@ -1524,13 +1564,13 @@
       "type": "object",
       "properties": {
         "if": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "mustPlay": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "cannotPlay": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         }
       },
       "additionalProperties": false
@@ -1582,12 +1622,12 @@
           "minLength": 1
         },
         "if": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "add": {
           "anyOf": [
             {
-              "$ref": "#/$defs/__schema3"
+              "$ref": "#/$defs/__schema4"
             },
             {
               "type": "number"
@@ -1602,7 +1642,7 @@
           "additionalProperties": {
             "anyOf": [
               {
-                "$ref": "#/$defs/__schema3"
+                "$ref": "#/$defs/__schema4"
               },
               {
                 "type": "number"
@@ -1624,7 +1664,7 @@
       "type": "object",
       "properties": {
         "if": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "text": {
           "type": "string",
@@ -1645,10 +1685,10 @@
           "minLength": 1
         },
         "value": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "if": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "labels": {
           "$ref": "#/$defs/__schema10"
@@ -1676,10 +1716,10 @@
           "minLength": 1
         },
         "when": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "each": {
-          "$ref": "#/$defs/__schema3"
+          "$ref": "#/$defs/__schema4"
         },
         "per": {
           "type": "string",

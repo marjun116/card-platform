@@ -2,6 +2,7 @@ import type { PastGame, TableInfo } from '@card-table/server/protocol';
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api, ApiError } from '../api';
+import { GameTile } from '../components/GameTile';
 import { finalScoresText, outcomeText, statsText } from '../gameText';
 import { useSession } from '../useSession';
 import { useLoad } from '../useLoad';
@@ -14,6 +15,20 @@ const STATUS: Record<TableInfo['status'], string> = {
   finished: 'Finished',
   abandoned: 'Ended',
 };
+
+/** Every game as a compact tile: one tap starts a new table. */
+function GameChoices() {
+  const games = useLoad(api.games, 'games');
+  if (games.state === 'loading') return <p className="muted">Loading games…</p>;
+  if (games.state === 'error') return <p className="error">{games.message}</p>;
+  return (
+    <ul className="tile-row" aria-label="Games">
+      {games.data.map((game) => (
+        <GameTile key={game.slug} game={game} compact />
+      ))}
+    </ul>
+  );
+}
 
 function JoinForm() {
   const navigate = useNavigate();
@@ -217,10 +232,9 @@ export function Home() {
         <div className="home-grid">
           <section className="panel">
             <h2>Start a game</h2>
+            <GameChoices />
             <p>
-              <Link to="/games" className="button primary">
-                Choose a game
-              </Link>
+              <Link to="/games">All games, house rules and saved variants</Link>
             </p>
             <JoinForm />
           </section>

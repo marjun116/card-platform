@@ -2,6 +2,9 @@
   "$schema": "../engine/game-file.schema.json",
   "meta": {
     "name": "Hearts",
+    "minutes": [30, 60],
+    "cards": ["10H", "QS", "AH"],
+    "accent": 6,
     "players": [3, 5],
     "description": "Avoid hearts and the queen of spades. Lowest score wins."
   },

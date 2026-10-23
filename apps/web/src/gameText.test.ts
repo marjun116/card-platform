@@ -1,12 +1,30 @@
 import type { GameSummary, PastGame } from '@card-table/server/protocol';
 import { describe, expect, it } from 'vitest';
-import { finalScoresText, outcomeText, playersText, statsText } from './gameText';
+import { finalScoresText, minutesText, outcomeText, playersText, statsText } from './gameText';
 
 const game = (
   players: number[],
   teams: number[][] | null,
   partnersWith: number[],
-): GameSummary => ({ slug: 'x', name: 'X', players, teams, partnersWith, options: {} });
+): GameSummary => ({
+  slug: 'x',
+  name: 'X',
+  players,
+  teams,
+  partnersWith,
+  options: {},
+  minutes: null,
+  cards: ['AS', 'KS', 'QS'],
+  accent: 0,
+});
+
+describe('minutesText', () => {
+  it('says how long a game takes, if the game says', () => {
+    expect(minutesText({ minutes: [30, 60] })).toBe('30–60 min');
+    expect(minutesText({ minutes: [20, 20] })).toBe('About 20 min');
+    expect(minutesText({ minutes: null })).toBeNull();
+  });
+});
 
 describe('playersText', () => {
   it('says how many play, and in what teams', () => {

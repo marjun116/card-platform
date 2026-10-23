@@ -2,8 +2,8 @@ import type { VariantInfo } from '@card-table/server/protocol';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { api, ApiError, variantLink, variantPath } from '../api';
+import { GameTile } from '../components/GameTile';
 import { CopyButton } from '../components/Variants';
-import { playersText } from '../gameText';
 import { useLoad } from '../useLoad';
 import { useSession } from '../useSession';
 
@@ -72,24 +72,7 @@ export function Library() {
       {games.state === 'done' && (
         <ul className="game-grid">
           {games.data.map((game) => (
-            <li key={game.slug} className="panel">
-              <h2>{game.name}</h2>
-              <p className="muted">{playersText(game)}</p>
-              {Object.keys(game.options).length > 0 && (
-                <p className="muted">
-                  House rules:{' '}
-                  {Object.values(game.options)
-                    .map((o) => o.label)
-                    .join(' · ')}
-                </p>
-              )}
-              <p className="actions">
-                <Link to={`/games/${game.slug}/new`} className="button primary">
-                  New table
-                </Link>
-                <Link to={`/games/${game.slug}/rules`}>Rules</Link>
-              </p>
-            </li>
+            <GameTile key={game.slug} game={game} />
           ))}
         </ul>
       )}

@@ -2,6 +2,9 @@
   "$schema": "../engine/game-file.schema.json",
   "meta": {
     "name": "Rummy",
+    "minutes": [20, 40],
+    "cards": ["7H", "8H", "9H"],
+    "accent": 7,
     "players": [2, 6],
     "description": "Group your cards into sets and runs. You need a pure run. First out wins the deadwood in other hands."
   },

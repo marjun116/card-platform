@@ -2,6 +2,9 @@
   "$schema": "../engine/game-file.schema.json",
   "meta": {
     "name": "Euchre",
+    "minutes": [20, 40],
+    "cards": ["AH", "JD", "JH"],
+    "accent": 2,
     "players": 4,
     "teams": [
       [0, 2],

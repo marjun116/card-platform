@@ -2,6 +2,9 @@
   "$schema": "../engine/game-file.schema.json",
   "meta": {
     "name": "Pinochle",
+    "minutes": [45, 90],
+    "cards": ["KS", "QS", "JD"],
+    "accent": 3,
     "players": 4,
     "teams": [
       [0, 2],
