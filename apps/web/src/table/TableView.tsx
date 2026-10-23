@@ -549,7 +549,7 @@ export function TableView({
             <h2>Log</h2>
             <ol reversed>
               {log
-                .slice(-30)
+                .slice(-60)
                 .reverse()
                 .map((line, i) => (
                   <li key={log.length - i}>

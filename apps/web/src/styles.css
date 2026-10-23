@@ -1577,11 +1577,18 @@ kbd {
   font-size: 0.9rem;
   color: var(--muted);
 }
+/* The log fills the side column below the scores (never less than 180px), and scrolls
+   inside itself. In the phone drawer it keeps to a fixed height. */
 .log {
   flex: 1;
   overflow: auto;
-  max-height: 260px;
+  min-height: 180px;
   font-size: 0.9rem;
+}
+@media (max-width: 700px) {
+  .log {
+    max-height: 260px;
+  }
 }
 .log ol {
   margin: 0;
