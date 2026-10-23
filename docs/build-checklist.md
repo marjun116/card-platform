@@ -374,7 +374,7 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       table. On wide screens the scores and log now run from the top of the table to the
       bottom of the window, beside your hand too, and the log fills what's left (at least
       180px) with the last 60 lines instead of 30. The phone drawer keeps the fixed height.
-- [ ] **Table: your hand area looks out of place.** Under the table it's a flat, square-
+- [x] **Table: your hand area looks out of place.** Under the table it's a flat, square-
       cornered block of plain page colour (without the linen pattern around it), and on
       your turn a straight yellow line pulses along its top edge. It doesn't match the
       table or the panels beside it.

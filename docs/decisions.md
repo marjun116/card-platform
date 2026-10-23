@@ -1512,3 +1512,10 @@ build checklist, done before Phase 6.
   trick" button stays. Seat values may only use public values; a won pile counts as
   public only when cards reach it solely as won tricks, since those were all played face
   up. A pile that cards can also reach any other way stays hidden.
+
+## 2026-10-23: Your hand area (bug)
+
+- **Your hand sits in a tray at your edge of the table** (option B, chosen by Arjun): a
+  strip of the same felt inside the same wooden rail, with light text as on the table.
+  On your turn the rail round it glows gold and breathes, like an active seat, instead
+  of a line along the top (a steady glow with "reduce motion" or animation speed off).
