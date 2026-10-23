@@ -796,28 +796,30 @@ kbd {
   animation: none;
   box-shadow: 0 0 0 2px var(--playable);
 }
-/* Phones: the felt becomes a band at the top, and the seats a grid of cards below it. */
+/* Phones: the felt becomes a band, with the game's name and teams at the top and the seats
+   a grid of cards below them. The name and teams take their own room (not a fixed gap),
+   so however many lines they wrap onto, the seats start below them. */
 @media (max-width: 700px) {
   .lobby-table,
   .lobby-table.crowded {
     min-height: 0;
-    padding: 72px 10px 12px;
+    padding: 12px 10px;
     border-radius: 60px / 40px;
   }
   .lobby-centre {
-    top: 12px;
-    transform: translateX(-50%);
-    max-width: 90%;
+    position: static;
+    transform: none;
+    max-width: none;
+    margin-bottom: 12px;
   }
   .lobby-centre strong {
     font-size: 1.2rem;
   }
   .lobby-teams {
     flex-direction: row;
-    gap: 10px;
-  }
-  .lobby-table:has(.lobby-teams) {
-    padding-top: 96px;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2px 12px;
   }
   .lobby-seats {
     display: grid;

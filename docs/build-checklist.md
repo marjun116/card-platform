@@ -349,7 +349,7 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       "Your tables" panel sits next to them. The tiles went inside the "Start a game"
       panel, which is only one column of Home's grid. They should get the page's width,
       a few per row, with "Your tables" not beside them.
-- [ ] **Lobby on a phone: the team lines overlap the top row of seats.** In a euchre lobby,
+- [x] **Lobby on a phone: the team lines overlap the top row of seats.** In a euchre lobby,
       "Team 1: seats 1 & 3" and the line for the other team, in the felt band at the top,
       run into the first row of seat cards below.
 
