@@ -11,6 +11,7 @@
  * With "reduce motion" switched on, cards fade in or out where they are
  * instead. Where the browser can't animate (tests), nothing happens.
  */
+import { motionSetting } from '../../settings';
 import { type Anchor, type MotionPlan } from './plan';
 
 /** Time for one card to fly, in ms (the rules say under about 400). */
@@ -19,9 +20,9 @@ const FLIGHT = 320;
 const DEAL_TIME = 1000;
 const EASE = 'cubic-bezier(0.2, 0.7, 0.3, 1)';
 
-/** The speed setting: 1 is normal, 0 is off. Saved settings come later (see the checklist). */
+/** The speed setting (Settings, saved in the browser): 1 is normal, 2 fast, 0 off. */
 export function motionSpeed(): number {
-  return 1;
+  return { normal: 1, fast: 2, off: 0 }[motionSetting()];
 }
 
 function reducedMotion(): boolean {

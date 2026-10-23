@@ -2536,6 +2536,67 @@ kbd {
   }
 }
 
+/* Animation speed "off" (Settings): nothing moves or fades. Effects appear where they end
+   up and go when their time is up, like "reduce motion" but without the fades. */
+:root[data-motion='off'] .speech {
+  animation: none;
+  transform: translateX(var(--speech-shift, -50%));
+}
+:root[data-motion='off'] .float-points {
+  animation: none;
+  transform: translate(-50%, -1.4em);
+}
+:root[data-motion='off'] .moment-banner,
+:root[data-motion='off'] .fade-in,
+:root[data-motion='off'] .tick,
+:root[data-motion='off'] .goal-fill {
+  animation: none;
+}
+:root[data-motion='off'] .hand-card,
+:root[data-motion='off'] .suit-tile {
+  transition: none;
+}
+:root[data-motion='off'] .seat.acting,
+:root[data-motion='off'] .felt.many .seat.acting .seat-chip {
+  animation: none;
+  box-shadow: 0 0 10px 2px rgb(240 180 0 / 0.55);
+}
+:root[data-motion='off'] .you-area.your-turn::before {
+  animation: none;
+  box-shadow: 0 -3px 12px 1px rgb(240 180 0 / 0.5);
+}
+@media (max-width: 700px) {
+  :root[data-motion='off'] .felt.many .seat.acting {
+    box-shadow: none;
+  }
+}
+
+/* Settings (the ⚙ in the header). */
+.settings-button {
+  color: inherit;
+  text-decoration: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  min-width: 32px;
+  min-height: 32px;
+}
+.setting {
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+.setting legend {
+  font-weight: 700;
+  margin-bottom: 0.4em;
+  padding: 0;
+}
+.setting-choice {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  padding: 0.35em 0;
+}
+
 /* Arranged hands (rummy, gin): a gap before each group, and a line saying what each is. */
 .hand-card.group-start {
   margin-left: 14px;

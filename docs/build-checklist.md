@@ -434,7 +434,7 @@ never by a game's name, so custom games get them too. No sound.
       chips for player count and typical length
 - [ ] Lobby drawn as a table: seats around it, empty ones gently pulsing "Sit here", team
       colours shown before the game starts
-- [ ] Setting for animation speed (normal, fast, off), saved in the browser
+- [x] Setting for animation speed (normal, fast, off), saved in the browser
 - [ ] Quick reactions: a fixed set (👍 😮 😂 GG), shown as bubbles at the seat; no free
       text (server: a new reaction message, rate limited)
 - [ ] A shuffle animation while connecting instead of "Loading…"

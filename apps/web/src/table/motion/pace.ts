@@ -7,6 +7,7 @@
 import type { PlayerView } from '@card-table/engine';
 import { useEffect, useRef, useState } from 'react';
 import type { GameMessage } from '../connection';
+import { motionSpeed } from './animate';
 import { isYours } from './plan';
 
 /** The least time between two other players' moves on screen, in ms. */
@@ -70,7 +71,9 @@ export class Pacer {
 
   private schedule(): void {
     if (this.timer !== null) return;
-    const wait = this.shownAt + MIN_GAP - this.now();
+    // Fast, or with nothing moving, moves can follow each other sooner.
+    const gap = motionSpeed() === 1 ? MIN_GAP : MIN_GAP / 2;
+    const wait = this.shownAt + gap - this.now();
     if (wait <= 0) {
       this.next();
       return;

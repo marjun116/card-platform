@@ -1429,3 +1429,13 @@ build checklist, done before Phase 6.
   the upcard go to the dealer, so this tells nobody anything new, but state values are
   sent to every player, and a card id from someone's hand there is exactly what the
   hidden-card check refuses. Euchre uses one deck, so suit and rank name one card.
+
+## 2026-10-23: Around the table (UI polish)
+
+- **Animation speed (normal, fast, off) is a ⚙ button in the header**, always there, even
+  during a game, and saved in the browser (if storage is blocked it's normal and not
+  saved). Fast doubles the speed of card motion, deals and count-ups, and halves the
+  pause between other players' moves. Off stops all motion: cards and effects (bubbles,
+  banners, glows) simply appear, and the pause between moves is halved, since there's
+  nothing to wait for. CSS effects keep their normal length in fast, since timers decide
+  how long they stay. "Reduce motion" on the device still turns movement into fades.

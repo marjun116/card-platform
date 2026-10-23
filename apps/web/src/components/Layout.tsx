@@ -8,6 +8,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router';
 import { HeaderSlotContext } from '../headerSlot';
 import { useSession } from '../useSession';
 import { Menu, type MenuItem } from './Menu';
+import { SettingsButton } from './Settings';
 
 export function Layout() {
   const { user, signOut } = useSession();
@@ -55,6 +56,8 @@ export function Layout() {
         <div className="header-slot" ref={setSlot} />
         <div className="header-end">
           {who && <span className="who wide-only">{who}</span>}
+          {/* Always there, even during a game, where the speed matters most. */}
+          <SettingsButton />
           {!inGame && (
             <span className="wide-only">
               {signedIn ? (
