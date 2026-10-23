@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { api } from '../api';
+import { Shuffling } from '../components/Shuffling';
 import { useSession } from '../useSession';
 import { GameOver } from '../table/GameOver';
 import { Lobby } from '../table/Lobby';
@@ -24,7 +25,7 @@ export function TablePage() {
 /** Checks the table exists before opening a connection to it. */
 function TableLoader({ code }: { code: string }) {
   const found = useLoad(() => api.table(code), code);
-  if (found.state === 'loading') return <p className="page muted">Finding the table…</p>;
+  if (found.state === 'loading') return <Shuffling label="Finding the table…" />;
   if (found.state === 'error') {
     return (
       <div className="page narrow">
@@ -81,10 +82,10 @@ function TableScreen({ code }: { code: string }) {
 
   if (!table || !user) {
     return (
-      <div className="page">
+      <>
         {banner}
-        <p className="muted">Connecting to the table…</p>
-      </div>
+        <Shuffling label="Connecting to the table…" />
+      </>
     );
   }
 
@@ -109,7 +110,7 @@ function TableScreen({ code }: { code: string }) {
       </div>
     );
   } else if (!game) {
-    body = <p className="page muted">Dealing…</p>;
+    body = <Shuffling label="Dealing…" />;
   } else if (
     table.status === 'abandoned' ||
     (table.status === 'finished' && (resultsShown || !watchedEnd))

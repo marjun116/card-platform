@@ -2571,6 +2571,64 @@ kbd {
   }
 }
 
+/* While the table loads: three card backs shuffling, the outer two sliding out and back
+   in turn. A still stack with "reduce motion" or animation speed off. */
+.shuffling {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 15vh;
+}
+.shuffle-deck {
+  position: relative;
+  width: calc(var(--small-w) * 2.2);
+  height: calc(var(--small-w) * 1.5);
+}
+.shuffle-deck .card {
+  position: absolute;
+  left: calc(50% - var(--small-w) / 2);
+  top: 0;
+}
+.shuffle-deck .card:nth-child(1) {
+  animation: shuffle-out-left 1.2s ease-in-out infinite;
+}
+.shuffle-deck .card:nth-child(3) {
+  animation: shuffle-out-right 1.2s ease-in-out 0.6s infinite;
+}
+@keyframes shuffle-out-left {
+  0%,
+  50%,
+  100% {
+    transform: none;
+    z-index: 1;
+  }
+  25% {
+    transform: translateX(-60%) rotate(-8deg);
+    z-index: 3;
+  }
+}
+@keyframes shuffle-out-right {
+  0%,
+  50%,
+  100% {
+    transform: none;
+    z-index: 1;
+  }
+  25% {
+    transform: translateX(60%) rotate(8deg);
+    z-index: 3;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shuffle-deck .card {
+    animation: none !important;
+  }
+}
+:root[data-motion='off'] .shuffle-deck .card {
+  animation: none;
+}
+
 /* Settings (the ⚙ in the header). */
 .settings-button {
   color: inherit;

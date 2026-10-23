@@ -1439,3 +1439,7 @@ build checklist, done before Phase 6.
   banners, glows) simply appear, and the pause between moves is halved, since there's
   nothing to wait for. CSS effects keep their normal length in fast, since timers decide
   how long they stay. "Reduce motion" on the device still turns movement into fades.
+- **A shuffle while the table loads** ("Finding the table…", "Connecting to the table…",
+  "Dealing…"): three card backs, the outer two sliding out and back in turn, with the
+  words underneath for everyone (and screen readers). A still stack with "reduce motion"
+  or animation speed off. "Loading…" on other pages stays plain.

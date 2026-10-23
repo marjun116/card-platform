@@ -437,7 +437,7 @@ never by a game's name, so custom games get them too. No sound.
 - [x] Setting for animation speed (normal, fast, off), saved in the browser
 - [ ] Quick reactions: a fixed set (👍 😮 😂 GG), shown as bubbles at the seat; no free
       text (server: a new reaction message, rate limited)
-- [ ] A shuffle animation while connecting instead of "Loading…"
+- [x] A shuffle animation while connecting instead of "Loading…"
 
 ```text
 Read CLAUDE.md, docs/decisions.md ("UI polish") and the "UI polish" section
