@@ -1464,3 +1464,10 @@ build checklist, done before Phase 6.
   seated and saves nothing, so someone opening the table later doesn't see old ones.
   They show as a bubble at the player's seat, like a bid (a newer bubble replaces an
   older one), and screen readers hear "Ana: Thumbs up".
+
+## 2026-10-23: Home layout (bug)
+
+- **Home is full-width sections, one under another** (option A, chosen by Arjun): "Your
+  tables" first, so someone coming back to a game sees it at once, then "Start a game"
+  with the game tiles across the page's width (and "Join with a code" beside its
+  heading), then "Past games". "Your tables" only appears once you have a table.

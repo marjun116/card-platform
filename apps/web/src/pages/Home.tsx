@@ -58,16 +58,26 @@ function JoinForm() {
   );
 }
 
+/**
+ * Your unfinished tables, first on the page for someone coming back to a game.
+ * Only there once you have some (nothing while they load, so the page doesn't
+ * show an empty panel first).
+ */
 function MyTables({ userId }: { userId: string }) {
   const tables = useLoad(api.myTables, userId);
   const [deleted, setDeleted] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
-  if (tables.state === 'loading') return <p className="muted">Loading your tables…</p>;
-  if (tables.state === 'error') return <p className="error">{tables.message}</p>;
-  const shown = tables.data.filter((t) => !deleted.includes(t.code));
-  if (shown.length === 0) {
-    return <p className="muted">You're not at any tables yet.</p>;
+  if (tables.state === 'loading') return null;
+  if (tables.state === 'error') {
+    return (
+      <section className="panel">
+        <h2>Your tables</h2>
+        <p className="error">{tables.message}</p>
+      </section>
+    );
   }
+  const shown = tables.data.filter((t) => !deleted.includes(t.code));
+  if (shown.length === 0) return null;
 
   // Hosts can delete a table; a game in progress ends for everyone and leaves no record.
   const remove = (table: TableInfo) => {
@@ -85,7 +95,8 @@ function MyTables({ userId }: { userId: string }) {
   };
 
   return (
-    <>
+    <section className="panel">
+      <h2>Your tables</h2>
       {error && (
         <p role="alert" className="error">
           {error}
@@ -119,7 +130,7 @@ function MyTables({ userId }: { userId: string }) {
           );
         })}
       </ul>
-    </>
+    </section>
   );
 }
 
@@ -229,20 +240,21 @@ export function Home() {
       )}
 
       {user && (
-        <div className="home-grid">
+        // Each section the page's full width: your tables first (for coming back to a
+        // game), then the games, then past games.
+        <div className="home-sections">
+          <MyTables userId={user.id} />
           <section className="panel">
-            <h2>Start a game</h2>
+            <div className="start-head">
+              <h2>Start a game</h2>
+              <JoinForm />
+            </div>
             <GameChoices />
             <p>
               <Link to="/games">All games, house rules and saved variants</Link>
             </p>
-            <JoinForm />
           </section>
           <section className="panel">
-            <h2>Your tables</h2>
-            <MyTables userId={user.id} />
-          </section>
-          <section className="panel past-games">
             <h2>Past games</h2>
             <PastGames userId={user.id} />
           </section>

@@ -102,6 +102,21 @@ describe('Your tables', () => {
       seats: [{ seat: 0, user: { id: 'me', displayName: 'Me' }, connected: true, bot: false }],
     }) as TableInfo;
 
+  it('comes first, before the games, for someone coming back to a game', async () => {
+    myTables = [table('MINE01', 'me')];
+    show();
+    await screen.findByRole('heading', { name: 'Your tables' });
+    const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
+    expect(headings).toEqual(['Your tables', 'Start a game', 'Past games']);
+  });
+
+  it("isn't there when you have no tables", async () => {
+    show();
+    await screen.findByRole('list', { name: 'Games' });
+    await screen.findByRole('heading', { name: 'Past games' });
+    expect(screen.queryByRole('heading', { name: 'Your tables' })).toBeNull();
+  });
+
   it('lets the host delete a table, after checking', async () => {
     myTables = [table('MINE01', 'me'), table('THEIRS', 'ann')];
     show();

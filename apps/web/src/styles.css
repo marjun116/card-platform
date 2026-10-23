@@ -415,7 +415,6 @@ kbd {
 }
 
 .sign-in-options,
-.home-grid,
 .lobby-grid {
   display: grid;
   gap: 16px;
@@ -590,8 +589,27 @@ kbd {
 
 /* ---- past games ---- */
 
-.past-games {
-  grid-column: 1 / -1;
+/* Home: full-width sections, one under another. */
+.home-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+/* "Start a game" with "Join with a code" beside it on wide screens, under it on phones. */
+.start-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 8px 24px;
+  margin-bottom: 12px;
+}
+.start-head h2 {
+  margin: 0;
+}
+.start-head .inline-form {
+  flex: 0 1 380px;
 }
 .stats-line {
   list-style: none;
