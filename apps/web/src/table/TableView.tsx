@@ -49,6 +49,10 @@ function errorText(error: unknown): string {
 /** How long cards passed to you stay raised, in ms. */
 const RECEIVED_FOR = 4000;
 
+/** How long the table stays in view after a round ends before its scores open, in ms:
+    long enough to see the last card land and a big moment's banner sweep past. */
+const ROUND_PAUSE = 2000;
+
 const SUIT_NAMES: Partial<Record<string, Suit>> = {
   clubs: 'clubs',
   diamonds: 'diamonds',
@@ -124,6 +128,16 @@ export function TableView({
   // Rounds already summarised; a new entry in the history opens the round summary.
   const [roundsSeen, setRoundsSeen] = useState(view.history.length);
   const newRound = view.history.length > roundsSeen ? view.history[view.history.length - 1] : null;
+  // Its scores open a moment after the round ends, so the last play and any big-moment
+  // banner ("Euchred!") can be seen before the summary covers the table.
+  const [scoresDue, setScoresDue] = useState<number | null>(null);
+  const endedRound = newRound?.round ?? null;
+  useEffect(() => {
+    if (endedRound === null) return;
+    const timer = setTimeout(() => setScoresDue(endedRound), ROUND_PAUSE);
+    return () => clearTimeout(timer);
+  }, [endedRound]);
+  const scoresOpen = endedRound !== null && scoresDue === endedRound;
   // The round's scores tucked away to look at the table (until closed or shown again).
   const [hiddenRound, setHiddenRound] = useState<number | null>(null);
   const hiddenScores = newRound && hiddenRound === newRound.round ? newRound : null;
@@ -571,7 +585,7 @@ export function TableView({
         {announcement}
       </div>
 
-      {newRound && !hiddenScores && (
+      {newRound && scoresOpen && !hiddenScores && (
         <Dialog
           title={`Round ${newRound.round} scores`}
           onClose={closeScores}

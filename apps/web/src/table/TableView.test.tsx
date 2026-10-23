@@ -20,7 +20,10 @@ import { SUIT_SYMBOL } from './cards';
 import type { TableConnection } from './connection';
 import { TableView } from './TableView';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 const NAMES = ['Arjun', 'Ana', 'Sam', 'Raj'];
 
@@ -85,6 +88,12 @@ function firstMove(state: GameState): Move {
 /** True when that move would end the round. */
 const applyMoveEndsRound = (state: GameState) =>
   applyMove(state, firstMove(state)).history.length > state.history.length;
+
+/** Lets the pause after a round ends go by, so its scores open. Needs fake timers. */
+const pauseForScores = () =>
+  act(() => {
+    vi.advanceTimersByTime(2000);
+  });
 
 describe('TableView', () => {
   it('offers the bids from the legal moves and sends the one picked (spades)', () => {
@@ -212,9 +221,11 @@ describe('TableView', () => {
   });
 
   it('lets you hide the round scores to look at the table, then show them or carry on', () => {
+    vi.useFakeTimers();
     const before = playUntil(createGame(spades, {}, 4, 'view-hide'), (s) => applyMoveEndsRound(s));
     const { connection, update } = show(before, 0);
     update(applyMove(before, firstMove(before), { holdNextRound: true }));
+    pauseForScores();
     const dialog = () => screen.queryByRole('heading', { name: 'Round 1 scores' });
     expect(dialog()).toBeTruthy();
 
@@ -238,8 +249,10 @@ describe('TableView', () => {
     const replay = replayRound(spades, {}, 4, 'view-hands', after.log, 1);
     if (!replay) throw new Error('Round 1 should be over');
     const load = vi.spyOn(api, 'roundReplay').mockResolvedValue(replay);
+    vi.useFakeTimers();
     const { update } = show(before, 0);
     update(after);
+    pauseForScores();
 
     fireEvent.click(screen.getByRole('button', { name: 'Show all hands' }));
     await act(async () => {});
@@ -389,7 +402,8 @@ describe('TableView', () => {
     expect(document.activeElement).toBe(cards[12]);
   });
 
-  it('shows a summary when a round finishes', () => {
+  it('shows a summary a moment after a round finishes', () => {
+    vi.useFakeTimers();
     const almost = playUntil(
       createGame(spades, { mercyRule: false }, 4, 'view-round'),
       (s) => s.cursor.tricks === 12 && s.trick?.plays.length === 3,
@@ -399,6 +413,14 @@ describe('TableView', () => {
     const seat = almost.cursor.current;
     const last = gameMessage(almost, seat).legalMoves[0] as Move;
     update(applyMove(almost, last));
+    // The table stays in view for a moment first (to see the last card and any banner).
+    act(() => {
+      vi.advanceTimersByTime(1900);
+    });
+    expect(screen.queryByText('Round 1 scores')).toBeNull();
+    act(() => {
+      vi.advanceTimersByTime(100);
+    });
     expect(screen.getByText('Round 1 scores')).toBeTruthy();
     expect(screen.getByRole('list', { name: 'Round 1 results' })).toBeTruthy();
 

@@ -1378,3 +1378,12 @@ build checklist, done before Phase 6.
 - **Your own bubble opens to the right of your avatar**, its tail on the avatar, instead of
   being centred on it: your avatar is at the left edge of the status line, so a wide bubble
   ("Order it up") ran off the screen. Bubbles at the other seats stay centred on the seat.
+
+## 2026-10-23: A pause before the round scores (bug)
+
+- **The round's scores open 2 seconds after every round ends**, not at once, so the last
+  card played and any big-moment banner ("Shot the moon!", "Euchred!") can be seen before
+  the summary covers the table. The banner lasts 1.8 seconds. Chosen over holding the
+  scores only when a banner plays, so that every round's end feels the same and the last
+  trick never disappears instantly. Opening a table after a round has ended shows no
+  summary, as before.
