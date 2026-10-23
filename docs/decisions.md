@@ -1419,3 +1419,13 @@ build checklist, done before Phase 6.
 - **Everyone still on the results page is told** through the table info (`rematch`: the
   new code and who started it): "Ana started a rematch" with a "Join the rematch" button.
   Whoever pressed it is taken straight to the new lobby.
+
+## 2026-10-23: Euchre's dealer discard (bug)
+
+- **The dealer can't discard the upcard they just picked up** (decided by Arjun,
+  2026-10-23); any other card in their hand may go. Some published rules allow it, but
+  it's a wasted exchange and not how the family plays.
+- **The game file remembers the upcard by suit and rank, not by card id.** Everyone saw
+  the upcard go to the dealer, so this tells nobody anything new, but state values are
+  sent to every player, and a card id from someone's hand there is exactly what the
+  hidden-card check refuses. Euchre uses one deck, so suit and rank name one card.

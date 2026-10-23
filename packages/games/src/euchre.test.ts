@@ -8,6 +8,7 @@ import {
   createGame,
   type GameState,
   getLegalMoves,
+  IllegalMoveError,
   type Move,
   type OptionValue,
   viewFor,
@@ -100,6 +101,13 @@ describe('euchre: making trump', () => {
     expect(hand(s, d)).toContain(id('10H'));
     expect(s.zones.upcard).toEqual([]);
     expect(getLegalMoves(s, d).every((m) => m.type === 'discard')).toBe(true);
+    // Any card but the one just picked up.
+    const discards = getLegalMoves(s, d).map((m) => (m.type === 'discard' ? m.card : null));
+    expect(discards.sort()).toEqual(MARCH[3].map(id).sort());
+    const pickedUp = s;
+    expect(() =>
+      applyMove(pickedUp, { player: d, type: 'discard', card: id('10H'), to: 'kitty' }),
+    ).toThrow(IllegalMoveError);
     expect(s.cardEvents.at(-1)).toMatchObject({ kind: 'given', player: d, cards: [id('10H')] });
     s = applyMove(s, { player: d, type: 'discard', card: id('9D'), to: 'kitty' });
     expect(phase(s)).toBe('play');

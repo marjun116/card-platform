@@ -19,7 +19,7 @@ Trumps rank: right bower, left bower, A, K, Q, 10, 9. The other suits rank A, K,
 
 ## Making trump
 
-**First round:** starting left of the dealer, each player may **order up** the upcard, making its suit trump, or pass. If someone orders it up, the dealer takes the upcard into their hand and discards a card face down.
+**First round:** starting left of the dealer, each player may **order up** the upcard, making its suit trump, or pass. If someone orders it up, the dealer takes the upcard into their hand and discards a card face down (any card but the upcard).
 
 **Second round:** if everyone passed, the upcard is turned down. Starting left of the dealer, each player may now name any other suit as trump, or pass. If everyone passes again, the hand is thrown in and the deal moves on.
 

@@ -204,9 +204,22 @@
       "rounds": 1,
       "start": [
         { "set": { "state.exchanged": true } },
+        {
+          "if": "player.isDealer",
+          "set": {
+            "state.pickedUpSuit": "upcard.top.suit",
+            "state.pickedUpRank": "upcard.top.rank"
+          }
+        },
         { "if": "player.isDealer", "giveCards": "upcard" }
       ],
-      "actions": [{ "type": "discard", "to": "kitty", "if": "player.isDealer" }]
+      "actions": [
+        {
+          "type": "discard",
+          "to": "kitty",
+          "if": "player.isDealer && (card.suit != state.pickedUpSuit || card.rank != state.pickedUpRank)"
+        }
+      ]
     },
     {
       "name": "play",

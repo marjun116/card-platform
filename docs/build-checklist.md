@@ -341,6 +341,9 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       Banners for moments that happen as a round ends ("Shot the moon!", "Set!", "Euchred!",
       "Gin!") play across the felt at the same moment the round's scores open, so the
       summary covers them and they can't be seen.
+- [x] **Euchre: the dealer can discard the card they just picked up.** When the upcard is
+      ordered up, the dealer takes it into their hand and discards one card, but the
+      discard offered every card in the hand, including the upcard itself.
 
 ## UI polish
 
