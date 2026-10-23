@@ -377,23 +377,26 @@ export function TableView({
 
   return (
     <div className="table-screen">
-      {header ? header.slot && createPortal(gameBar, header.slot) : gameBar}
-      {nudgedBy !== null && (
-        <p className="banner" role="alert">
-          {names(nudgedBy)} nudged you: it's your turn.{' '}
-          <button type="button" className="link-button" onClick={() => connection.dismissNudge()}>
-            OK
-          </button>
-        </p>
-      )}
-      {error && (
-        <p className="banner warn" role="alert">
-          {FRIENDLY[error.code] ?? error.message}{' '}
-          <button type="button" className="link-button" onClick={() => connection.dismissError()}>
-            Dismiss
-          </button>
-        </p>
-      )}
+      {/* Across the top, over both columns on wide screens. */}
+      <div className="table-banners">
+        {header ? header.slot && createPortal(gameBar, header.slot) : gameBar}
+        {nudgedBy !== null && (
+          <p className="banner" role="alert">
+            {names(nudgedBy)} nudged you: it's your turn.{' '}
+            <button type="button" className="link-button" onClick={() => connection.dismissNudge()}>
+              OK
+            </button>
+          </p>
+        )}
+        {error && (
+          <p className="banner warn" role="alert">
+            {FRIENDLY[error.code] ?? error.message}{' '}
+            <button type="button" className="link-button" onClick={() => connection.dismissError()}>
+              Dismiss
+            </button>
+          </p>
+        )}
+      </div>
 
       <div className="table-main">
         <div

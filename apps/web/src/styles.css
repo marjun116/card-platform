@@ -1101,6 +1101,43 @@ kbd {
 .app:has(.table-screen) .table-screen {
   flex: 1 0 auto;
 }
+/* Wide screens: two columns. The table with your hand under it on the left; the scores
+   and log on the right, running from the top of the table to the bottom of the window.
+   (.table-main only groups the table and the side panel for phones.) */
+@media (min-width: 701px) {
+  .table-screen {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+      'banners banners'
+      'table side'
+      'you side';
+    column-gap: 12px;
+    padding: 0 16px;
+  }
+  .table-banners {
+    grid-area: banners;
+    margin: 0 -16px;
+  }
+  .table-screen > .table-main {
+    display: contents;
+  }
+  .table-main > .felt {
+    grid-area: table;
+    margin-top: 12px;
+  }
+  .table-main > .side {
+    grid-area: side;
+    margin-top: 12px;
+    padding-bottom: 16px;
+  }
+  .table-screen > .you-area {
+    grid-area: you;
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
 .table-main {
   flex: 1;
   display: grid;

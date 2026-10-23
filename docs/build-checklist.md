@@ -370,9 +370,10 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       euchre, Bot 4's box (right) is narrower and squarer than Bot 2's (left), though both
       show the same things.
 - [x] **Table: the game log beside the table is too small.** It was capped at 260px tall,
-      however much room the side column had. It now fills the column below the scores
-      (at least 180px) and keeps the last 60 lines instead of 30; the phone drawer keeps
-      the fixed height.
+      however much room the side column had, and the column stopped at the bottom of the
+      table. On wide screens the scores and log now run from the top of the table to the
+      bottom of the window, beside your hand too, and the log fills what's left (at least
+      180px) with the last 60 lines instead of 30. The phone drawer keeps the fixed height.
 
 ## UI polish
 
