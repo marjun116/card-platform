@@ -163,6 +163,10 @@
       ]
     }
   ],
+  "seats": {
+    "tricks": false,
+    "show": [{ "label": "Taken", "value": "sum(player.won, cardValue)" }]
+  },
   "scoring": {
     "cardValue": {
       "hearts": 1,

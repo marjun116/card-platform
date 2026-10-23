@@ -101,6 +101,11 @@ describe('seatStats', () => {
     });
   });
 
+  it("adds the game's own values for the seat, like hearts' points taken", () => {
+    const taken = { bid: null, tricks: 2, active: true, shown: [{ label: 'Taken', value: 9 }] };
+    expect(seatStats(taken, 6, false)).toEqual({ short: 'Taken 9', spoken: 'taken 9, 6 cards' });
+  });
+
   it('only shows what the game has', () => {
     expect(seatStats({ ...player, bid: null }, 7, false)).toEqual({
       short: null,

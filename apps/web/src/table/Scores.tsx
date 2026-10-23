@@ -32,6 +32,11 @@ export function Scoreboard({
   showTricks: boolean;
 }) {
   const showBids = view.players.some((p) => p.bid !== null);
+  // The game's own values for a player, like "taken 9" in hearts.
+  const shownFor = (seat: number | undefined) =>
+    (seat === undefined ? [] : (view.players[seat]?.shown ?? [])).map(
+      ({ label, value }) => `${label.toLowerCase()} ${String(value)}`,
+    );
   const lead = leaders(view.teams, view.goal.winner);
   return (
     <section className="scoreboard" aria-label="Scores">
@@ -63,39 +68,47 @@ export function Scoreboard({
               </div>
               {tracks && <div className="muted">{tracks}</div>}
               {/* One-player teams already show their name; their bid and tricks fit on one line. */}
-              {(showBids || showTricks) && team.players.length === 1 && (
-                <div className="muted">
-                  <SuitText
-                    text={[
-                      showBids
-                        ? `bid ${bidText(view.players[team.players[0] ?? 0]?.bid ?? null, view.bidLabels)}`
-                        : null,
-                      showTricks ? `won ${view.players[team.players[0] ?? 0]?.tricks ?? 0}` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
-                  />
-                </div>
-              )}
-              {(showBids || showTricks) && team.players.length > 1 && (
-                <ul className="team-players">
-                  {team.players.map((seat) => {
-                    const player = view.players[seat];
-                    if (!player) return null;
-                    return (
-                      <li key={seat}>
-                        <span>{names(seat)}</span>
-                        {showBids && (
-                          <span>
-                            bid <SuitText text={bidText(player.bid, view.bidLabels)} />
-                          </span>
-                        )}
-                        {showTricks && <span>won {player.tricks}</span>}
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+              {(showBids || showTricks || shownFor(team.players[0]).length > 0) &&
+                team.players.length === 1 && (
+                  <div className="muted">
+                    <SuitText
+                      text={[
+                        showBids
+                          ? `bid ${bidText(view.players[team.players[0] ?? 0]?.bid ?? null, view.bidLabels)}`
+                          : null,
+                        showTricks
+                          ? `won ${view.players[team.players[0] ?? 0]?.tricks ?? 0}`
+                          : null,
+                        ...shownFor(team.players[0]),
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    />
+                  </div>
+                )}
+              {(showBids || showTricks || team.players.some((p) => shownFor(p).length > 0)) &&
+                team.players.length > 1 && (
+                  <ul className="team-players">
+                    {team.players.map((seat) => {
+                      const player = view.players[seat];
+                      if (!player) return null;
+                      return (
+                        <li key={seat}>
+                          <span>{names(seat)}</span>
+                          {showBids && (
+                            <span>
+                              bid <SuitText text={bidText(player.bid, view.bidLabels)} />
+                            </span>
+                          )}
+                          {showTricks && <span>won {player.tricks}</span>}
+                          {shownFor(seat).map((text) => (
+                            <span key={text}>{text}</span>
+                          ))}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               {(teamZones.get(team.id) ?? []).map((zone) => {
                 const count = zoneCount(zone.view);
                 // Cards a team can see are drawn; piles it can't are just a count.

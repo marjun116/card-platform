@@ -356,7 +356,7 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       cards to pass, nothing says which player will get them (it changes each round: left,
       right, across, or no pass). Once the passed cards arrive, it should be just as clear
       who sent them, before play starts.
-- [ ] **Hearts: the table counts tricks won, which don't matter; it should show the points
+- [x] **Hearts: the table counts tricks won, which don't matter; it should show the points
       taken.** In hearts only the hearts and the queen of spades you take count, but the
       seats and your status line show "Won 3" tricks. Show each player's hearts and Q♠
       taken this round (or their points so far) instead, so you can tell when someone,

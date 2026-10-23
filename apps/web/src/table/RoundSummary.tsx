@@ -12,7 +12,8 @@ import { highlights, leaders, partsText, progress, signed, teamBid, tracksText }
 import { TeamAvatars } from './Scores';
 import { SuitText } from './SuitText';
 
-type View = Pick<PlayerView, 'teams' | 'goal' | 'moments' | 'bidLabels' | 'trackLabels'>;
+type View = Pick<PlayerView, 'teams' | 'goal' | 'moments' | 'bidLabels' | 'trackLabels'> &
+  Partial<Pick<PlayerView, 'showTricks'>>;
 
 export function RoundSummary({
   result,
@@ -28,7 +29,8 @@ export function RoundSummary({
   /** Opens the round played back with every hand face up. */
   onShowHands?: () => void;
 }) {
-  const showTricks = result.players.some((p) => p.tricks > 0);
+  // Tricks won, unless the game says they don't count (hearts).
+  const showTricks = view.showTricks !== false && result.players.some((p) => p.tricks > 0);
   const lead = leaders(result.teams, view.goal.winner);
   const notes = highlights(result, view.moments, view.teams, names);
   return (

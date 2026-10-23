@@ -596,11 +596,27 @@
         "$ref": "#/$defs/__schema27"
       }
     },
+    "seats": {
+      "type": "object",
+      "properties": {
+        "tricks": {
+          "type": "boolean"
+        },
+        "show": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema28"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "moments": {
       "minItems": 1,
       "type": "array",
       "items": {
-        "$ref": "#/$defs/__schema28"
+        "$ref": "#/$defs/__schema29"
       }
     },
     "bonusCards": {
@@ -1717,6 +1733,26 @@
       "additionalProperties": false
     },
     "__schema28": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "$ref": "#/$defs/__schema4"
+        },
+        "if": {
+          "$ref": "#/$defs/__schema4"
+        }
+      },
+      "required": [
+        "label",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "__schema29": {
       "type": "object",
       "properties": {
         "label": {

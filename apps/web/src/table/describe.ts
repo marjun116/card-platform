@@ -352,7 +352,14 @@ export function teamName(team: { id: number; players: number[] }, names: SeatNam
  */
 export function seatStats(
   player:
-    { bid: BidValue | null; tricks: number; active: boolean; sittingOut?: boolean } | undefined,
+    | {
+        bid: BidValue | null;
+        tricks: number;
+        active: boolean;
+        sittingOut?: boolean;
+        shown?: readonly { label: string; value: number | string | boolean }[];
+      }
+    | undefined,
   handCount: number | null,
   showTricks: boolean,
   bids: BidLabels = {},
@@ -369,6 +376,11 @@ export function seatStats(
   if (showTricks && player) {
     short.push(`W${player.tricks}`);
     spoken.push(`won ${player.tricks}`);
+  }
+  // The game's own values for the seat ("Taken 9" in hearts).
+  for (const { label, value } of player?.shown ?? []) {
+    short.push(`${label} ${String(value)}`);
+    spoken.push(`${label.toLowerCase()} ${String(value)}`);
   }
   if (handCount !== null) spoken.push(`${handCount} card${handCount === 1 ? '' : 's'}`);
   if (player && !player.active) {

@@ -1505,3 +1505,10 @@ build checklist, done before Phase 6.
   that delivers the cards. The hint and button say "Pass 3 cards to Ana", and your status
   line says "You pass to Ana; Raj passes to you" for the whole pass. Cards passed to you
   stay raised with "From Raj" until your first move after the pass (not for 4 seconds).
+- **Hearts shows points taken, not tricks won,** with a new `seats` section in the game
+  file: `"tricks": false` hides trick counts (at the seats, the scoreboard, your status
+  line, the round summary, the replay and the results' stats), and `show` adds values per
+  player, for hearts "Taken" (`sum(player.won, cardValue)`, hearts and the Q♠). The "Last
+  trick" button stays. Seat values may only use public values; a won pile counts as
+  public only when cards reach it solely as won tricks, since those were all played face
+  up. A pile that cards can also reach any other way stays hidden.

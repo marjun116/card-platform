@@ -37,6 +37,17 @@ Three optional `meta` fields only change how the game's tile looks on Home and i
 
 `cardOrder.sortSuits` sets the order suits are sorted in a hand on screen, e.g. hearts last in hearts: `["spades", "diamonds", "clubs", "hearts"]`. Suits it leaves out follow in the usual order (♠ ♥ ♣ ♦). It only changes how hands look, never a rule.
 
+An optional `seats` section sets what each seat shows about its player, beside the name. `"tricks": false` stops showing tricks won (in hearts they don't count), and `show` lists values worked out for each player, e.g. hearts' points taken this round:
+
+```json
+"seats": {
+  "tricks": false,
+  "show": [{ "label": "Taken", "value": "sum(player.won, cardValue)" }]
+}
+```
+
+A seat value is shown to everyone, so, like a moment, it may only use what everyone can see. A won pile counts as visible when cards only ever reach it as won tricks (every place the file names it is a `moveTrick`, or where cards are taken from), since every card in a trick was played face up.
+
 Inside `phases`, each phase lists the **actions** players may take on their turn, drawn from a fixed library:
 
 - **Card movement:** `draw`, `discard`, `play`, `pass`, `meld`, `layOff`, `pickUpPile`, `showHand` (go out by showing a fully arranged hand)

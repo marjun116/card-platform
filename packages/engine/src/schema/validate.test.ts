@@ -40,6 +40,44 @@ describe('validate', () => {
     expect(errors(fine)).toEqual([]);
   });
 
+  describe('seat values', () => {
+    const seats = (show: object[], file: GameFile = tinyTricks): GameFile =>
+      ({ ...file, seats: { tricks: false, show } }) as GameFile;
+
+    it('may count what a player has won in tricks, since every trick card was face up', () => {
+      expect(errors(seats([{ label: 'Taken', value: 'player.won.count' }]))).toEqual([]);
+      expect(errors(seats([{ label: 'Hearts', value: "player.won.countSuit('hearts')" }]))).toEqual(
+        [],
+      );
+    });
+
+    it("may not show a player's hand", () => {
+      expect(errors(seats([{ label: 'Cards', value: "player.hand.countSuit('hearts')" }]))).toEqual(
+        [
+          'seats.show[0].value: A seat value is shown to everyone, so it can only use what everyone can see, not "player.hand.countSuit"',
+        ],
+      );
+    });
+
+    it('treats a won pile as hidden if cards can reach it any other way', () => {
+      const [phase] = tinyTricks.phases as [PhaseDef];
+      // A step that discards straight into the won pile, face down.
+      const leaky = withPhases(tinyTricks, [
+        {
+          ...phase,
+          actions: [...(phase.actions ?? []), { type: 'discard', to: 'won' }],
+        },
+      ]);
+      // (The count is public anyway; which cards are in it isn't.)
+      const found = errors(
+        seats([{ label: 'Hearts', value: "player.won.countSuit('hearts')" }], leaky),
+      );
+      expect(
+        found.some((e) => e.startsWith('seats.show[0].value:') && e.includes('player.won')),
+      ).toBe(true);
+    });
+  });
+
   describe("the game's tile", () => {
     it('accepts how long a game takes, three cards and an accent colour', () => {
       const file = {

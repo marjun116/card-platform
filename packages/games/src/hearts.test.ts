@@ -10,6 +10,7 @@ import {
   getLegalMoves,
   type Move,
   type OptionValue,
+  viewFor,
 } from '@card-table/engine';
 import { draft, hand, id, play, restartPhase, withZones } from '@card-table/engine/testing';
 import { describe, expect, it } from 'vitest';
@@ -333,5 +334,28 @@ describe('hearts: end of the game', () => {
   it('plays to the chosen target score', () => {
     const { state } = lastTrick(won, { targetScore: 150 }, scores([90, 60, 50, 40]));
     expect(state.status).toBe('inProgress');
+  });
+});
+
+describe('hearts: what the table shows', () => {
+  it("shows each player's points taken, not tricks won, to everyone", () => {
+    // Seat 1 has no clubs, so drops the Q♠ on the first trick; seat 3's 4♣ wins it.
+    const state = table(
+      [
+        ['2C', '5D'],
+        ['QS', '6D'],
+        ['3C', '7D'],
+        ['4C', '8D'],
+      ],
+      { pointsOnFirstTrick: true },
+      0,
+    );
+    const after = play(state, card(0, '2C'), card(1, 'QS'), card(2, '3C'), card(3, '4C'));
+    for (let viewer = 0; viewer < 4; viewer++) {
+      const view = viewFor(after, viewer);
+      expect(view.showTricks).toBe(false);
+      expect(view.players[3]?.shown).toEqual([{ label: 'Taken', value: 13 }]);
+      expect(view.players[2]?.shown).toEqual([{ label: 'Taken', value: 0 }]);
+    }
   });
 });

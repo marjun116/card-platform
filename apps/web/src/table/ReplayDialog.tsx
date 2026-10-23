@@ -77,7 +77,7 @@ export function ReplayPlayer({
   const move = at > 0 ? (replay.moves[at - 1] ?? null) : null;
   const zones = replayZones(frame, replay.trickZones, view.sortSuits);
   const trick = shownTrick(frame, move);
-  const showTricks = replay.trickZones.length > 0;
+  const showTricks = replay.trickZones.length > 0 && view.showTricks;
   const go = (i: number) => {
     setPlaying(false);
     setAt(Math.max(0, Math.min(last, i)));

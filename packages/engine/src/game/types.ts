@@ -20,6 +20,7 @@ import type {
   phaseSchema,
   scoreRuleSchema,
   scoringSchema,
+  seatsSchema,
   setupSchema,
   turnStepSchema,
   zoneSchema,
@@ -48,6 +49,7 @@ export type ScoreRuleDef = z.infer<typeof scoreRuleSchema>;
 export type ScoringDef = z.infer<typeof scoringSchema>;
 export type EndConditionDef = z.infer<typeof endConditionSchema>;
 export type DisplayDef = z.infer<typeof displaySchema>;
+export type SeatsDef = z.infer<typeof seatsSchema>;
 export type MomentDef = z.infer<typeof momentSchema>;
 
 export type ActionDef = z.infer<typeof actionSchema>;

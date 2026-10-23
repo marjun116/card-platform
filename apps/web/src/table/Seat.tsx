@@ -79,6 +79,7 @@ export function Seat({
     player?.bid != null ? `Bid ${bidWords(player.bid, view.bidLabels)}` : null,
     playedBy !== null ? `Played by ${playedBy === view.you ? 'you' : names(playedBy)}` : null,
     showTricks && player ? `Won ${player.tricks}` : null,
+    ...(player?.shown ?? []).map(({ label, value }) => `${label} ${String(value)}`),
     player && !player.active ? 'Out' : null,
     player?.sittingOut ? 'Sitting out' : null,
     info?.bot ? 'Bot' : null,

@@ -59,7 +59,11 @@ export interface PlayerView {
     hasLookedAtHand: boolean;
     /** Out of play this round (a lone player's partner). */
     sittingOut: boolean;
+    /** The game's values for this seat (`seats.show`), e.g. { label: "Taken", value: 9 }. */
+    shown: { label: string; value: number | string | boolean }[];
   }[];
+  /** Whether tricks won are worth showing (`seats.tricks`; false in hearts). */
+  showTricks: boolean;
   teams: {
     id: number;
     players: PlayerId[];
@@ -317,6 +321,20 @@ function formatFits(
 }
 
 /** The game's `display` values that apply now. The validator keeps them to public values. */
+/** A seat's values from `seats.show`, worked out for its player (public values only). */
+function seatValues(state: GameState, player: PlayerId): PlayerView['players'][number]['shown'] {
+  const shown: PlayerView['players'][number]['shown'] = [];
+  for (const item of state.file.seats?.show ?? []) {
+    const scope = buildScope(state, { player });
+    if (item.if && !evaluateCondition(item.if, scope)) continue;
+    const value = evaluate(item.value, scope);
+    if (typeof value === 'number' || typeof value === 'string' || typeof value === 'boolean') {
+      shown.push({ label: item.label, value });
+    }
+  }
+  return shown;
+}
+
 function displayValues(state: GameState): PlayerView['display'] {
   const shown: PlayerView['display'] = [];
   for (const item of state.file.display ?? []) {
@@ -371,7 +389,9 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
       tracks: { ...p.tracks },
       hasLookedAtHand: p.hasLookedAtHand,
       sittingOut: p.sittingOut,
+      shown: seatValues(state, p.id),
     })),
+    showTricks: state.file.seats?.tricks ?? true,
     teams: state.teams.map((t) => ({
       ...t,
       players: [...t.players],

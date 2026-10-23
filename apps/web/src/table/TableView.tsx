@@ -198,7 +198,10 @@ export function TableView({
 
   const yourTurn = toAct.includes(view.you);
   useTurnAlert(yourTurn && !paused && !over);
-  const showTricks = view.trickZones.length > 0;
+  // A trick game (with a "Last trick" button), and whether its tricks won are worth
+  // counting (not in hearts, where the points taken count instead).
+  const trickGame = view.trickZones.length > 0;
+  const showTricks = trickGame && view.showTricks;
   const myBid = view.players[view.you]?.bid;
 
   const act = (move: Move) => {
@@ -444,7 +447,7 @@ export function TableView({
           )}
           {/* The game's values (trump, the count) and the last-trick button have a fixed place
               along the bottom of the table, so they don't move as cards come and go. */}
-          {(view.display.length > 0 || showTricks || view.trump) && (
+          {(view.display.length > 0 || trickGame || view.trump) && (
             <div className="felt-footer">
               {view.trump && <TrumpBadge suit={view.trump.suit} />}
               {view.display.length > 0 && (
@@ -475,7 +478,7 @@ export function TableView({
               )}
               {/* Always there in trick games, greyed out when there's nothing else to show,
                   so it doesn't pop in and out every trick. */}
-              {showTricks && (
+              {trickGame && (
                 <button
                   type="button"
                   className="small last-trick"
@@ -600,6 +603,7 @@ export function TableView({
             {view.passing &&
               ` You pass to ${names(view.passing.to)}${view.passing.from === null ? '' : `; ${names(view.passing.from)} passes to you`}.`}
             {showTricks && ` You've won ${view.players[view.you]?.tricks ?? 0}.`}
+            {view.players[view.you]?.shown.map((s) => ` ${s.label}: ${String(s.value)}.`)}
           </span>
           {/* Screen readers hear this in the announcement and on each card. */}
           {received && (

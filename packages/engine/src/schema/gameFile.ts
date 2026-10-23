@@ -465,6 +465,21 @@ export const displaySchema = z.strictObject({
 });
 
 /**
+ * What each seat shows about its player, beside the name: e.g. hearts shows the points a
+ * player has taken this round instead of the tricks they've won. Only values everyone
+ * can see may be used (checked in validate.ts).
+ */
+export const seatsSchema = z.strictObject({
+  /** Show the tricks each player has won (default true); off where tricks don't count. */
+  tricks: z.boolean().optional(),
+  /** Values worked out for each player, e.g. { "label": "Taken", "value": "sum(player.won, cardValue)" }. */
+  show: z
+    .array(z.strictObject({ label: z.string().min(1), value: expr, if: expr.optional() }))
+    .min(1)
+    .optional(),
+});
+
+/**
  * A big moment shown to everyone as a banner, e.g. { "when": "state.heartsBroken",
  * "label": "♥ Hearts broken" }. With `when` it happens each time the condition turns
  * true; with `each`, each time the number goes up (another canasta). With `per`, it's
@@ -493,6 +508,7 @@ export const gameFileSchema = z.strictObject({
   elimination: z.strictObject({ when: expr }).optional(),
   endCondition: endConditionSchema,
   display: z.array(displaySchema).min(1).optional(),
+  seats: seatsSchema.optional(),
   moments: z.array(momentSchema).min(1).optional(),
   /**
    * Cards laid down as soon as they reach a hand (red 3s in canasta): moved to

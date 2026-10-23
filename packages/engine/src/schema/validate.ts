@@ -382,9 +382,33 @@ class Checker {
   private zoneHidden(name: string, props: string[]): boolean {
     const zone = this.file.zones[name];
     if (!zone || zone.visibility === 'all') return false;
+    // Won tricks: every card in them was played face up, so what's in them isn't secret.
+    if (this.onlyTricksGoTo(name)) return false;
     if (props[0] === 'count') return zone.visibility === 'none' && !zone.countVisible;
     if (props[0] === 'top') return zone.visibility !== 'topCardOnly';
     return true;
+  }
+
+  /**
+   * Whether cards only ever reach this zone as won tricks: everywhere the file names it,
+   * it's where a trick goes (`moveTrick`) or where cards come from (`from`, `giveCards`).
+   * Anything else (`to`, a deal's `rest`…) might put a card there unseen.
+   */
+  private onlyTricksGoTo(name: string): boolean {
+    let tricks = false;
+    let other = false;
+    const visit = (value: unknown, key: string | null): void => {
+      if (value === name) {
+        if (key === 'moveTrick') tricks = true;
+        else if (key !== 'from' && key !== 'giveCards') other = true;
+      } else if (Array.isArray(value)) value.forEach((v) => visit(v, key));
+      else if (value && typeof value === 'object') {
+        for (const [k, v] of Object.entries(value)) visit(v, k);
+      }
+    };
+    const { zones: _zones, ...rest } = this.file;
+    visit(rest, null);
+    return tricks && !other;
   }
 
   private checkBonusCards(): void {
@@ -1145,6 +1169,7 @@ class Checker {
       this.checkExpr(note.if, ['endCondition', 'notes', i, 'if'], NO_CONTEXT),
     );
     (this.file.display ?? []).forEach((item, i) => this.checkDisplay(item, ['display', i]));
+    (this.file.seats?.show ?? []).forEach((item, i) => this.checkSeatValue(item, i));
     const ast = this.checkExpr(when, ['endCondition', 'when'], NO_CONTEXT);
     if (ties !== undefined) this.checkSetting(ties, TIES, ['endCondition', 'ties']);
     this.checkSetting(winner, WINNERS, ['endCondition', 'winner']);
@@ -1197,6 +1222,27 @@ class Checker {
    * Shown to every player, so a display may only use values everyone already
    * sees (state, options, round, dealer): never a pile, which could hold hidden cards.
    */
+  /** Shown at every seat, so, like a moment, a seat value may only use what everyone can see. */
+  private checkSeatValue(item: { value: string; if?: string | undefined }, i: number): void {
+    const path = ['seats', 'show', i];
+    for (const [key, source] of [
+      ['value', item.value],
+      ['if', item.if],
+    ] as const) {
+      if (source === undefined) continue;
+      const ast = this.checkExpr(source, [...path, key], PLAYER);
+      if (!ast) continue;
+      const hidden = [...new Set(this.hiddenUses(ast))];
+      if (hidden.length > 0) {
+        this.error(
+          [...path, key],
+          'A seat value is shown to everyone, so it can only use what everyone can see, ' +
+            `not ${hidden.map((h) => `"${h}"`).join(', ')}`,
+        );
+      }
+    }
+  }
+
   private checkDisplay(item: DisplayDef, path: Path): void {
     for (const [key, source] of [
       ['value', item.value],

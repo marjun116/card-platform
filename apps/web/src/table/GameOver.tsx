@@ -254,7 +254,9 @@ function FinalTeam({
 
 /** Tricks won and bids made per player, and the biggest round; only what the game has. */
 function StatsPanel({ view, names }: { view: GameMessage['view']; names: SeatNames }) {
-  const stats = gameStats(view.history, view.players);
+  const all = gameStats(view.history, view.players);
+  // Tricks won aren't worth a column where they don't count (hearts).
+  const stats = { ...all, showTricks: all.showTricks && view.showTricks };
   const biggestTeam = stats.biggest && view.teams.find((t) => t.id === stats.biggest?.team);
   if (!stats.showTricks && !stats.showBids && !biggestTeam) return null;
   return (

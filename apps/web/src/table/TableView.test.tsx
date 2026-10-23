@@ -857,3 +857,35 @@ describe('quick reactions', () => {
     expect(document.querySelector('[aria-live]')?.textContent).toContain('Sam: Thumbs up');
   });
 });
+
+describe("the game's own seat values", () => {
+  it("shows them instead of tricks won where the game says tricks don't count", () => {
+    const state = createGame(spades, {}, 4, 'view-taken');
+    const game = gameMessage(state, 0);
+    const view = {
+      ...game.view,
+      showTricks: false,
+      players: game.view.players.map((p) => ({
+        ...p,
+        shown: [{ label: 'Taken', value: p.id * 3 }],
+      })),
+    };
+    render(
+      <TableView
+        table={tableInfo(4)}
+        game={{ ...game, view }}
+        connection={fakeConnection() as unknown as TableConnection}
+        error={null}
+        nudgedBy={null}
+        isHost={false}
+      />,
+    );
+    expect(screen.queryByText(/You've won/)).toBeNull();
+    expect(screen.getByText(/Taken: 0\./)).toBeTruthy();
+    const sam = screen.getByRole('region', { name: /^Sam/ });
+    expect(within(sam).getAllByText(/Taken 6/).length).toBeGreaterThan(0);
+    expect(within(sam).queryByText(/^Won /)).toBeNull();
+    // Still a trick game: the last trick can be looked at.
+    expect(screen.getByRole('button', { name: 'Last trick' })).toBeTruthy();
+  });
+});
