@@ -615,6 +615,7 @@ export function TableView({
           controls={controls}
           arrangement={arrangement}
           trump={view.trump}
+          sortSuits={view.sortSuits}
           seat={view.you}
           received={received}
           selected={selected}

@@ -12,6 +12,27 @@ describe('sortHand', () => {
     expect(labels(sortHand(cards))).toEqual(['J♠', '9♥', 'J♥', 'A♥', 'J♣', 'K♣', 'J♦']);
   });
 
+  it("follows the game's suit order (hearts last), with any suits it leaves out after", () => {
+    expect(labels(sortHand(cards, null, ['spades', 'diamonds', 'clubs', 'hearts']))).toEqual([
+      'J♠',
+      'J♦',
+      'J♣',
+      'K♣',
+      '9♥',
+      'J♥',
+      'A♥',
+    ]);
+    expect(labels(sortHand(cards, null, ['clubs']))).toEqual([
+      'J♣',
+      'K♣',
+      'J♠',
+      '9♥',
+      'J♥',
+      'A♥',
+      'J♦',
+    ]);
+  });
+
   it('puts both bowers at the top of trump: the left, then the right', () => {
     expect(labels(sortHand(cards, { suit: 'hearts', bowers: true }))).toEqual([
       'J♠',

@@ -30,6 +30,16 @@ describe('validate', () => {
     expect(result.ok && result.file).toEqual(spades);
   });
 
+  it('refuses a suit listed twice in the order hands are sorted', () => {
+    const file = {
+      ...spades,
+      cardOrder: { ...spades.cardOrder, sortSuits: ['hearts', 'spades', 'hearts'] },
+    };
+    expect(errors(file)).toEqual(['cardOrder.sortSuits[2]: hearts is listed twice']);
+    const fine = { ...spades, cardOrder: { ...spades.cardOrder, sortSuits: ['spades', 'hearts'] } };
+    expect(errors(fine)).toEqual([]);
+  });
+
   describe("the game's tile", () => {
     it('accepts how long a game takes, three cards and an accent colour', () => {
       const file = {

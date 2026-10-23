@@ -21,6 +21,7 @@ export function Hand({
   onClear,
   arrangement = null,
   trump = null,
+  sortSuits = null,
   seat,
   received = null,
 }: {
@@ -33,6 +34,8 @@ export function Hand({
   arrangement?: Arrangement;
   /** Trump, so euchre's bowers are sorted in with it. */
   trump?: PlayerView['trump'];
+  /** The game's order for sorting suits (hearts last in hearts), if it has one. */
+  sortSuits?: PlayerView['sortSuits'];
   selected: readonly string[];
   /** A card was pressed (clicked, tapped, Enter or Space). */
   onPress: (card: CardData) => void;
@@ -62,7 +65,7 @@ export function Hand({
   }
 
   const all = zone.kind === 'cards' ? zone.cards : zone.melds.flat();
-  const { cards, groupStarts } = arranged(all, arrangement, trump);
+  const { cards, groupStarts } = arranged(all, arrangement, trump, sortSuits);
   const current = Math.min(focus, cards.length - 1);
   // Dim unusable cards only when some card can be used (not while bidding, say).
   const choosing = controls.byCard.size > 0 || controls.groupCards.size > 0;
@@ -139,8 +142,9 @@ function arranged(
   cards: readonly CardData[],
   arrangement: Arrangement,
   trump: PlayerView['trump'],
+  suits: PlayerView['sortSuits'],
 ): { cards: CardData[]; groupStarts: Set<number> } {
-  if (!arrangement) return { cards: sortHand(cards, trump), groupStarts: new Set() };
+  if (!arrangement) return { cards: sortHand(cards, trump, suits), groupStarts: new Set() };
   const byId = new Map(cards.map((c) => [c.id, c]));
   const ordered: CardData[] = [];
   const groupStarts = new Set<number>();
@@ -152,7 +156,11 @@ function arranged(
     ordered.push(...sortHand(groupCards));
   }
   const grouped = new Set(ordered.map((c) => c.id));
-  const loose = sortHand(cards.filter((c) => !grouped.has(c.id)));
+  const loose = sortHand(
+    cards.filter((c) => !grouped.has(c.id)),
+    null,
+    suits,
+  );
   if (ordered.length > 0 && loose.length > 0) groupStarts.add(ordered.length);
   return { cards: [...ordered, ...loose], groupStarts };
 }

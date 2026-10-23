@@ -81,6 +81,8 @@ export interface PlayerView {
   lastTrick: TrickView | null;
   /** Names of the zones tricks are played into, so a client can draw them as tricks, not piles. */
   trickZones: string[];
+  /** The order to sort suits in a hand on screen (`cardOrder.sortSuits`), or null. */
+  sortSuits: Suit[] | null;
   /** Shared zones not drawn on the table right now (their `showOnTable` doesn't hold). */
   offTable: string[];
   /** A decision the game is waiting on; `card` is shown only to the player deciding. */
@@ -378,6 +380,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     trick: trickView(state, state.trick, viewer),
     lastTrick: trickView(state, state.lastTrick, viewer),
     trickZones: trickZones(state),
+    sortSuits: state.file.cardOrder?.sortSuits ? [...state.file.cardOrder.sortSuits] : null,
     offTable: offTable(state),
     pending: pending && {
       kind: pending.kind,

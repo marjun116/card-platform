@@ -189,6 +189,14 @@
         },
         "bowers": {
           "type": "boolean"
+        },
+        "sortSuits": {
+          "minItems": 1,
+          "maxItems": 4,
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema6"
+          }
         }
       },
       "additionalProperties": false

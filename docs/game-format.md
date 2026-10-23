@@ -35,6 +35,8 @@ Three optional `meta` fields only change how the game's tile looks on Home and i
 - `cards`: three card codes fanned on the tile, e.g. `["AS", "KS", "QS"]`. Without it, the tile fans the deck's three highest cards.
 - `accent`: the tile's colour, `0` to `7`. Without it, a colour is picked from the game's name (the same one every time).
 
+`cardOrder.sortSuits` sets the order suits are sorted in a hand on screen, e.g. hearts last in hearts: `["spades", "diamonds", "clubs", "hearts"]`. Suits it leaves out follow in the usual order (♠ ♥ ♣ ♦). It only changes how hands look, never a rule.
+
 Inside `phases`, each phase lists the **actions** players may take on their turn, drawn from a fixed library:
 
 - **Card movement:** `draw`, `discard`, `play`, `pass`, `meld`, `layOff`, `pickUpPile`, `showHand` (go out by showing a fully arranged hand)

@@ -1494,3 +1494,9 @@ build checklist, done before Phase 6.
   a faint 3px weave, and the four suits on a 120px tile at 7% (3.5% in dark mode). The
   suits are drawn as shapes, not text, because ♥ and ♦ can turn into colour emoji on
   phones. Panels keep their solid colour, and the rulebook page sits on plain linen.
+
+## 2026-10-23: Hearts playtest fixes (bugs)
+
+- **Hearts sorts hearts last** with a new `cardOrder.sortSuits` in the game file (only how
+  hands look, never a rule): ♠ ♦ ♣ ♥, so colours still alternate. Other games keep the
+  usual ♠ ♥ ♣ ♦. The "show all hands" replay sorts the same way.

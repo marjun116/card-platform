@@ -3,7 +3,7 @@
  * player's cards face up, and shared or team piles as the table shows them
  * (the top card and a count), so the stock isn't spread out as a row of cards.
  */
-import type { Move, OpenView, TrickView } from '@card-table/engine';
+import type { Move, OpenView, PlayerView, TrickView } from '@card-table/engine';
 import { sortHand } from './cards';
 import { type PlacedZone, parseZoneKey } from './zones';
 
@@ -16,7 +16,11 @@ export interface ReplayZones {
   piles: PlacedZone[];
 }
 
-export function replayZones(frame: OpenView, trickZones: readonly string[]): ReplayZones {
+export function replayZones(
+  frame: OpenView,
+  trickZones: readonly string[],
+  sortSuits: PlayerView['sortSuits'] = null,
+): ReplayZones {
   const zones: ReplayZones = { seats: new Map(), teams: new Map(), piles: [] };
   const add = <K>(map: Map<K, PlacedZone[]>, key: K, zone: PlacedZone) =>
     map.set(key, [...(map.get(key) ?? []), zone]);
@@ -25,7 +29,9 @@ export function replayZones(frame: OpenView, trickZones: readonly string[]): Rep
     if (trickZones.includes(name)) continue;
     if (seat !== null) {
       const sorted: PlacedZone['view'] =
-        view.kind === 'cards' ? { kind: 'cards', cards: sortHand(view.cards, frame.trump) } : view;
+        view.kind === 'cards'
+          ? { kind: 'cards', cards: sortHand(view.cards, frame.trump, sortSuits) }
+          : view;
       add(zones.seats, seat, { key, name, view: sorted });
       continue;
     }

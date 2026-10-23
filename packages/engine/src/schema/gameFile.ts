@@ -77,6 +77,11 @@ export const cardOrderSchema = z.strictObject({
    * same colour ranks second and counts as a trump.
    */
   bowers: z.boolean().optional(),
+  /**
+   * The order suits are sorted in a hand on screen, e.g. hearts last in hearts:
+   * ["spades", "diamonds", "clubs", "hearts"]. Only how hands look, never a rule.
+   */
+  sortSuits: z.array(suit).min(1).max(4).optional(),
 });
 
 export const ACES = ['low', 'high', 'both'] as const;

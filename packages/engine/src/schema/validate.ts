@@ -285,6 +285,7 @@ class Checker {
     this.checkZones();
     this.checkDeck();
     this.checkTile();
+    this.checkSortSuits();
     this.checkSetup();
     this.file.phases.forEach((phase, i) => this.checkPhase(phase, ['phases', i]));
     this.checkScoring();
@@ -548,6 +549,16 @@ class Checker {
     const { ranks = RANKS, suits = SUITS } = this.file.deck;
     const card = parseCardCode(code);
     return card !== null && ranks.includes(card.rank) && suits.includes(card.suit);
+  }
+
+  /** Each suit at most once in the order hands are sorted. */
+  private checkSortSuits(): void {
+    const suits = this.file.cardOrder?.sortSuits ?? [];
+    suits.forEach((suit, i) => {
+      if (suits.indexOf(suit) !== i) {
+        this.error(['cardOrder', 'sortSuits', i], `${suit} is listed twice`);
+      }
+    });
   }
 
   /** The game's tile: its cards are real cards, and its minutes run from low to high. */

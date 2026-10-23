@@ -57,7 +57,7 @@ export function cardFromId(id: string): Card | null {
   return { id, suit, rank: rank as Extract<Card, { suit: Suit }>['rank'] };
 }
 
-const SUIT_ORDER = { spades: 0, hearts: 1, clubs: 2, diamonds: 3 } as const;
+const USUAL_SUIT_ORDER: Record<Suit, number> = { spades: 0, hearts: 1, clubs: 2, diamonds: 3 };
 const RANK_ORDER = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
 
 const RED: readonly Suit[] = ['hearts', 'diamonds'];
@@ -65,12 +65,21 @@ const RED: readonly Suit[] = ['hearts', 'diamonds'];
 /**
  * Suits grouped, alternating colours, low to high. A display choice only.
  * With bowers (euchre), both jacks of trump's colour sit at the top of trump:
- * the left bower, then the right bower.
+ * the left bower, then the right bower. A game can set its own suit order
+ * (`view.sortSuits`, e.g. hearts last); suits it leaves out follow in the usual order.
  */
 export function sortHand(
   cards: readonly Card[],
   trump: { suit: Suit; bowers: boolean } | null = null,
+  suits: readonly Suit[] | null = null,
 ): Card[] {
+  const SUIT_ORDER: Record<Suit, number> = { ...USUAL_SUIT_ORDER };
+  if (suits) {
+    for (const suit of Object.keys(SUIT_ORDER) as Suit[]) {
+      const at = suits.indexOf(suit);
+      SUIT_ORDER[suit] = at === -1 ? suits.length + USUAL_SUIT_ORDER[suit] : at;
+    }
+  }
   const key = (card: Card) => {
     if (isJoker(card)) return 100;
     if (
