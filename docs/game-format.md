@@ -114,6 +114,37 @@ effect can note the answer in `state` first (hearts notes who shot the moon in
 `state.moonShooter`). A moment is only a banner: if it can't be worked out yet (a value
 that isn't set), it simply hasn't happened.
 
+## Round summary
+
+Three optional settings make the summary at the end of each round say more. A game
+works without them; the summary then shows only each team's points and total.
+
+- **`label` on a scoring rule** says where its points came from. The summary lists them
+  by label, such as "Tricks 60 · Bags +2 · Nil +100", along with points scored during
+  play under the `score` effect's own label. Rules with the same label are added
+  together, and a part that comes to 0 isn't shown.
+- **`scoring.contract`** says whether a team made its contract, shown as a "Made" or "Set"
+  badge. It's checked for each team just before the round is scored. `made` is the
+  condition; with `if`, only teams where `if` holds have a contract (euchre's makers).
+- **`endCondition.target`** is the score the game is played to, as a number or an
+  expression such as `options.targetScore`. The table draws each team's progress toward
+  it. Everyone sees it, so, like a moment, it may only use what everyone can see.
+
+```json
+"scoring": {
+  "perTeam": [
+    { "label": "Tricks", "if": "team.tricks >= team.bid", "add": "team.bid * 10" },
+    { "label": "Bags", "if": "team.tricks >= team.bid", "add": "team.tricks - team.bid" }
+  ],
+  "contract": { "if": "team.bid > 0", "made": "team.tricks >= team.bid" }
+},
+"endCondition": {
+  "when": "anyTeam.score >= options.targetScore",
+  "winner": "highestScore",
+  "target": "options.targetScore"
+}
+```
+
 ## Example 1: Spades
 
 This is a complete built-in game in about 90 lines, with four house rule toggles. Standard rules: four players in two partnerships, each player bids, spades are always trump, and the first team to 500 wins. A team that falls to -200 loses (the "mercy rule", on by default).

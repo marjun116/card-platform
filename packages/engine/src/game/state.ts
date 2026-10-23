@@ -87,6 +87,13 @@ export interface RoundResult {
     tracks: Record<string, number>;
     /** Points held during the round (such as meld). */
     held: Record<string, number>;
+    /**
+     * Where this round's points came from, by the scoring rules' and score events'
+     * labels, in the order first scored (null: unlabelled). Parts that came to 0 are left out.
+     */
+    parts: { label: string | null; points: number }[];
+    /** Whether the team made its contract (`scoring.contract`), or null if it had none. */
+    made: boolean | null;
   }[];
   players: {
     id: PlayerId;
@@ -96,6 +103,13 @@ export interface RoundResult {
     /** Knocked out at the end of this round. */
     eliminated: boolean;
   }[];
+}
+
+/** Points one scoring rule or score event gave a team this round. */
+export interface RoundPoints {
+  team: number;
+  label: string | null;
+  points: number;
 }
 
 /** Points scored during a round (a `score` effect), shown in the game log. */
@@ -212,6 +226,8 @@ export interface GameState {
   moments: MomentEvent[];
   /** Each team's score when this round began, so the round summary counts every point. */
   roundStartScores: number[];
+  /** Points scored this round, with their labels, for the round summary's breakdown. */
+  roundPoints: RoundPoints[];
   round: number;
   dealer: PlayerId;
   cursor: Cursor;
@@ -410,6 +426,8 @@ export function draft(state: GameState): GameState {
     cardEvents: [...state.cardEvents],
     moments: [...state.moments],
     roundStartScores: [...state.roundStartScores],
+    // Entries are never changed once added.
+    roundPoints: [...state.roundPoints],
     cursor: { ...state.cursor, turns: [...state.cursor.turns] },
     trick: copyTrick(state.trick),
     lastTrick: copyTrick(state.lastTrick),

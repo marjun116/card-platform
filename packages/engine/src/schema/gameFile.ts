@@ -385,6 +385,8 @@ export const phaseSchema = z.strictObject({
 });
 
 export const scoreRuleSchema = z.strictObject({
+  /** Where the points came from in the round summary ("Tricks", "Bags", "Nil"). */
+  label: z.string().min(1).optional(),
   if: expr.optional(),
   add: z.union([expr, z.number()]).optional(),
   track: z.record(name, z.union([expr, z.number()])).optional(),
@@ -408,6 +410,11 @@ export const scoringSchema = z.strictObject({
    * null hides a counter that is only bookkeeping.
    */
   trackLabels: z.record(name, z.union([z.string().min(1), z.null()])).optional(),
+  /**
+   * Whether a team made its contract, shown as "Made" or "Set" in the round summary.
+   * Checked for each team as the round is scored; teams where `if` doesn't hold have none.
+   */
+  contract: z.strictObject({ if: expr.optional(), made: expr }).optional(),
 });
 
 export const TIES = ['playOn', 'share'] as const;
@@ -421,6 +428,8 @@ export const endConditionSchema = z.strictObject({
    * bidding team when both teams pass the target in the same hand.
    */
   priority: expr.optional(),
+  /** The score the game is played to ("options.targetScore"), for progress bars. */
+  target: z.union([expr, z.number()]).optional(),
   /** Also check `when` each time points are scored during a round, ending the game at once. */
   immediate: z.boolean().optional(),
   /** Words shown with the result when their condition holds at the end, e.g. "Skunk!". */

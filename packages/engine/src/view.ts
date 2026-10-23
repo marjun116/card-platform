@@ -23,6 +23,8 @@ import {
 import type { DisplayDef, GameFile, OptionValue } from './game/types';
 import { evaluate, evaluateCondition } from './expr/evaluate';
 import { buildScope } from './game/scope';
+import { resolveSetting } from './game/settings';
+import { WINNERS } from './schema/gameFile';
 
 /** What a player sees of one zone. */
 export type ZoneView =
@@ -110,6 +112,11 @@ export interface PlayerView {
   }[];
   /** Words shown with the result once the game is over, e.g. "Skunk!". */
   notes: string[];
+  /**
+   * What the game is played to: the score in `endCondition.target` (null without one),
+   * and whether the highest or the lowest score wins.
+   */
+  goal: { target: number | null; winner: (typeof WINNERS)[number] };
   /** Words for `choose` values, e.g. { "shooterMinus26": "Take 26 off my score" }. */
   choiceLabels: Record<string, string>;
   /** Words for bids, e.g. { "11": "1♣" }. */
@@ -383,6 +390,7 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
     moments: state.moments,
     display: displayValues(state),
     notes: [...state.notes],
+    goal: goalOf(state),
     choiceLabels: choiceLabelsOf(state.file),
     bidLabels: bidLabelsOf(state.file),
     trackLabels: { ...state.file.scoring.trackLabels },
@@ -405,6 +413,19 @@ export function viewFor(state: GameState, viewer: PlayerId): PlayerView {
             deadwood: deadwood(state, viewer),
           }
         : null,
+  };
+}
+
+/** The validator keeps `target` to public values, like a display. */
+function goalOf(state: GameState): PlayerView['goal'] {
+  const { target, winner } = state.file.endCondition;
+  const value =
+    target === undefined || typeof target === 'number'
+      ? (target ?? null)
+      : evaluate(target, buildScope(state));
+  return {
+    target: typeof value === 'number' ? value : null,
+    winner: resolveSetting(state, winner, WINNERS, 'Winner'),
   };
 }
 

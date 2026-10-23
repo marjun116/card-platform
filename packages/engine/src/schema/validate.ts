@@ -1079,6 +1079,9 @@ class Checker {
     perPlayer.forEach((rule, i) =>
       this.checkRule(rule, ['scoring', 'perPlayer', i], PLAYER, false),
     );
+    const { contract } = this.file.scoring;
+    if (contract?.if) this.checkExpr(contract.if, ['scoring', 'contract', 'if'], TEAM);
+    if (contract) this.checkExpr(contract.made, ['scoring', 'contract', 'made'], TEAM);
     for (const key of Object.keys(this.file.scoring.trackLabels ?? {})) {
       if (!this.tracks.has(key)) {
         this.error(
@@ -1107,8 +1110,9 @@ class Checker {
   }
 
   private checkEnd(): void {
-    const { when, winner, ties, notes = [], priority } = this.file.endCondition;
+    const { when, winner, ties, notes = [], priority, target } = this.file.endCondition;
     if (priority) this.checkExpr(priority, ['endCondition', 'priority'], TEAM);
+    if (typeof target === 'string') this.checkTarget(target);
     notes.forEach((note, i) =>
       this.checkExpr(note.if, ['endCondition', 'notes', i, 'if'], NO_CONTEXT),
     );
@@ -1142,6 +1146,21 @@ class Checker {
       this.warn(
         ['endCondition', 'when'],
         "This may never become true: it doesn't mention scores, rounds or players left",
+      );
+    }
+  }
+
+  /** Shown to every player with the scores, so, like a display, it may only use public values. */
+  private checkTarget(target: string): void {
+    const path = ['endCondition', 'target'];
+    const ast = this.checkExpr(target, path, NO_CONTEXT);
+    if (!ast) return;
+    const hidden = [...new Set(this.hiddenUses(ast))];
+    if (hidden.length > 0) {
+      this.error(
+        path,
+        'The target score is shown to everyone, so it can only use what everyone can see ' +
+          `(state, options, scores, round), not ${hidden.map((h) => `"${h}"`).join(', ')}`,
       );
     }
   }

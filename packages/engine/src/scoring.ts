@@ -4,7 +4,7 @@ import { buildScope, type ScopeContext } from './game/scope';
 import type { PlayerId } from './game/move';
 import { resolveSetting } from './game/settings';
 import { TIES, WINNERS } from './schema/gameFile';
-import type { GameState, PlayerState, TeamState } from './game/state';
+import type { GameState, PlayerState, RoundResult, TeamState } from './game/state';
 import type { ScoreRuleDef } from './game/types';
 
 /**
@@ -15,6 +15,10 @@ export function scoreRound(state: GameState): boolean {
   const { scoring, elimination } = state.file;
   const liveTeams = state.teams.filter((t) => t.players.some((p) => state.players[p]?.active));
   const activeBefore = state.players.map((p) => p.active);
+  // Before the rules run, so a contract reads the round as it was played.
+  const made = state.teams.map((team) =>
+    liveTeams.includes(team) ? contractMade(state, team) : null,
+  );
 
   for (const team of liveTeams) {
     for (const rule of scoring.perTeam ?? []) applyRule(state, rule, { team: team.id }, team, team);
@@ -31,7 +35,7 @@ export function scoreRound(state: GameState): boolean {
   }
 
   const winners = decideEnd(state);
-  recordRound(state, activeBefore);
+  recordRound(state, activeBefore, made);
   if (winners === null) return false;
   finishGame(state, winners);
   return true;
@@ -66,6 +70,7 @@ export function scoreNow(
     return false;
   }
   team.score += points;
+  state.roundPoints.push({ team: team.id, label, points });
   if (!state.file.endCondition.immediate) return false;
   const winners = decideEnd(state);
   if (winners === null) return false;
@@ -73,6 +78,7 @@ export function scoreNow(
   recordRound(
     state,
     state.players.map((p) => p.active),
+    state.teams.map(() => null),
   );
   finishGame(state, winners);
   return true;
@@ -87,11 +93,13 @@ function decideEnd(state: GameState): PlayerId[] | null {
   if (!evaluateCondition(state.file.endCondition.when, buildScope(state))) return null;
   const beforeBonuses = state.teams.map((t) => ({ score: t.score, tracks: { ...t.tracks } }));
   const playersBefore = state.players.map((p) => ({ ...p.tracks }));
+  const pointsBefore = state.roundPoints.length;
   applyPlayerRules(state, state.file.scoring.atGameEnd ?? []);
   const winners = findWinners(state);
   if (winners === null) {
     state.teams.forEach((t, i) => Object.assign(t, beforeBonuses[i]));
     state.players.forEach((p, i) => (p.tracks = playersBefore[i] ?? {}));
+    state.roundPoints = state.roundPoints.slice(0, pointsBefore);
   }
   return winners;
 }
@@ -104,8 +112,29 @@ function finishGame(state: GameState, winners: PlayerId[]): void {
     .map((note) => note.text);
 }
 
+/** Whether a team made its contract (`scoring.contract`); null if it had none. */
+function contractMade(state: GameState, team: TeamState): boolean | null {
+  const { contract } = state.file.scoring;
+  if (!contract) return null;
+  const scope = buildScope(state, { team: team.id });
+  if (contract.if && !evaluateCondition(contract.if, scope)) return null;
+  return evaluateCondition(contract.made, scope);
+}
+
+/** A team's points this round by label, in the order first scored, leaving out 0s. */
+function partsOf(state: GameState, team: number): RoundResult['teams'][number]['parts'] {
+  const parts: RoundResult['teams'][number]['parts'] = [];
+  for (const { team: id, label, points } of state.roundPoints) {
+    if (id !== team) continue;
+    const part = parts.find((p) => p.label === label);
+    if (part) part.points += points;
+    else parts.push({ label, points });
+  }
+  return parts.filter((p) => p.points !== 0);
+}
+
 /** Adds the round to the history (points count from the round's start). */
-function recordRound(state: GameState, activeBefore: boolean[]): void {
+function recordRound(state: GameState, activeBefore: boolean[], made: (boolean | null)[]): void {
   state.history.push({
     round: state.round,
     dealer: state.dealer,
@@ -116,6 +145,8 @@ function recordRound(state: GameState, activeBefore: boolean[]): void {
       tricks: t.tricks,
       tracks: { ...t.tracks },
       held: { ...t.held },
+      parts: partsOf(state, t.id),
+      made: made[i] ?? null,
     })),
     players: state.players.map((p, i) => ({
       id: p.id,
@@ -153,6 +184,7 @@ function applyRule(
     evaluateNumber(expr, scope()),
   ]);
   team.score += add;
+  if (add !== 0) state.roundPoints.push({ team: team.id, label: rule.label ?? null, points: add });
   for (const [name, delta] of tracks) tracker.tracks[name] = (tracker.tracks[name] ?? 0) + delta;
 }
 

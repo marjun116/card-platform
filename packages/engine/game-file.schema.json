@@ -445,6 +445,21 @@
               }
             ]
           }
+        },
+        "contract": {
+          "type": "object",
+          "properties": {
+            "if": {
+              "$ref": "#/$defs/__schema3"
+            },
+            "made": {
+              "$ref": "#/$defs/__schema3"
+            }
+          },
+          "required": [
+            "made"
+          ],
+          "additionalProperties": false
         }
       },
       "additionalProperties": false
@@ -498,6 +513,16 @@
         },
         "priority": {
           "$ref": "#/$defs/__schema3"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/__schema3"
+            },
+            {
+              "type": "number"
+            }
+          ]
         },
         "immediate": {
           "type": "boolean"
@@ -1552,6 +1577,10 @@
     "__schema25": {
       "type": "object",
       "properties": {
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
         "if": {
           "$ref": "#/$defs/__schema3"
         },

@@ -65,6 +65,7 @@ export function startGame(
     cardEvents: [],
     moments: [],
     roundStartScores: [],
+    roundPoints: [],
     round: 1,
     dealer: randomInt(rng, playerCount),
     cursor: {
@@ -226,6 +227,7 @@ export function startRound(state: GameState): void {
   state.vars = {};
   state.playedBy = {};
   state.roundStartScores = state.teams.map((t) => t.score);
+  state.roundPoints = [];
   state.trick = null;
   state.lastTrick = null;
   state.pending = null;

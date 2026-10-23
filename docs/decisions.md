@@ -1311,3 +1311,26 @@ build checklist, done before Phase 6.
   holds all 26 points (necessarily the winner of that trick); the cards were all seen as
   they were played, so this gives nothing away. Gin's undercut was left out: it needs
   deadwood, which a moment can't read.
+
+## 2026-10-22: End of a round (UI polish)
+
+- **Three optional game-file settings for the round summary** (decided by Arjun): `label`
+  on scoring rules (where the points came from), `scoring.contract` (Made or Set) and
+  `endCondition.target` (the score the game is played to). Working Made/Set out from bids
+  and tricks alone was turned down: it's wrong for Oh Hell (exact bids), euchre (only the
+  makers have a contract) and bridge (a "4♠" bid means ten tricks). See
+  docs/game-format.md, "Round summary".
+- **How the breakdown is kept:** every scoring rule and score event that changes a team's
+  score this round is noted with its label, and the round history saves each team's
+  `parts` (by label, in the order first scored, without parts of 0). The parts always add
+  up to the round's points; points with no label are listed as null and shown as "Other".
+  End-of-game bonuses count as part of the last round, as before.
+- **The contract is checked just before the round is scored**, so it sees bags and other
+  counters as they were during the round. It isn't limited to public values: the round is
+  over and its hands are about to be shown anyway.
+- **`target` is public, like a moment**, because every player sees the progress bars.
+  The view gives it as `goal`, with whether the highest or lowest score wins.
+- **The leader gets a crown in "lowest wins" games too** (decided by Arjun): in hearts, the
+  lowest score.
+- **Show all hands can be opened from the results screen too** (decided by Arjun), as well
+  as from the round summary and "Every round".
