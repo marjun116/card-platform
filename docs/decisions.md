@@ -1490,3 +1490,7 @@ build checklist, done before Phase 6.
 - **Page background** (chosen by Arjun): warm linen with a very faint ♠ ♥ ♦ ♣ pattern,
   over a soft green wash, a dark card-room look (too close to a casino for a points-only
   site) or corner card motifs (busier, and hidden on phones).
+- **The linen background, as built:** a warmer page colour (`#f4efe4`, dark mode unchanged),
+  a faint 3px weave, and the four suits on a 120px tile at 7% (3.5% in dark mode). The
+  suits are drawn as shapes, not text, because ♥ and ♦ can turn into colour emoji on
+  phones. Panels keep their solid colour, and the rulebook page sits on plain linen.

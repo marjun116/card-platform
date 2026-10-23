@@ -12,7 +12,10 @@
 }
 
 :root {
-  --bg: #f6f4ef;
+  /* The page: warm linen, a faint weave, and a very faint pattern of the four suits. */
+  --bg: #f4efe4;
+  --bg-weave: rgb(120 92 52 / 0.035);
+  --bg-suits: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='%237a5c34' fill-opacity='0.07'%3E%3Cpath transform='translate(14 14) rotate(-8 12 12) scale(0.75)' d='M12 2s7 6 7 11a4 4 0 0 1-6 3.4L14 21h-4l1-4.6A4 4 0 0 1 5 13c0-5 7-11 7-11z'/%3E%3Cpath transform='translate(74 18) rotate(6 12 12) scale(0.75)' d='M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.5-7 10-7 10z'/%3E%3Cpath transform='translate(44 74) rotate(-4 12 12) scale(0.75)' d='M12 2 19 12 12 22 5 12z'/%3E%3Cpath transform='translate(98 78) rotate(8 12 12) scale(0.75)' d='M12 3a4 4 0 0 1 3.6 5.7A4 4 0 1 1 13 15.4L14 21h-4l1-5.6A4 4 0 1 1 8.4 8.7 4 4 0 0 1 12 3z'/%3E%3C/g%3E%3C/svg%3E");
   --surface: #ffffff;
   --text: #1d1d1b;
   --muted: #5d5d58;
@@ -77,6 +80,8 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #161714;
+    --bg-weave: rgb(255 255 255 / 0.018);
+    --bg-suits: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='%23ffffff' fill-opacity='0.035'%3E%3Cpath transform='translate(14 14) rotate(-8 12 12) scale(0.75)' d='M12 2s7 6 7 11a4 4 0 0 1-6 3.4L14 21h-4l1-4.6A4 4 0 0 1 5 13c0-5 7-11 7-11z'/%3E%3Cpath transform='translate(74 18) rotate(6 12 12) scale(0.75)' d='M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.5-7 10-7 10z'/%3E%3Cpath transform='translate(44 74) rotate(-4 12 12) scale(0.75)' d='M12 2 19 12 12 22 5 12z'/%3E%3Cpath transform='translate(98 78) rotate(8 12 12) scale(0.75)' d='M12 3a4 4 0 0 1 3.6 5.7A4 4 0 1 1 13 15.4L14 21h-4l1-5.6A4 4 0 1 1 8.4 8.7 4 4 0 0 1 12 3z'/%3E%3C/g%3E%3C/svg%3E");
     --surface: #212320;
     --text: #ecebe6;
     --muted: #a9a8a1;
@@ -101,7 +106,10 @@
 
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
+  background-image:
+    var(--bg-suits), repeating-linear-gradient(0deg, var(--bg-weave) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, var(--bg-weave) 0 1px, transparent 1px 3px);
   color: var(--text);
 }
 
@@ -398,6 +406,11 @@ main:focus {
 }
 .prose {
   max-width: 680px;
+}
+/* Long reading (the rulebook page) sits on plain linen, without the suits behind it. */
+.page.prose {
+  background: var(--bg);
+  border-radius: var(--radius);
 }
 kbd {
   border: 1px solid var(--border);

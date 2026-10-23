@@ -460,7 +460,7 @@ never by a game's name, so custom games get them too. No sound.
 
 **Page background**
 
-- [ ] A warm linen background with a very faint repeating ♠ ♥ ♦ ♣ pattern (CSS only, no
+- [x] A warm linen background with a very faint repeating ♠ ♥ ♦ ♣ pattern (CSS only, no
       images), in light and dark mode; behind long text like the rulebook, fainter or off.
       Panels and text stay as easy to read as now. Mostly seen on Home, the games list, the
       lobby and results, since the felt fills the screen during a game
