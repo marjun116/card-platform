@@ -1134,7 +1134,7 @@ kbd {
   }
   .table-screen > .you-area {
     grid-area: you;
-    margin: 10px 0 12px;
+    margin: 0 0 12px;
   }
 }
 .table-main {
@@ -1640,19 +1640,33 @@ kbd {
   position: sticky;
   bottom: 0;
   z-index: 2;
-  /* Your place at the table: a strip of the same felt, in the same wooden rail. */
+  /* The near edge of the table: the felt carries on down around your hand, and the rail
+     wraps both (the table's own bottom edge is left off; see .table-main > .felt). */
   border: var(--rail-w) solid transparent;
-  border-radius: 24px;
+  border-top-width: 0;
+  border-radius: 0 0 28px 28px;
   background:
-    radial-gradient(ellipse 60% 80% at 50% 40%, var(--felt-light), transparent 80%) padding-box,
-    linear-gradient(var(--felt), var(--felt-edge)) padding-box,
+    radial-gradient(ellipse 60% 70% at 50% 100%, rgb(0 0 0 / 0.18), transparent 70%) padding-box,
+    linear-gradient(var(--felt-edge), var(--felt) 30%, var(--felt-edge)) padding-box,
     repeating-linear-gradient(100deg, rgb(255 255 255 / 0.05) 0 2px, transparent 2px 9px) border-box,
     linear-gradient(160deg, var(--rail-light), var(--rail) 45%, var(--rail-dark)) border-box;
   color: var(--felt-text);
   box-shadow:
     0 0 0 1px rgb(0 0 0 / 0.35),
     0 6px 16px rgb(0 0 0 / 0.25),
-    inset 0 0 22px rgb(0 0 0 / 0.35);
+    inset 0 -14px 24px -10px rgb(0 0 0 / 0.4);
+}
+/* The table above your hand: no rail or rounded corners along its bottom edge, and no
+   shadow there, so the two read as one table. */
+.table-main > .felt {
+  border-bottom-width: 0;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.35),
+    inset 0 14px 28px -10px rgb(0 0 0 / 0.4),
+    inset 14px 0 28px -14px rgb(0 0 0 / 0.35),
+    inset -14px 0 28px -14px rgb(0 0 0 / 0.35);
 }
 /* Text on the felt: light, as on the table. */
 .you-area .muted {
@@ -1684,11 +1698,12 @@ kbd {
 .status-line button {
   vertical-align: middle;
 }
-/* Your turn: the rail round your place glows gold and breathes, like an active seat. */
+/* Your turn: your edge of the table glows gold and breathes, like an active seat: the
+   rail round your part of the table, and a line where it meets the rest. */
 .you-area.your-turn::before {
   content: '';
   position: absolute;
-  inset: calc(-1 * var(--rail-w));
+  inset: 0 calc(-1 * var(--rail-w)) calc(-1 * var(--rail-w));
   border-radius: inherit;
   pointer-events: none;
   border: 2px solid var(--playable);
@@ -2451,10 +2466,17 @@ kbd {
     font-size: 2.1rem;
   }
 
+  /* The table still meets your hand square on phones (its own corners are rounded here). */
+  .table-main > .felt {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  /* The same thinner rail and smaller corners as the table on phones. */
   .you-area {
+    --rail-w: 6px;
     padding: 6px 8px 10px;
     margin: 0 8px 8px;
-    border-radius: 16px;
+    border-radius: 0 0 18px 18px;
   }
 }
 

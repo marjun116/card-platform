@@ -1515,7 +1515,10 @@ build checklist, done before Phase 6.
 
 ## 2026-10-23: Your hand area (bug)
 
-- **Your hand sits in a tray at your edge of the table** (option B, chosen by Arjun): a
-  strip of the same felt inside the same wooden rail, with light text as on the table.
-  On your turn the rail round it glows gold and breathes, like an active seat, instead
-  of a line along the top (a steady glow with "reduce motion" or animation speed off).
+- **Your hand sits at the near edge of the table** (option D, chosen by Arjun after trying
+  B, a separate felt tray): the felt carries on down around your hand and one wooden rail
+  wraps both, with light text as on the table. It's done with styles only; the table and
+  your hand stay separate underneath, so card motion is unchanged. On your turn your edge
+  of the table glows gold and breathes, like an active seat (a steady glow with "reduce
+  motion" or animation speed off). On a very short window, where your hand sticks to the
+  bottom as the page scrolls, the two parts can come apart while scrolling.
