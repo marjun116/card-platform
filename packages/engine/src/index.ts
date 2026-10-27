@@ -44,6 +44,7 @@ export { replayRound, type RoundReplay } from './roundReplay';
 export {
   bidLabelsOf,
   choiceLabelsOf,
+  goalOf,
   type OpenView,
   type PlayerView,
   type PublicMove,

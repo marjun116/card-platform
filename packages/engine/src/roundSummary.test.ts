@@ -10,6 +10,7 @@ import { applyMove, createGame, getLegalMoves, playersToAct, viewFor } from './a
 import type { GameState } from './game/state';
 import type { GameFile } from './game/types';
 import { validate } from './schema/validate';
+import { goalOf } from './view';
 
 /** Plays each seat's first legal move until `done` says stop. */
 function playUntil(state: GameState, done: (s: GameState) => boolean): GameState {
@@ -130,6 +131,11 @@ describe('the goal', () => {
   it('gives the target score and which way wins', () => {
     const view = viewFor(createGame(labelled, { targetScore: 300 }, 4, 'goal'), 0);
     expect(view.goal).toEqual({ target: 300, winner: 'highestScore' });
+  });
+
+  it('is there without a view too, for the server', () => {
+    const state = createGame(labelled, { targetScore: 300 }, 4, 'goal');
+    expect(goalOf(state)).toEqual(viewFor(state, 0).goal);
   });
 
   it('has no target without one in the game file', () => {

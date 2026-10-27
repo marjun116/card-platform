@@ -469,7 +469,8 @@ function passingOf(state: GameState, viewer: PlayerId): PlayerView['passing'] {
   }
   return null;
 }
-function goalOf(state: GameState): PlayerView['goal'] {
+/** The score the game is played to, if any, and which way wins (also in the view as `goal`). */
+export function goalOf(state: GameState): PlayerView['goal'] {
   const { target, winner } = state.file.endCondition;
   const value =
     target === undefined || typeof target === 'number'
