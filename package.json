@@ -8,7 +8,7 @@
   },
   "scripts": {
     "dev": "node dev.ts",
-    "build": "pnpm --filter @card-table/web build",
+    "build": "pnpm --filter @card-table/server db:generate && pnpm --filter @card-table/web build",
     "start": "pnpm --filter @card-table/server start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit && pnpm -r typecheck",
