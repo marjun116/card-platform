@@ -98,4 +98,33 @@ describe('Lobby', () => {
     expect(within(bot as HTMLElement).getByRole('button', { name: 'Remove bot' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Start the game' })).toHaveProperty('disabled', true);
   });
+
+  it('starts from the middle of the felt on a computer, with what is still needed below', () => {
+    show(lobby(['Arjun', null]), 0, true);
+    const felt = within(screen.getByRole('region', { name: 'Seats' }));
+    const start = felt.getByRole<HTMLButtonElement>('button', { name: 'Start the game' });
+    expect(start.disabled).toBe(true);
+    const actions = start.closest<HTMLElement>('.lobby-actions');
+    if (!actions) throw new Error('No lobby actions');
+    expect(within(actions).getByRole('button', { name: 'Rules' })).toBeTruthy();
+    // Both buttons first, then the hint on its own line.
+    expect([...actions.children].map((child) => child.textContent)).toEqual([
+      'Start the gameRules',
+      'Every seat needs a player to start.',
+    ]);
+  });
+
+  it('starts from below the table on a phone, and only the host can start', () => {
+    vi.stubGlobal('matchMedia', () => ({
+      matches: true,
+      addEventListener: () => undefined,
+      removeEventListener: () => undefined,
+    }));
+    show(lobby(['Arjun', 'Ana']), 1);
+    const felt = within(screen.getByRole('region', { name: 'Seats' }));
+    expect(felt.queryByRole('button', { name: 'Rules' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Rules' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Start the game' })).toBeNull();
+    expect(screen.getByText('Waiting for the host to start the game.')).toBeTruthy();
+  });
 });

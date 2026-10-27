@@ -1,8 +1,9 @@
 /**
  * Before the game: the table drawn as a table, with its seats around the felt
  * where they'll be once it starts (yours at the bottom) and team colours from
- * the start. Empty seats pulse "Sit here". The invite link and house rules
- * follow below.
+ * the start. Empty seats pulse "Sit here". On computers, Start the game and
+ * Rules sit in the middle of the felt; on phones, below it. The invite link
+ * and house rules follow below.
  */
 import type { SeatInfo, TableInfo } from '@card-table/server/protocol';
 import { type CSSProperties, useState } from 'react';
@@ -10,6 +11,7 @@ import { RulesDialog } from '../components/Rules';
 import { rulebookReady, useRulebook } from '../useRulebook';
 import { SaveVariant } from '../components/Variants';
 import { optionText } from '../gameText';
+import { useNarrow } from '../useNarrow';
 import { Avatar } from './Avatar';
 import { seatInitials, teamColour } from './avatars';
 import type { Outgoing, TableConnection } from './connection';
@@ -82,6 +84,7 @@ export function Lobby({
     }
   };
 
+  const narrow = useNarrow();
   const allSeated = table.seats.every((s) => s.user !== null);
   const filled = table.seats.filter((s) => s.user !== null).length;
   const initials = seatInitials(table);
@@ -148,6 +151,33 @@ export function Lobby({
     );
   };
 
+  // The buttons in one row, and what's still needed on its own line below them.
+  const hint = !isHost
+    ? 'Waiting for the host to start the game.'
+    : allSeated
+      ? null
+      : 'Every seat needs a player to start.';
+  const actions = (
+    <div className="lobby-actions">
+      <div className="lobby-buttons">
+        {isHost && (
+          <button
+            type="button"
+            className="primary"
+            disabled={busy || !allSeated}
+            onClick={() => void run({ type: 'start' })}
+          >
+            Start the game
+          </button>
+        )}
+        <button type="button" onClick={() => setShowRules(true)}>
+          Rules
+        </button>
+      </div>
+      {hint && <span className="lobby-hint">{hint}</span>}
+    </div>
+  );
+
   return (
     <div className="page lobby">
       <h1>{table.game.name}</h1>
@@ -172,6 +202,7 @@ export function Lobby({
               ))}
             </span>
           )}
+          {!narrow && actions}
         </div>
         <ul className="lobby-seats">
           {table.seats.map((seat) => {
@@ -222,26 +253,7 @@ export function Lobby({
         </p>
       )}
 
-      <div className="lobby-actions">
-        {isHost ? (
-          <>
-            <button
-              type="button"
-              className="primary"
-              disabled={busy || !allSeated}
-              onClick={() => void run({ type: 'start' })}
-            >
-              Start the game
-            </button>
-            {!allSeated && <span className="muted">Every seat needs a player to start.</span>}
-          </>
-        ) : (
-          <span className="muted">Waiting for the host to start the game.</span>
-        )}
-        <button type="button" onClick={() => setShowRules(true)}>
-          Rules
-        </button>
-      </div>
+      {narrow && actions}
 
       <div className="lobby-grid">
         <section className="panel">

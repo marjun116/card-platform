@@ -1597,3 +1597,17 @@ build checklist, done before Phase 6.
   one instance.
 - **Real sign-in emails come next, separately** (decided by Arjun). Until then guests play
   without email, and sign-in links appear in Render's logs.
+
+## 2026-10-27: Lobby controls (bug)
+
+- **On computers, Start the game and Rules sit in the middle of the felt** (option A,
+  chosen by Arjun), under "3 of 4 seats filled": Start in the gold of "your turn" with dark
+  text, Rules outlined in white, and "Every seat needs a player to start." (or "Waiting for
+  the host…") below them in the felt's quieter text. The invite and house rules below the
+  table become cards that suit it: warm paper (`--paper`), a wooden top edge like the
+  rail, display-font headings, and the house rules as a ruled list.
+- **Phones keep their colours** (decided by Arjun); the buttons stay under the table, now
+  in one row (Start stretching, Rules beside it) with the hint on its own line below,
+  instead of each on a line of its own.
+- **Placed by `useNarrow`**, the same 700px breakpoint as the stylesheet, so the buttons
+  exist once in the page and keep their place in the reading order.

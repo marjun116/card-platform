@@ -29,6 +29,8 @@
   --bg-weave: rgb(120 92 52 / 0.035);
   --bg-suits: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='%237a5c34' fill-opacity='0.07'%3E%3Cpath transform='translate(14 14) rotate(-8 12 12) scale(0.75)' d='M12 2s7 6 7 11a4 4 0 0 1-6 3.4L14 21h-4l1-4.6A4 4 0 0 1 5 13c0-5 7-11 7-11z'/%3E%3Cpath transform='translate(74 18) rotate(6 12 12) scale(0.75)' d='M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.5-7 10-7 10z'/%3E%3Cpath transform='translate(44 74) rotate(-4 12 12) scale(0.75)' d='M12 2 19 12 12 22 5 12z'/%3E%3Cpath transform='translate(98 78) rotate(8 12 12) scale(0.75)' d='M12 3a4 4 0 0 1 3.6 5.7A4 4 0 1 1 13 15.4L14 21h-4l1-5.6A4 4 0 1 1 8.4 8.7 4 4 0 0 1 12 3z'/%3E%3C/g%3E%3C/svg%3E");
   --surface: #ffffff;
+  /* Cards that sit beside the table, like a score pad: a little warmer than --surface. */
+  --paper: #fcf8ef;
   --text: #1d1d1b;
   --muted: #5d5d58;
   --border: #d9d5cc;
@@ -95,6 +97,7 @@
     --bg-weave: rgb(255 255 255 / 0.018);
     --bg-suits: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cg fill='%23ffffff' fill-opacity='0.035'%3E%3Cpath transform='translate(14 14) rotate(-8 12 12) scale(0.75)' d='M12 2s7 6 7 11a4 4 0 0 1-6 3.4L14 21h-4l1-4.6A4 4 0 0 1 5 13c0-5 7-11 7-11z'/%3E%3Cpath transform='translate(74 18) rotate(6 12 12) scale(0.75)' d='M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.5-7 10-7 10z'/%3E%3Cpath transform='translate(44 74) rotate(-4 12 12) scale(0.75)' d='M12 2 19 12 12 22 5 12z'/%3E%3Cpath transform='translate(98 78) rotate(8 12 12) scale(0.75)' d='M12 3a4 4 0 0 1 3.6 5.7A4 4 0 1 1 13 15.4L14 21h-4l1-5.6A4 4 0 1 1 8.4 8.7 4 4 0 0 1 12 3z'/%3E%3C/g%3E%3C/svg%3E");
     --surface: #212320;
+    --paper: #252420;
     --text: #ecebe6;
     --muted: #a9a8a1;
     --border: #3a3c37;
@@ -955,6 +958,74 @@ kbd {
   }
 }
 
+/* Start the game and Rules, with what's still needed below them. On phones they sit
+   under the table in one row; on computers, in the middle of the felt (below). */
+.lobby-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 16px;
+}
+.lobby-buttons {
+  display: flex;
+  gap: 8px;
+}
+.lobby-buttons .primary {
+  flex: 1;
+}
+.lobby-hint {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+@media (min-width: 701px) {
+  .lobby-centre .lobby-actions {
+    align-items: center;
+    margin: 10px 0 0;
+  }
+  .lobby-centre .lobby-buttons {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  /* Table buttons: Start in the gold of "your turn", Rules outlined on the felt. */
+  .lobby-centre .lobby-buttons .primary {
+    flex: none;
+    background: var(--playable);
+    border-color: var(--playable);
+    color: #1d1d1b;
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+  }
+  .lobby-centre .lobby-buttons .primary:hover:not(:disabled) {
+    border-color: #ffd34d;
+    background: #ffc61a;
+  }
+  .lobby-centre .lobby-buttons button:not(.primary) {
+    background: transparent;
+    border-color: rgb(255 255 255 / 0.6);
+    color: var(--felt-text);
+  }
+  .lobby-centre .lobby-buttons button:not(.primary):hover {
+    border-color: #fff;
+    background: rgb(255 255 255 / 0.08);
+  }
+  .lobby-centre .lobby-hint {
+    color: var(--felt-muted);
+    font-size: 0.85rem;
+  }
+  /* The invite and house rules as cards beside the table: warm paper, a wooden top edge
+     like the rail, display-font headings and the house rules as a ruled list. */
+  .lobby-grid .panel {
+    background: var(--paper);
+    border-top: 4px solid var(--rail);
+    box-shadow: 0 2px 6px rgb(0 0 0 / 0.08);
+  }
+  .lobby-grid .panel h2 {
+    font-family: var(--display);
+  }
+  .lobby-grid .options div + div {
+    border-top: 1px dotted var(--border);
+  }
+}
+
 .invite {
   display: flex;
   flex-wrap: wrap;
@@ -1066,7 +1137,6 @@ kbd {
   margin: 0;
   font-weight: 600;
 }
-.lobby-actions,
 .actions {
   display: flex;
   align-items: center;
