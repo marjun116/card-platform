@@ -33,6 +33,8 @@ export function Layout() {
   const menuItems: MenuItem[] = [
     { label: 'Home', onSelect: () => void navigate('/') },
     { label: 'Games', onSelect: () => void navigate('/games') },
+    // Only once there's someone to have played.
+    ...(user ? [{ label: 'Past games', onSelect: () => void navigate('/history') }] : []),
     { label: 'About', onSelect: () => void navigate('/about') },
     account,
   ];
@@ -50,6 +52,7 @@ export function Layout() {
           <nav aria-label="Main" className="wide-only">
             <NavLink to="/">Home</NavLink>
             <NavLink to="/games">Games</NavLink>
+            {user && <NavLink to="/history">Past games</NavLink>}
             <NavLink to="/about">About</NavLink>
           </nav>
         )}

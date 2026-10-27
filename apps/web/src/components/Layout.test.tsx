@@ -39,4 +39,13 @@ describe('Layout header', () => {
     const header = showHeader(null);
     expect(header.getByRole('link', { name: 'Sign in' })).toBeTruthy();
   });
+
+  it('links to past games once there is someone to have played', () => {
+    const header = showHeader({ id: 'g', displayName: 'Arjun', signedIn: false });
+    const nav = within(header.getByRole('navigation', { name: 'Main' }));
+    expect(nav.getByRole('link', { name: 'Past games' }).getAttribute('href')).toBe('/history');
+    cleanup();
+    const nobody = within(showHeader(null).getByRole('navigation', { name: 'Main' }));
+    expect(nobody.queryByRole('link', { name: 'Past games' })).toBeNull();
+  });
 });

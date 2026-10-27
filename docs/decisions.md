@@ -1611,3 +1611,21 @@ build checklist, done before Phase 6.
   instead of each on a line of its own.
 - **Placed by `useNarrow`**, the same 700px breakpoint as the stylesheet, so the buttons
   exist once in the page and keep their place in the reading order.
+
+## 2026-10-27: Home layout and a Past games page (bug)
+
+- **Past games has its own page, `/history`** (suggested by Claude, chosen by Arjun): the
+  filters, date groups and "Play again" from the Past games section, in the header's links
+  and the phone menu once there's a user.
+- **Wide screens: two columns** instead of the full-width sections of 2026-10-23. "Start a
+  game" on the left (two-thirds); on the right "Your tables" above "Recent games" (your
+  last 5 games and "All past games →"). The two on the right always take the same height,
+  half the column each and at least 260px, and scroll inside when there's more (asked for
+  by Arjun), so they never make the page taller than the games beside them. Three columns
+  were turned down: at about 350px each the tiles would stack two to a row and the past
+  games' filters would wrap.
+- **"Your tables" is always there on wide screens**, saying "No games in progress." when
+  empty, so the page doesn't move when your last table goes.
+- **Phones:** "Your tables" stays on Home, first and only once you have a table (getting
+  back to a game is the most common reason to open the site), then "Start a game", then a
+  "Past games →" link.

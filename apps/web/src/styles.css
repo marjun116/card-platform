@@ -624,6 +624,44 @@ kbd {
   gap: 16px;
   margin-bottom: 16px;
 }
+.panel-foot {
+  margin: 0.6em 0 0;
+}
+/* Wide screens: the games on the left; your tables above recent games on the right,
+   each exactly half the height (at least 260px) and scrolling inside, so they never make
+   the page taller than the games beside them. */
+@media (min-width: 701px) {
+  .home-sections {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    grid-template-rows: 1fr 1fr;
+    grid-template-areas:
+      'start tables'
+      'start recent';
+  }
+  .home-start {
+    grid-area: start;
+  }
+  .home-tables {
+    grid-area: tables;
+  }
+  .home-recent {
+    grid-area: recent;
+  }
+  .home-tables,
+  .home-recent {
+    contain: size;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+  }
+  .home-tables .scroll-list,
+  .home-recent .scroll-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
 /* "Start a game" with "Join with a code" beside it on wide screens, under it on phones. */
 .start-head {
   display: flex;

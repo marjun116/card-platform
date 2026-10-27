@@ -270,3 +270,43 @@ function PastGameRow({ game }: { game: PastGame }) {
     </li>
   );
 }
+
+/** How many finished games Home shows under "Recent games". */
+export const RECENT_GAMES = 5;
+
+/**
+ * Home's short version: your last few games with how each went, linking to their
+ * results, and a link to the full list.
+ */
+export function RecentGames({ userId }: { userId: string }) {
+  const recent = useLoad(() => api.history(), `recent:${userId}`);
+  if (recent.state === 'loading') return <p className="muted">Loading your past games…</p>;
+  if (recent.state === 'error') return <p className="error">{recent.message}</p>;
+  const games = recent.data.games.slice(0, RECENT_GAMES);
+  if (games.length === 0) return <p className="muted">Games you finish will show up here.</p>;
+  return (
+    <>
+      <ul className="card-list scroll-list">
+        {games.map((game) => {
+          const outcome = outcomeText(game);
+          return (
+            <li key={game.code}>
+              <Link to={`/t/${game.code}`} className="list-link">
+                <strong>{game.game.name}</strong>
+                <span>
+                  <span className={outcome === 'You lost' ? undefined : 'outcome'}>{outcome}</span>
+                  {game.endedAt && (
+                    <span className="muted"> · {dateFormat.format(new Date(game.endedAt))}</span>
+                  )}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="panel-foot">
+        <Link to="/history">All past games →</Link>
+      </p>
+    </>
+  );
+}

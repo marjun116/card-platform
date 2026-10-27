@@ -390,6 +390,12 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       house rules become cards that suit the table. Phones keep their colours, but the
       start row needs fixing: "Start the game", "Every seat needs a player to start." and
       "Rules" each end up on their own line.
+- [x] **Home: where your tables and past games go.** On a laptop, "Your tables" sits above
+      "Start a game" and disappears once your last table is gone, which moves everything
+      up. Arjun's idea: on laptops, your tables to the left of "Start a game" and past
+      games to the right; on phones, your tables and past games on their own pages in the
+      menu instead of on Home. Built as Claude suggested (see decisions.md): two columns on
+      laptops, and a Past games page with "Your tables" kept on Home on phones.
 
 ## UI polish
 

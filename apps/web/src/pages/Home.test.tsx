@@ -1,16 +1,11 @@
-import type {
-  GameStats,
-  GameSummary,
-  PastGame,
-  PastGameCount,
-  TableInfo,
-} from '@card-table/server/protocol';
+import type { GameSummary, PastGame, TableInfo } from '@card-table/server/protocol';
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { User } from '../api';
 import { SessionContext } from '../useSession';
 import { Home } from './Home';
+import { RECENT_GAMES } from './PastGames';
 
 const me: User = { id: 'me', displayName: 'Me', signedIn: false };
 
@@ -61,42 +56,23 @@ function past(
   };
 }
 
-const hearts: PastGameCount = { game: { slug: 'hearts', name: 'Hearts' }, count: 2 };
-
 let pages: Record<number, { games: PastGame[]; more: boolean }>;
-let played: PastGameCount[];
-let stats: GameStats[];
 let myTables: TableInfo[];
 let deletedCodes: string[];
-/** The history pages asked for: their query strings. */
-let historyQueries: string[];
-let rematchCodes: string[];
 
 beforeEach(() => {
   pages = { 0: { games: [], more: false } };
-  played = [];
-  stats = [];
   myTables = [];
   deletedCodes = [];
-  historyQueries = [];
-  rematchCodes = [];
   vi.stubGlobal('fetch', (url: string, init?: RequestInit) => {
     const reply = (data: unknown) => Promise.resolve(new Response(JSON.stringify(data)));
     if (init?.method === 'DELETE') {
       deletedCodes.push(url.split('/').pop() ?? '');
       return reply({ ok: true });
     }
-    const rematch = /^\/api\/tables\/(\w+)\/rematch$/.exec(url);
-    if (init?.method === 'POST' && rematch) {
-      rematchCodes.push(rematch[1] ?? '');
-      return reply({ code: 'AGAIN1' });
-    }
     if (url === '/api/tables/mine') return reply({ tables: myTables });
-    if (url === '/api/stats') return reply({ stats });
     if (url === '/api/games') return reply({ games: [spades] });
-    if (url === '/api/history/games') return reply({ games: played });
     const query = url.split('?')[1] ?? '';
-    historyQueries.push(query);
     const offset = Number(new URLSearchParams(query).get('offset') ?? 0);
     return reply(pages[offset] ?? { games: [], more: false });
   });
@@ -108,10 +84,7 @@ afterEach(() => {
 });
 
 function show() {
-  const router = createMemoryRouter([
-    { path: '/', element: <Home /> },
-    { path: '/t/:code', element: <p>The table</p> },
-  ]);
+  const router = createMemoryRouter([{ path: '/', element: <Home /> }]);
   render(
     <SessionContext.Provider
       value={{ user: me, setUser: () => undefined, signOut: () => Promise.resolve() }}
@@ -121,18 +94,13 @@ function show() {
   );
 }
 
-async function pastGames() {
-  const heading = await screen.findByRole('heading', { name: 'Past games' });
-  return within(heading.closest('section') as HTMLElement);
-}
-
-/** The text of each team in a game's final scores, in order. */
-function finalScores(section: Awaited<ReturnType<typeof pastGames>>, game: RegExp) {
-  const row = section.getByRole('link', { name: game }).closest('li') as HTMLElement;
-  const scores = within(row).getByRole('list', { name: 'Final scores' });
-  return within(scores)
-    .getAllByRole('listitem')
-    .map((li) => li.textContent);
+/** Lays the page out as on a phone (the 700px breakpoint). */
+function phone() {
+  vi.stubGlobal('matchMedia', () => ({
+    matches: true,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+  }));
 }
 
 describe('Your tables', () => {
@@ -150,14 +118,22 @@ describe('Your tables', () => {
     show();
     await screen.findByRole('heading', { name: 'Your tables' });
     const headings = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent);
-    expect(headings).toEqual(['Your tables', 'Start a game', 'Past games']);
+    expect(headings).toEqual(['Your tables', 'Start a game', 'Recent games']);
   });
 
-  it("isn't there when you have no tables", async () => {
+  it('is always there on a wide screen, saying when there are none', async () => {
+    show();
+    expect(await screen.findByText('No games in progress.')).toBeTruthy();
+  });
+
+  it("isn't there on a phone when you have no tables, and past games are a link", async () => {
+    phone();
     show();
     await screen.findByRole('list', { name: 'Games' });
-    await screen.findByRole('heading', { name: 'Past games' });
     expect(screen.queryByRole('heading', { name: 'Your tables' })).toBeNull();
+    expect(screen.queryByRole('heading', { name: 'Recent games' })).toBeNull();
+    const link = screen.getByRole('link', { name: 'Past games →' });
+    expect(link.getAttribute('href')).toBe('/history');
   });
 
   it('lets the host delete a table, after checking', async () => {
@@ -181,139 +157,34 @@ describe('Your tables', () => {
   });
 });
 
-describe('Past games', () => {
-  it('lists finished games with the outcome and scores, linking to each', async () => {
-    pages[0] = { games: [past('WON', [0]), past('EARLY', [], 'abandoned')], more: false };
-    played = [hearts];
-    stats = [{ game: { slug: 'hearts', name: 'Hearts' }, played: 1, won: 1 }];
+describe('Recent games', () => {
+  async function recent() {
+    const heading = await screen.findByRole('heading', { name: 'Recent games' });
+    return within(heading.closest('section') as HTMLElement);
+  }
+
+  it(`shows your last ${RECENT_GAMES} games, linking to each and to the full list`, async () => {
+    const games = Array.from({ length: 7 }, (_, i) => past(`G${i}`, [i % 2]));
+    pages[0] = { games, more: false };
     show();
-
-    const section = await pastGames();
-    const won = await section.findByRole('link', { name: /You won/ });
-    expect(won.getAttribute('href')).toBe('/t/WON');
-    // Finishing order, as on the results page: the lowest score wins at hearts.
-    expect(finalScores(section, /You won/)).toEqual(['MYou40♛ (winner)', 'B3Bot 360', 'AAnn101']);
-    const early = section.getByRole('link', { name: /Ended early/ }).closest('li') as HTMLElement;
-    const players = within(early).getByRole('list', { name: 'Players' });
-    expect(
-      within(players)
-        .getAllByRole('listitem')
-        .map((li) => li.textContent),
-    ).toEqual(['MYou', 'AAnn', 'B3Bot 3']);
-    expect(await section.findByText('Hearts: 1 played, 1 won')).toBeTruthy();
-    expect(section.queryByRole('button', { name: 'Show more' })).toBeNull();
-  });
-
-  it('loads older games on request', async () => {
-    pages[0] = { games: [past('ONE', [1])], more: true };
-    pages[1] = { games: [past('TWO', [0])], more: false };
-    played = [hearts];
-    show();
-
-    const section = await pastGames();
-    await section.findByRole('link', { name: /You lost/ });
-    fireEvent.click(section.getByRole('button', { name: 'Show more' }));
-    expect(await section.findByRole('link', { name: /You won/ })).toBeTruthy();
-    expect(section.getAllByRole('link')).toHaveLength(2);
-    expect(section.queryByRole('button', { name: 'Show more' })).toBeNull();
+    const section = await recent();
+    await section.findAllByRole('link', { name: /^Hearts\s*You won/ });
+    const links = section.getAllByRole('link');
+    expect(links.map((a) => a.getAttribute('href'))).toEqual([
+      '/t/G0',
+      '/t/G1',
+      '/t/G2',
+      '/t/G3',
+      '/t/G4',
+      '/history',
+    ]);
+    expect(links[1]?.textContent).toContain('You lost');
   });
 
   it('says where games will appear before the first one', async () => {
     show();
-    const section = await pastGames();
+    const section = await recent();
     expect(await section.findByText('Games you finish will show up here.')).toBeTruthy();
-    expect(section.queryByRole('group', { name: 'Outcome' })).toBeNull();
-  });
-
-  it('filters by game and outcome on the server, from the first page', async () => {
-    pages[0] = { games: [past('WON', [0])], more: false };
-    played = [
-      { ...hearts, count: 3 },
-      { game: { slug: 'spades', name: 'Spades' }, count: 1 },
-    ];
-    show();
-    const section = await pastGames();
-    await section.findByRole('link', { name: /You won/ });
-    const games = section.getByRole('group', { name: 'Game' });
-    const chip = (name: string) => within(games).getByRole('button', { name });
-    expect(
-      within(games)
-        .getAllByRole('button')
-        .map((b) => b.textContent),
-    ).toEqual(['All', 'Hearts', 'Spades']);
-    expect(chip('All').getAttribute('aria-pressed')).toBe('true');
-
-    pages[0] = { games: [], more: false };
-    fireEvent.click(chip('Spades'));
-    expect(await section.findByText('No past games match.')).toBeTruthy();
-    expect(chip('Spades').getAttribute('aria-pressed')).toBe('true');
-    const outcome = section.getByRole('group', { name: 'Outcome' });
-    fireEvent.click(within(outcome).getByRole('button', { name: 'Ended early' }));
-    await vi.waitFor(() => expect(historyQueries).toHaveLength(3));
-    expect(historyQueries).toEqual([
-      'offset=0',
-      'offset=0&game=spades',
-      'offset=0&game=spades&outcome=early',
-    ]);
-    fireEvent.click(chip('All'));
-    await vi.waitFor(() => expect(historyQueries.at(-1)).toBe('offset=0&outcome=early'));
-  });
-
-  it('has no game chips with only one game', async () => {
-    pages[0] = { games: [past('WON', [0])], more: false };
-    played = [hearts];
-    show();
-    const section = await pastGames();
-    await section.findByRole('link', { name: /You won/ });
-    expect(section.queryByRole('group', { name: 'Game' })).toBeNull();
-    expect(section.getByRole('group', { name: 'Outcome' })).toBeTruthy();
-  });
-
-  it('groups games by date', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date(2026, 9, 15, 18, 0));
-    const at = (month: number, day: number) => new Date(2026, month, day, 12).toISOString();
-    pages[0] = {
-      games: [
-        past('TODAY', [0], 'finished', at(9, 15)),
-        past('MONDAY', [0], 'finished', at(9, 12)),
-        past('FIRST', [0], 'finished', at(9, 1)),
-        past('SEPT', [1], 'finished', at(8, 30)),
-      ],
-      more: false,
-    };
-    played = [hearts];
-    try {
-      show();
-      const section = await pastGames();
-      await section.findAllByRole('link', { name: /Hearts/ });
-      const headings = section.getAllByRole('heading', { level: 3 });
-      expect(headings.map((h) => h.textContent)).toEqual([
-        'Today',
-        'This week',
-        'Earlier this month',
-        'Older',
-      ]);
-      const older = headings[3]?.parentElement as HTMLElement;
-      expect(within(older).getByRole('link').getAttribute('href')).toBe('/t/SEPT');
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('plays again with the same players, from a finished game only', async () => {
-    pages[0] = { games: [past('WON', [0]), past('EARLY', [], 'abandoned')], more: false };
-    played = [hearts];
-    show();
-    const section = await pastGames();
-    const buttons = await section.findAllByRole('button', {
-      name: /^Play again with these players/,
-    });
-    expect(buttons).toHaveLength(1);
-    expect(buttons[0]?.textContent).toBe('Play again with these players: Ann and Bot 3');
-    fireEvent.click(buttons[0] as HTMLElement);
-    expect(await screen.findByText('The table')).toBeTruthy();
-    expect(rematchCodes).toEqual(['WON']);
   });
 });
 
