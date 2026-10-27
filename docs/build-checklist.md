@@ -382,6 +382,14 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       above your cards (your turn prompt, dealer, bid, tricks, pass and "From Raj" notes)
       and the React button at its end should be reworked. To be designed: what's said
       there, how it's laid out, and where the React button goes.
+- [x] **Lobby: the invite, house rules and buttons don't match the table.** On the page
+      before a game starts, the "Invite players" and "House rules" sections and the "Start
+      the game" and Rules buttons don't look like they belong with the felt table and the
+      page background around them. Chosen (option A, computers only): Start the game and
+      Rules move into the middle of the felt, styled as table buttons, and the invite and
+      house rules become cards that suit the table. Phones keep their colours, but the
+      start row needs fixing: "Start the game", "Every seat needs a player to start." and
+      "Rules" each end up on their own line.
 
 ## UI polish
 
@@ -524,13 +532,13 @@ in Phase 4.)
 - [ ] Crazy eights
 - [ ] Rummy
 - [ ] Gin rummy
-- [ ] Euchre
+- [x] Euchre
 - [ ] Oh Hell
 - [ ] Cribbage
 - [ ] Pinochle
 - [ ] Canasta
 - [ ] Bridge
-- [ ] Bots: fill seats with bots, and replace a player who leaves mid-game
+- [x] Bots: fill seats with bots, and replace a player who leaves mid-game
 
 **Done when:** every launch game has been played start to finish at least once, and the
 bugs found are fixed.
@@ -559,7 +567,7 @@ anything wrong, unclear or missing. Fixes go in the game's `.rules.md` file in
 
 This is the feature that sets the platform apart. The AI turns typed rules into a game file, asks about every gap, and the validator guarantees that whatever it produces is safe to run.
 
-- [ ] Test deployment online first (e.g. Render, Railway or Fly.io), before any AI feature is reachable, so family can play from home. Moved here from Phase 4.
+- [x] Test deployment online first (e.g. Render, Railway or Fly.io), before any AI feature is reachable, so family can play from home. Moved here from Phase 4.
   - [ ] Real sign-in emails: an email service key (Resend) and, ideally, your own sending domain, so people can sign in to their account on any device
 - [ ] Test set first: collect 15–20 real house-rule write-ups from family and friends, typed as they'd naturally type them
 - [ ] Rules entry screen: paste or type rules, game name, player count
