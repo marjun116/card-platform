@@ -1543,3 +1543,36 @@ build checklist, done before Phase 6.
   elsewhere, then dims with a ring filling in while it rests (no ring with "reduce
   motion" or animation speed off). On phones the seat card and React button share a row
   above your cards.
+
+## 2026-10-27: Past games (UI polish)
+
+- **The server filters**, so "Show more" pages through the filtered list:
+  `GET /api/history?offset=0&game=spades&outcome=won`. Outcomes are won (a shared win
+  counts, as in the stats), lost (finished and not won) and ended early. Both filters are
+  optional and combine.
+- **The game chips** come from `GET /api/history/games`: every game in your history, ended
+  early ones included, most played first, every version of a game as one chip. With only
+  one game there are no game chips (All and that game are the same list); the outcome
+  chips are always there once you have a past game. A filter with nothing in it says "No
+  past games match."
+- **Date groups**, in your local time: Today, This week (weeks start on Monday), Earlier
+  this month, Older. A game from this week but last month is "This week".
+- **Rows like the results page:** each team on a strip of its colour with its avatars,
+  names and final score, in finishing order (winners first, then lowest first where the
+  lowest score wins), the winners crowned and "(winner)" for screen readers. Games ended
+  early show their players by team, without scores. The history now sends each team's
+  number, each seat's team (also for games ended early, from the game file) and whether
+  the lowest score won (asked of the game, since house rules can change it). The link to
+  the results covers the row.
+- **"Play again with these players"** is the results page's Rematch, from your history:
+  `POST /api/tables/:code/rematch`, for seated players of a finished game only, as on the
+  results page (decided by Arjun). It goes through the table's room when someone has the
+  table open, so they see "Ana started a rematch"; you're taken to the new lobby, and the
+  others find it in "Your tables", since they're already seated there.
+- **A rematch that's over no longer counts** (decided by Arjun): if a table's rematch is
+  still waiting or being played, pressing Rematch (on the results page or in history)
+  joins it; once it's finished or ended, a new one is started and becomes the table's
+  rematch. This changes "One rematch per table" (2026-10-23): one open rematch per table.
+  The results page stops offering "Join the rematch" once it's over.
+- **Prisma can't compare two columns**, so "you won" is written out as "your seat is seat
+  0 and 0 is a winner, or seat 1 and 1 is a winner…" for all ten seats a table can have.

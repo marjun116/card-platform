@@ -479,13 +479,13 @@ never by a game's name, so custom games get them too. No sound.
 
 **Past games**
 
-- [ ] Filter by game: chips ("All · Spades · Hearts · Euchre…") for the games you've played
-- [ ] Filter by outcome: all, won, lost, ended early
-- [ ] Grouped by date: Today, This week, Earlier this month, Older
-- [ ] Richer rows: team avatars in their colours, and the final score with the winner
+- [x] Filter by game: chips ("All · Spades · Hearts · Euchre…") for the games you've played
+- [x] Filter by outcome: all, won, lost, ended early
+- [x] Grouped by date: Today, This week, Earlier this month, Older
+- [x] Richer rows: team avatars in their colours, and the final score with the winner
       marked, like the results page
-- [ ] "Play again with these players" on each row, starting a rematch from your history
-- [ ] Server: the history request takes the filters, so filtering covers every past game,
+- [x] "Play again with these players" on each row, starting a rematch from your history
+- [x] Server: the history request takes the filters, so filtering covers every past game,
       not just the ones loaded so far
 
 **Page background**
