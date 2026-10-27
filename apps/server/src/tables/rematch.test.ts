@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { guest, testServer, type TestServer, withSession } from '../testing';
 import { TestClient } from '../testing/client';
 import { listen, playRandomly, spadesTable } from '../testing/tables';
+import type { TableInfo } from './protocol';
 
 let server: TestServer;
 let baseUrl: string;
@@ -110,5 +111,73 @@ describe('rematch', () => {
     const second = (await server.store.getTableByInviteCode(code))?.rematch?.inviteCode;
     expect(second).toBeDefined();
     expect(second).not.toBe(first);
+  });
+});
+
+describe('rematch from history (POST /api/tables/:code/rematch)', () => {
+  const ask = (code: string, token?: string) =>
+    server.app.inject({
+      method: 'POST',
+      url: `/api/tables/${code}/rematch`,
+      headers: token ? withSession(token) : {},
+    });
+
+  it('starts the rematch, telling anyone who has the table open', async () => {
+    const { code, players } = await finishedTable();
+    const [north, east] = players;
+    if (!north || !east) throw new Error('Missing players');
+    const mark = north.client.mark();
+    const res = await ask(code, east.token);
+    expect(res.statusCode).toBe(200);
+    const fresh = res.json<{ code: string }>().code;
+    const update = await north.client.table((t) => t.rematch !== null, 'the rematch', mark);
+    expect(update.table.rematch).toEqual({ code: fresh, by: 1 });
+    // Asking again joins the same one.
+    expect((await ask(code, north.token)).json()).toEqual({ code: fresh });
+  });
+
+  it('works with nobody at the table, and starts a new one once the last is over', async () => {
+    const { code, players } = await finishedTable();
+    const [north, east] = players;
+    if (!north || !east) throw new Error('Missing players');
+    await Promise.all(players.map((p) => p.client.close()));
+
+    const first = (await ask(code, north.token)).json<{ code: string }>().code;
+    const rematch = await server.store.getTableByInviteCode(first);
+    expect(rematch?.hostId).toBe(north.userId);
+    expect(rematch?.seats.map((s) => [s.seat, s.userId])).toEqual(
+      players.map((p, seat) => [seat, p.userId]),
+    );
+
+    // That rematch is played (or ended): the next press starts another.
+    await server.store.updateTable(rematch?.id ?? '', { status: 'finished', endedAt: new Date() });
+    // The results page no longer offers to join it.
+    const info = await server.app.inject({
+      method: 'GET',
+      url: `/api/tables/${code}`,
+      headers: withSession(east.token),
+    });
+    expect(info.json<{ table: TableInfo }>().table.rematch).toBeNull();
+    const second = (await ask(code, east.token)).json<{ code: string }>().code;
+    expect(second).not.toBe(first);
+    expect((await server.store.getTableByInviteCode(code))?.rematch).toMatchObject({
+      inviteCode: second,
+      hostId: east.userId,
+      status: 'lobby',
+    });
+  });
+
+  it('needs a finished game you played in', async () => {
+    const { code } = await finishedTable();
+    const watcher = await guest(server.app, 'Watcher');
+    expect((await ask(code)).statusCode).toBe(401);
+    expect((await ask('NOSUCHCODE', watcher.token)).statusCode).toBe(404);
+    expect((await ask(code, watcher.token)).statusCode).toBe(403);
+
+    const playing = await spadesTable(server, baseUrl);
+    clients.push(...playing.players.map((p) => p.client));
+    const res = await ask(playing.code, playing.players[0]?.token);
+    expect(res.statusCode).toBe(409);
+    expect(res.json()).toEqual({ error: 'A rematch can start once the game is over' });
   });
 });

@@ -5,10 +5,13 @@ import {
   type AfterMove,
   ConflictError,
   type GameVersion,
+  type HistoryFilter,
   type IdleTurn,
+  isOver,
   type LoginToken,
   type NewTable,
   type NewVariant,
+  type PastCount,
   type PastTable,
   type PlayedResult,
   type Result,
@@ -206,7 +209,8 @@ export class MemoryStore implements Store {
   ): Promise<Table> {
     const from = this.tables.get(fromId);
     if (!from) throw new Error(`No table ${fromId}`);
-    if (from.rematchId !== null && this.tables.has(from.rematchId)) {
+    const old = from.rematchId === null ? undefined : this.tables.get(from.rematchId);
+    if (old && !isOver(old.status)) {
       throw new ConflictError('The table already has a rematch');
     }
     const table = await this.createTable(data);
@@ -245,9 +249,23 @@ export class MemoryStore implements Store {
     return Promise.resolve(this.withSeats(table));
   }
 
-  listPastTables(userId: string, page: { offset: number; limit: number }): Promise<PastTable[]> {
-    const past = [...this.tables.values()]
-      .filter((t) => isPast(t) && this.seatOf(t.id, userId) !== undefined)
+  listPastTables(
+    userId: string,
+    page: { offset: number; limit: number },
+    filter: HistoryFilter = {},
+  ): Promise<PastTable[]> {
+    const matches = (t: StoredTable) => {
+      if (filter.game !== undefined && this.versions.get(t.gameVersionId)?.slug !== filter.game) {
+        return false;
+      }
+      if (filter.outcome === undefined) return true;
+      if (filter.outcome === 'early') return t.status === 'abandoned';
+      const seat = this.seatOf(t.id, userId) ?? -1;
+      const won = this.results.get(t.id)?.winners.includes(seat) ?? false;
+      return t.status === 'finished' && (filter.outcome === 'won') === won;
+    };
+    const past = this.pastTables(userId)
+      .filter(matches)
       .sort(
         (a, b) =>
           (b.endedAt?.getTime() ?? 0) - (a.endedAt?.getTime() ?? 0) || b.id.localeCompare(a.id),
@@ -256,6 +274,14 @@ export class MemoryStore implements Store {
     return Promise.resolve(
       past.map((t) => ({ ...this.withSeats(t), result: copy(this.results.get(t.id) ?? null) })),
     );
+  }
+
+  countPastTables(userId: string): Promise<PastCount[]> {
+    const counts = new Map<string, number>();
+    for (const t of this.pastTables(userId)) {
+      counts.set(t.gameVersionId, (counts.get(t.gameVersionId) ?? 0) + 1);
+    }
+    return Promise.resolve([...counts].map(([gameVersionId, count]) => ({ gameVersionId, count })));
   }
 
   listPlayedResults(userId: string): Promise<PlayedResult[]> {
@@ -397,7 +423,15 @@ export class MemoryStore implements Store {
     return copy({
       ...rest,
       seats,
-      rematch: rematch ? { inviteCode: rematch.inviteCode, hostId: rematch.hostId } : null,
+      rematch: rematch
+        ? { inviteCode: rematch.inviteCode, hostId: rematch.hostId, status: rematch.status }
+        : null,
     });
+  }
+
+  private pastTables(userId: string): StoredTable[] {
+    return [...this.tables.values()].filter(
+      (t) => isPast(t) && this.seatOf(t.id, userId) !== undefined,
+    );
   }
 }

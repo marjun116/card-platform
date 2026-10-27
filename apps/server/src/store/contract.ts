@@ -5,7 +5,7 @@
 import type { Move } from '@card-table/engine';
 import { builtInGames } from '@card-table/games';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ConflictError, type Store } from './types';
+import { ConflictError, type HistoryFilter, type Store } from './types';
 
 const spades = builtInGames.spades;
 const minute = 60_000;
@@ -302,7 +302,7 @@ export function storeContract(makeStore: () => Promise<Store>): void {
       expect(saved?.turnSince).toEqual(since);
     });
 
-    it('starts a rematch with everyone seated, once, until it is deleted', async () => {
+    it('starts a rematch with everyone seated, once, until it is deleted or over', async () => {
       const { host, table } = await newTable();
       const ana = await store.createUser({ displayName: 'Ana' });
       expect(table.rematch).toBeNull();
@@ -327,6 +327,7 @@ export function storeContract(makeStore: () => Promise<Store>): void {
       expect((await store.getTable(table.id))?.rematch).toEqual({
         inviteCode: 'AGAIN1',
         hostId: ana.id,
+        status: 'lobby',
       });
 
       // A second one is refused, and leaves nothing behind.
@@ -338,8 +339,21 @@ export function storeContract(makeStore: () => Promise<Store>): void {
       // Once the rematch is deleted, the old table can have another.
       await store.deleteTable(rematch.id);
       expect((await store.getTable(table.id))?.rematch).toBeNull();
-      await store.createRematch(table.id, { ...data, inviteCode: 'AGAIN3' }, seats);
+      const third = await store.createRematch(table.id, { ...data, inviteCode: 'AGAIN3' }, seats);
       expect((await store.getTable(table.id))?.rematch?.inviteCode).toBe('AGAIN3');
+
+      // Once it's over, a new one replaces it as the old table's rematch.
+      await store.updateTable(third.id, { status: 'playing' });
+      await expect(
+        store.createRematch(table.id, { ...data, inviteCode: 'AGAIN4' }, seats),
+      ).rejects.toThrow(ConflictError);
+      await store.updateTable(third.id, { status: 'finished', endedAt: new Date() });
+      await store.createRematch(table.id, { ...data, inviteCode: 'AGAIN4' }, seats);
+      expect((await store.getTable(table.id))?.rematch).toMatchObject({
+        inviteCode: 'AGAIN4',
+        status: 'lobby',
+      });
+      expect((await store.getTableByInviteCode('AGAIN3'))?.status).toBe('finished');
     });
 
     it('deletes a table with its seats, moves and result', async () => {
@@ -453,6 +467,72 @@ export function storeContract(makeStore: () => Promise<Store>): void {
         { gameVersionId: lost.gameVersionId, seat: 1, winners: [0, 2] },
         { gameVersionId: won.gameVersionId, seat: 1, winners: [1, 3] },
       ]);
+    });
+
+    it('filters past tables by game and outcome, and counts them per game', async () => {
+      const { host, game: spadesGame } = await newTable();
+      const player = await store.createUser({ displayName: 'P' });
+      const hearts = await store.saveBuiltInGame({
+        slug: 'hearts',
+        name: 'Hearts',
+        file: builtInGames.hearts,
+        fileHash: 'h2',
+      });
+      const scores = { teams: [], players: [] };
+      let minute = 0;
+      /** A table `player` sat at in `seat`: finished with `winners`, or ended early. */
+      const past = async (
+        code: string,
+        gameVersionId: string,
+        seat: number,
+        winners: number[] | 'early',
+      ) => {
+        const table = await store.createTable({
+          inviteCode: code,
+          hostId: host.id,
+          gameVersionId,
+          options: {},
+          playerCount: 4,
+          seed: 'seed',
+        });
+        await store.takeSeat(table.id, seat, player.id);
+        await store.updateTable(table.id, { status: 'playing', startedAt: new Date(0) });
+        const endedAt = new Date(Date.UTC(2026, 9, 10, 12, (minute += 1)));
+        if (winners === 'early') {
+          await store.updateTable(table.id, { status: 'abandoned', endedAt });
+        } else {
+          const finished = { endedAt, result: { winners, scores } };
+          const done = { toAct: [], turnSince: null, finished };
+          await store.recordMove(table.id, 0, { player: 0, type: 'endTurn' }, done);
+        }
+        return code;
+      };
+      const won = await past('WON', spadesGame.id, 1, [1, 3]);
+      const lost = await past('LOST', spadesGame.id, 2, [1, 3]);
+      const early = await past('EARLY', spadesGame.id, 0, 'early');
+      // The highest seat a table can have counts as a win too.
+      const heartsWon = await past('HWON', hearts.id, 9, [9]);
+      const heartsLost = await past('HLOST', hearts.id, 0, [3]);
+
+      const list = async (filter: HistoryFilter, page = { offset: 0, limit: 10 }) =>
+        (await store.listPastTables(player.id, page, filter)).map((t) => t.inviteCode);
+      expect(await list({})).toEqual([heartsLost, heartsWon, early, lost, won]);
+      expect(await list({ game: 'spades' })).toEqual([early, lost, won]);
+      expect(await list({ game: 'hearts' })).toEqual([heartsLost, heartsWon]);
+      expect(await list({ game: 'nothing' })).toEqual([]);
+      expect(await list({ outcome: 'won' })).toEqual([heartsWon, won]);
+      expect(await list({ outcome: 'lost' })).toEqual([heartsLost, lost]);
+      expect(await list({ outcome: 'early' })).toEqual([early]);
+      expect(await list({ game: 'hearts', outcome: 'won' })).toEqual([heartsWon]);
+      // Pages run on through the filtered list.
+      expect(await list({ outcome: 'won' }, { offset: 1, limit: 1 })).toEqual([won]);
+
+      const counts = await store.countPastTables(player.id);
+      expect(counts.sort((a, b) => b.count - a.count)).toEqual([
+        { gameVersionId: spadesGame.id, count: 3 },
+        { gameVersionId: hearts.id, count: 2 },
+      ]);
+      expect(await store.countPastTables(host.id)).toEqual([]);
     });
 
     it('keeps one account per bot, marks bot seats and never finds bots idle', async () => {

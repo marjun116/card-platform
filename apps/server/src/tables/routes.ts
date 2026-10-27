@@ -8,6 +8,7 @@
  *   GET  /api/tables/mine            my unfinished tables
  *   GET  /api/tables/:code           a table's lobby info
  *   DELETE /api/tables/:code         the host deletes a table (and its game) for everyone
+ *   POST /api/tables/:code/rematch   start (or join) a finished game's rematch (seated players)
  *   GET  /api/tables/:code/rounds/:n a finished round with every hand face up (seated players)
  *   GET  /api/tables/:code/ws        the table's WebSocket (see protocol.ts)
  */
@@ -21,7 +22,7 @@ import type { GameCatalog } from '../games/catalog';
 import { checkSettings } from '../games/settings';
 import { ConflictError, type Table, type User } from '../store/types';
 import { clientMessageSchema, type TableInfo } from './protocol';
-import { send, sendError, tableInfo, type TableRoom } from './room';
+import { RoomError, send, sendError, tableInfo, type TableRoom } from './room';
 import type { Rooms } from './rooms';
 
 const createBody = z.strictObject({
@@ -122,6 +123,20 @@ export function tableRoutes(
     }
     await rooms.delete(table);
     return { ok: true };
+  });
+
+  // "Play again with these players" in your history: the results page's Rematch.
+  app.post('/api/tables/:code/rematch', async (request, reply) => {
+    if (!request.user) return reply.code(401).send({ error: 'Not signed in' });
+    const table = await tableFromParams(request);
+    if (!table) return reply.code(404).send({ error: 'No table with that code' });
+    try {
+      return { code: await rooms.rematch(table, request.user) };
+    } catch (error) {
+      if (!(error instanceof RoomError)) throw error;
+      const status = error.code === 'NOT_SEATED' ? 403 : 409;
+      return reply.code(status).send({ error: error.message });
+    }
   });
 
   app.get(

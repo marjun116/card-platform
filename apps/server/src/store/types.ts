@@ -70,7 +70,12 @@ export interface Table {
   /** Filled seats, sorted by seat number. */
   seats: Seat[];
   /** The table started from this one with "Rematch", while it still exists. */
-  rematch: { inviteCode: string; hostId: string } | null;
+  rematch: { inviteCode: string; hostId: string; status: TableStatus } | null;
+}
+
+/** A table that's over: finished, or ended (early, or from its lobby). */
+export function isOver(status: TableStatus): boolean {
+  return status === 'finished' || status === 'abandoned';
 }
 
 export interface Result {
@@ -82,6 +87,20 @@ export interface Result {
 export interface PastTable extends Table {
   /** null when the host ended the game early. */
   result: Result | null;
+}
+
+/** Which past tables to list. Both are optional; together, a table must match both. */
+export interface HistoryFilter {
+  /** Only this game (by slug, so every version of it). */
+  game?: string;
+  /** Won (a shared win counts), lost (finished, not won) or ended early. */
+  outcome?: 'won' | 'lost' | 'early';
+}
+
+/** How many past tables a user has of one game version. */
+export interface PastCount {
+  gameVersionId: string;
+  count: number;
 }
 
 /** One finished game a user sat at, for their stats. */
@@ -192,7 +211,8 @@ export interface Store {
   /**
    * A new table from a finished one ("Rematch"), with these users already in their
    * seats, linked from the old table as its rematch. All or nothing. ConflictError
-   * if the invite code is taken or the old table already has a rematch.
+   * if the invite code is taken or the old table already has a rematch that isn't
+   * over yet (one that's over is replaced: the old table links to the new one).
    */
   createRematch(
     fromId: string,
@@ -206,9 +226,15 @@ export interface Store {
   updateTable(id: string, patch: TablePatch): Promise<Table>;
   /**
    * Tables the user sat at that are over: finished, or ended early after they
-   * started. Most recently ended first.
+   * started. Most recently ended first, only those matching `filter`.
    */
-  listPastTables(userId: string, page: { offset: number; limit: number }): Promise<PastTable[]>;
+  listPastTables(
+    userId: string,
+    page: { offset: number; limit: number },
+    filter?: HistoryFilter,
+  ): Promise<PastTable[]>;
+  /** How many of those tables there are of each game version (any outcome). */
+  countPastTables(userId: string): Promise<PastCount[]>;
   /** Every finished game the user sat at (not ones ended early). */
   listPlayedResults(userId: string): Promise<PlayedResult[]>;
   /** Throws ConflictError if the seat is taken or the user already sits at this table. */

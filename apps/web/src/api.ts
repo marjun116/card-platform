@@ -7,9 +7,17 @@ import type {
   GameStats,
   GameSummary,
   PastGame,
+  PastGameCount,
   TableInfo,
   VariantInfo,
 } from '@card-table/server/protocol';
+
+/** Which past games to list; leave a field out for all of them. */
+export interface HistoryFilter {
+  game?: string;
+  /** Won (a shared win counts), lost, or ended early. */
+  outcome?: 'won' | 'lost' | 'early';
+}
 
 export interface User {
   id: string;
@@ -80,8 +88,20 @@ export const api = {
     ),
 
   /** Games you sat at that are over, newest first; `more` says if there's another page. */
-  history: (offset = 0) =>
-    request<{ games: PastGame[]; more: boolean }>('GET', `/history?offset=${offset}`),
+  history: (offset = 0, filter: HistoryFilter = {}) => {
+    const query = new URLSearchParams({ offset: String(offset) });
+    if (filter.game) query.set('game', filter.game);
+    if (filter.outcome) query.set('outcome', filter.outcome);
+    return request<{ games: PastGame[]; more: boolean }>('GET', `/history?${query}`);
+  },
+  /** The games in your history, most played first. */
+  historyGames: () =>
+    request<{ games: PastGameCount[] }>('GET', '/history/games').then((r) => r.games),
+  /** Starts (or joins) a finished game's rematch; gives the new table's code. */
+  rematch: (code: string) =>
+    request<{ code: string }>('POST', `/tables/${encodeURIComponent(code)}/rematch`).then(
+      (r) => r.code,
+    ),
   stats: () => request<{ stats: GameStats[] }>('GET', '/stats').then((r) => r.stats),
 
   saveVariant: (

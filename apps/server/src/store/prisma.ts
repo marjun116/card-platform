@@ -5,10 +5,12 @@ import {
   type AfterMove,
   ConflictError,
   type GameVersion,
+  type HistoryFilter,
   type IdleTurn,
   type LoginToken,
   type NewTable,
   type NewVariant,
+  type PastCount,
   type PastTable,
   type PlayedResult,
   type Result,
@@ -25,8 +27,44 @@ const tableInclude = {
     include: { user: { select: { displayName: true, isBot: true } } },
     orderBy: { seat: 'asc' },
   },
-  rematch: { select: { inviteCode: true, hostId: true } },
+  rematch: { select: { inviteCode: true, hostId: true, status: true } },
 } as const satisfies Prisma.TableInclude;
+
+/** The most seats a table can have (a game file's `players` is at most 10). */
+const MAX_SEATS = 10;
+
+/** Tables the user sat at that are over: finished, or ended early after they started. */
+function pastTablesOf(userId: string): Prisma.TableWhereInput {
+  return {
+    OR: [{ status: 'finished' }, { status: 'abandoned', startedAt: { not: null } }],
+    seats: { some: { userId } },
+  };
+}
+
+/**
+ * A seat whose number is among its table's winners. Prisma can't compare two
+ * columns, so it's spelled out for every seat number a table can have.
+ */
+const winningSeat: Prisma.SeatWhereInput = {
+  OR: Array.from({ length: MAX_SEATS }, (_, seat) => ({
+    seat,
+    table: { result: { winners: { has: seat } } },
+  })),
+};
+
+function historyWhere(userId: string, filter: HistoryFilter): Prisma.TableWhereInput {
+  const where: Prisma.TableWhereInput[] = [pastTablesOf(userId)];
+  if (filter.game !== undefined) where.push({ gameVersion: { definition: { slug: filter.game } } });
+  if (filter.outcome === 'early') where.push({ status: 'abandoned' });
+  if (filter.outcome === 'won') {
+    where.push({ status: 'finished', seats: { some: { userId, ...winningSeat } } });
+  }
+  if (filter.outcome === 'lost') {
+    // A user has one seat per table, so "my seat isn't a winner" is "I lost".
+    where.push({ status: 'finished', seats: { some: { userId, NOT: winningSeat } } });
+  }
+  return { AND: where };
+}
 
 type TableRow = Prisma.TableGetPayload<{ include: typeof tableInclude }>;
 
@@ -263,9 +301,13 @@ export class PrismaStore implements Store {
         const table = await tx.table.create({
           data: { ...data, options: json(data.options), seats: { create: seats } },
         });
-        // Only if it has no rematch yet; otherwise the new table goes too.
+        // Only if it has no rematch yet, or only one that's over; otherwise the new
+        // table goes too.
         const linked = await tx.table.updateMany({
-          where: { id: fromId, rematchId: null },
+          where: {
+            id: fromId,
+            OR: [{ rematchId: null }, { rematch: { status: { in: ['finished', 'abandoned'] } } }],
+          },
           data: { rematchId: table.id },
         });
         if (linked.count === 0) throw new ConflictError('The table already has a rematch');
@@ -310,12 +352,10 @@ export class PrismaStore implements Store {
   async listPastTables(
     userId: string,
     page: { offset: number; limit: number },
+    filter: HistoryFilter = {},
   ): Promise<PastTable[]> {
     const rows = await this.db.table.findMany({
-      where: {
-        OR: [{ status: 'finished' }, { status: 'abandoned', startedAt: { not: null } }],
-        seats: { some: { userId } },
-      },
+      where: historyWhere(userId, filter),
       include: { ...tableInclude, result: true },
       orderBy: [{ endedAt: { sort: 'desc', nulls: 'last' } }, { id: 'desc' }],
       skip: page.offset,
@@ -328,6 +368,15 @@ export class PrismaStore implements Store {
         scores: row.result.scores as unknown as Scores,
       },
     }));
+  }
+
+  async countPastTables(userId: string): Promise<PastCount[]> {
+    const groups = await this.db.table.groupBy({
+      by: ['gameVersionId'],
+      where: pastTablesOf(userId),
+      _count: { _all: true },
+    });
+    return groups.map((g) => ({ gameVersionId: g.gameVersionId, count: g._count._all }));
   }
 
   async listPlayedResults(userId: string): Promise<PlayedResult[]> {

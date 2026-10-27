@@ -20,6 +20,11 @@ const scores = {
   ],
   players: [],
 };
+/** Hearts (three players by default): everyone on their own. */
+const heartsScores = {
+  teams: [0, 1, 2].map((seat) => ({ team: seat, players: [seat], score: 50 + seat })),
+  players: [],
+};
 
 /**
  * A table of `game` with me in seat `mySeat` and a bot in seat 1, ended at
@@ -56,21 +61,31 @@ async function pastTable(
       {
         toAct: [],
         turnSince: null,
-        finished: { endedAt, result: { winners: how.winners, scores } },
+        finished: {
+          endedAt,
+          result: { winners: how.winners, scores: game === 'hearts' ? heartsScores : scores },
+        },
       },
     );
   }
   return code;
 }
 
-async function history(offset?: number) {
+async function history(offset?: number, filter: Record<string, string> = {}) {
+  const query = new URLSearchParams(filter);
+  if (offset !== undefined) query.set('offset', String(offset));
   const res = await server.app.inject({
     method: 'GET',
-    url: `/api/history${offset === undefined ? '' : `?offset=${offset}`}`,
+    url: `/api/history?${query.toString()}`,
     headers: withSession(me.token),
   });
   expect(res.statusCode).toBe(200);
   return res.json<{ games: PastGame[]; more: boolean }>();
+}
+
+/** The codes of my past games matching `filter`. */
+async function codes(filter: Record<string, string>): Promise<string[]> {
+  return (await history(undefined, filter)).games.map((g) => g.code);
 }
 
 async function stats(): Promise<GameStats[]> {
@@ -100,8 +115,10 @@ describe('game history', () => {
           { seat: 3, displayName: 'Me', bot: false },
         ],
         you: 3,
+        seatTeams: [0, 1, 0, 1],
         winners: [],
         teams: null,
+        lowestWins: false,
       },
       {
         code: won,
@@ -113,11 +130,13 @@ describe('game history', () => {
           { seat: 1, displayName: 'Bot 2', bot: true },
         ],
         you: 0,
+        seatTeams: [0, 1, 0, 1],
         winners: [0, 2],
         teams: [
-          { players: [0, 2], score: 520 },
-          { players: [1, 3], score: 310 },
+          { team: 0, players: [0, 2], score: 520 },
+          { team: 1, players: [1, 3], score: 310 },
         ],
+        lowestWins: false,
       },
     ]);
   });
@@ -133,15 +152,68 @@ describe('game history', () => {
     expect(second.games[0]?.endedAt).toBe('2026-10-10T12:00:00.000Z');
   });
 
+  it('says when the lowest score wins, and gives players on their own a team each', async () => {
+    await pastTable('hearts', 1, { winners: [0] });
+    const [game] = (await history()).games;
+    expect(game).toMatchObject({ lowestWins: true, seatTeams: [0, 1, 2] });
+    expect(game?.teams?.[2]).toEqual({ team: 2, players: [2], score: 52 });
+  });
+
+  it('filters by game and outcome, across every page', async () => {
+    const won = await pastTable('spades', 1, { winners: [0, 2] });
+    const lost = await pastTable('spades', 2, { winners: [1, 3] });
+    const early = await pastTable('spades', 3, 'ended early');
+    const hearts = await pastTable('hearts', 4, { winners: [0] });
+    expect(await codes({ game: 'spades' })).toEqual([early, lost, won]);
+    expect(await codes({ game: 'hearts' })).toEqual([hearts]);
+    expect(await codes({ outcome: 'won' })).toEqual([hearts, won]);
+    expect(await codes({ outcome: 'lost' })).toEqual([lost]);
+    expect(await codes({ outcome: 'early' })).toEqual([early]);
+    expect(await codes({ game: 'spades', outcome: 'won' })).toEqual([won]);
+
+    for (let i = 0; i < HISTORY_PAGE; i++) await pastTable('hearts', 10 + i, { winners: [1] });
+    const first = await history(0, { outcome: 'lost' });
+    expect(first.games).toHaveLength(HISTORY_PAGE);
+    expect(first.more).toBe(true);
+    const second = await history(HISTORY_PAGE, { outcome: 'lost' });
+    expect(second.games.map((g) => g.code)).toEqual([lost]);
+    expect(second.more).toBe(false);
+  });
+
+  it('lists the games in your history for the filter, most played first', async () => {
+    await pastTable('hearts', 1, { winners: [0] });
+    await pastTable('spades', 2, { winners: [0, 2] });
+    await pastTable('spades', 3, 'ended early');
+    const res = await server.app.inject({
+      method: 'GET',
+      url: '/api/history/games',
+      headers: withSession(me.token),
+    });
+    expect(res.json()).toEqual({
+      games: [
+        { game: { slug: 'spades', name: 'Spades' }, count: 2 },
+        { game: { slug: 'hearts', name: 'Hearts' }, count: 1 },
+      ],
+    });
+  });
+
   it('needs a user and a sensible page', async () => {
     expect((await server.app.inject({ method: 'GET', url: '/api/history' })).statusCode).toBe(401);
     expect((await server.app.inject({ method: 'GET', url: '/api/stats' })).statusCode).toBe(401);
+    const games = await server.app.inject({ method: 'GET', url: '/api/history/games' });
+    expect(games.statusCode).toBe(401);
     const bad = await server.app.inject({
       method: 'GET',
       url: '/api/history?offset=-1',
       headers: withSession(me.token),
     });
     expect(bad.statusCode).toBe(400);
+    const outcome = await server.app.inject({
+      method: 'GET',
+      url: '/api/history?outcome=maybe',
+      headers: withSession(me.token),
+    });
+    expect(outcome.statusCode).toBe(400);
   });
 });
 

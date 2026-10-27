@@ -649,6 +649,99 @@ kbd {
   font-weight: 600;
 }
 
+/* Past games: filter chips, date headings, and a row per game whose link covers it. */
+.history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em 1.5em;
+  margin: 0 0 0.4em;
+}
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.filter-chip {
+  min-height: 34px;
+  padding: 0.15em 0.85em;
+  border-radius: 999px;
+  font-size: 0.9rem;
+}
+.filter-chip[aria-pressed='true'] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+.history-group h3 {
+  margin: 1em 0 0.1em;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.past-game {
+  position: relative;
+  padding: 0.6em 0;
+}
+.past-link {
+  color: var(--text);
+  text-decoration: none;
+}
+.past-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+.past-link:hover strong {
+  text-decoration: underline;
+}
+.past-link:focus-visible {
+  outline: none;
+}
+.past-link:focus-visible::after {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+.past-teams {
+  list-style: none;
+  margin: 0.4em 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+.past-teams li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  padding: 0.2em 0.65em 0.2em 0.45em;
+  border-left: 4px solid var(--team);
+  border-radius: 0 6px 6px 0;
+  background: color-mix(in srgb, var(--team) 9%, transparent);
+}
+/* Not the row dividers of the list it's in. */
+.past-teams li + li {
+  border-top: 0;
+}
+.past-teams li.won {
+  font-weight: 600;
+}
+.past-teams .crown {
+  margin-left: 0;
+}
+.past-score {
+  font-family: var(--display);
+  font-variant-numeric: lining-nums tabular-nums;
+}
+/* Above the row's link, so it can be pressed. */
+.past-actions {
+  position: relative;
+  margin: 0.5em 0 0;
+}
+
 /* ---- saved variants ---- */
 
 .my-variants,

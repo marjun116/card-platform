@@ -6,6 +6,7 @@
 import type { TableInfo } from '@card-table/server/protocol';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { nameList } from '../gameText';
 import type { GameMessage, OverMessage, TableConnection } from './connection';
 import { Confetti } from './Confetti';
 import { CountUp } from './CountUp';
@@ -15,13 +16,6 @@ import { ReplayDialog } from './ReplayDialog';
 import { finishingOrder, gameStats, ordinal, type Placed } from './results';
 import { RoundSummary } from './RoundSummary';
 import { HistoryTable, TeamAvatars } from './Scores';
-
-/** "Ana", "Ana and Raj", "Ana, Raj and Sam". */
-function nameList(all: string[]): string {
-  return all.length > 1
-    ? `${all.slice(0, -1).join(', ')} and ${all[all.length - 1]}`
-    : (all[0] ?? '');
-}
 
 export function GameOver({
   table,

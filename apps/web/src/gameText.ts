@@ -29,18 +29,54 @@ export function outcomeText(game: PastGame): string {
   return game.winners.every((seat) => partners.includes(seat)) ? 'You won' : 'You shared the win';
 }
 
-/** Final scores, winners first: "You & Bot 2 520 · Ann & Bea 310". */
-export function finalScoresText(game: PastGame): string {
-  if (!game.teams) return '';
-  const name = (seat: number) =>
-    seat === game.you
-      ? 'You'
-      : (game.seats.find((s) => s.seat === seat)?.displayName ?? `Seat ${seat + 1}`);
-  const won = (players: number[]) => players.some((p) => game.winners.includes(p));
-  return [...game.teams]
-    .sort((a, b) => Number(won(b.players)) - Number(won(a.players)))
-    .map((t) => `${t.players.map(name).join(' & ')} ${t.score}`)
-    .join(' · ');
+/** A seat's player in a past game: "You", their name, or "Seat 4" if no one holds it now. */
+export function pastName(game: PastGame, seat: number): string {
+  if (seat === game.you) return 'You';
+  return game.seats.find((s) => s.seat === seat)?.displayName ?? `Seat ${seat + 1}`;
+}
+
+export type PastTeam = NonNullable<PastGame['teams']>[number] & { won: boolean };
+
+/**
+ * The final scores in finishing order, as on the results page: the winners first,
+ * then by score (lowest first where the lowest score wins). Empty if it ended early.
+ */
+export function pastStandings(game: PastGame): PastTeam[] {
+  const teams = (game.teams ?? []).map((t) => ({
+    ...t,
+    won: t.players.some((p) => game.winners.includes(p)),
+  }));
+  return teams.sort(
+    (a, b) =>
+      Number(b.won) - Number(a.won) || (game.lowestWins ? a.score - b.score : b.score - a.score),
+  );
+}
+
+/** "Ana", "Ana and Raj", "Ana, Raj and Sam". */
+export function nameList(all: string[]): string {
+  return all.length > 1
+    ? `${all.slice(0, -1).join(', ')} and ${all[all.length - 1]}`
+    : (all[0] ?? '');
+}
+
+export const DATE_GROUPS = ['Today', 'This week', 'Earlier this month', 'Older'] as const;
+export type DateGroup = (typeof DATE_GROUPS)[number];
+
+/**
+ * Where a past game goes in the list, by when it ended, in local time. Weeks start
+ * on Monday; a game from this week but last month is "This week".
+ */
+export function dateGroup(endedAt: string | null, now: Date): DateGroup {
+  if (endedAt === null) return 'Older';
+  const ended = new Date(endedAt).getTime();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  const month = new Date(now.getFullYear(), now.getMonth(), 1);
+  if (ended >= today.getTime()) return 'Today';
+  if (ended >= monday.getTime()) return 'This week';
+  if (ended >= month.getTime()) return 'Earlier this month';
+  return 'Older';
 }
 
 /** "Spades: 3 played, 1 won". */

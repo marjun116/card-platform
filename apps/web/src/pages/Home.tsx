@@ -1,11 +1,11 @@
-import type { PastGame, TableInfo } from '@card-table/server/protocol';
+import type { TableInfo } from '@card-table/server/protocol';
 import { type FormEvent, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { api, ApiError } from '../api';
 import { GameTile } from '../components/GameTile';
-import { finalScoresText, outcomeText, statsText } from '../gameText';
 import { useSession } from '../useSession';
 import { useLoad } from '../useLoad';
+import { PastGames } from './PastGames';
 import { GuestForm } from './SignIn';
 
 const STATUS: Record<TableInfo['status'], string> = {
@@ -131,86 +131,6 @@ function MyTables({ userId }: { userId: string }) {
         })}
       </ul>
     </section>
-  );
-}
-
-const dateFormat = new Intl.DateTimeFormat(undefined, {
-  day: 'numeric',
-  month: 'short',
-  year: 'numeric',
-});
-
-/** Games you sat at that are over, with simple stats; each links to its final scores. */
-function PastGames({ userId }: { userId: string }) {
-  const first = useLoad(() => api.history(), `history:${userId}`);
-  const stats = useLoad(api.stats, `stats:${userId}`);
-  const [later, setLater] = useState<{ games: PastGame[]; more: boolean } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  if (first.state === 'loading') return <p className="muted">Loading your past games…</p>;
-  if (first.state === 'error') return <p className="error">{first.message}</p>;
-  const games = [...first.data.games, ...(later?.games ?? [])];
-  const more = later ? later.more : first.data.more;
-  if (games.length === 0) return <p className="muted">Games you finish will show up here.</p>;
-
-  const showMore = () => {
-    setBusy(true);
-    setError(null);
-    api
-      .history(games.length)
-      .then((page) =>
-        setLater({ games: [...(later?.games ?? []), ...page.games], more: page.more }),
-      )
-      .catch((e: unknown) => setError(e instanceof ApiError ? e.message : 'Could not load more'))
-      .finally(() => setBusy(false));
-  };
-
-  return (
-    <>
-      {stats.state === 'done' && stats.data.length > 0 && (
-        <ul className="stats-line">
-          {stats.data.map((s) => (
-            <li key={s.game.slug}>{statsText(s)}</li>
-          ))}
-        </ul>
-      )}
-      <ul className="card-list">
-        {games.map((game) => {
-          const outcome = outcomeText(game);
-          const scores = finalScoresText(game);
-          return (
-            <li key={game.code}>
-              <Link to={`/t/${game.code}`} className="list-link">
-                <strong>{game.game.name}</strong>
-                <span>
-                  <span className={outcome === 'You lost' ? undefined : 'outcome'}>{outcome}</span>
-                  {game.endedAt && (
-                    <span className="muted"> · {dateFormat.format(new Date(game.endedAt))}</span>
-                  )}
-                </span>
-                <span className="muted">
-                  {scores ||
-                    game.seats.map((s) => (s.seat === game.you ? 'You' : s.displayName)).join(', ')}
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-      {error && (
-        <p role="alert" className="error">
-          {error}
-        </p>
-      )}
-      {more && (
-        <p>
-          <button type="button" disabled={busy} onClick={showMore}>
-            Show more
-          </button>
-        </p>
-      )}
-    </>
   );
 }
 

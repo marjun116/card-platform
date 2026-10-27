@@ -30,7 +30,7 @@ import { builtInBots } from '@card-table/games';
 import type { WebSocket } from '@fastify/websocket';
 import { newInviteCode } from '../auth/tokens';
 import type { Deps } from '../deps';
-import { ConflictError, type GameVersion, type Table, type User } from '../store/types';
+import { ConflictError, type GameVersion, isOver, type Table, type User } from '../store/types';
 import type {
   ClientMessage,
   ErrorCode,
@@ -462,38 +462,16 @@ export class TableRoom {
     }
   }
 
-  /**
-   * A new table from this one: same game and options, a new shuffle, everyone (bots
-   * too) already in the same seat, and whoever asked as host. It waits in its lobby,
-   * so anyone who doesn't want to play can stand up before the host starts it.
-   */
+  /** Starts (or joins) the rematch for someone asking from their history; gives its code. */
+  rematchFor(user: User): Promise<string> {
+    return this.enqueue(async () => {
+      await this.rematch(user);
+      return this.table.rematch?.inviteCode ?? '';
+    });
+  }
+
   private async rematch(user: User): Promise<void> {
-    this.requireStatus('finished', 'A rematch can start once the game is over');
-    this.requireSeat(user);
-    // Fresh from the store: a rematch that has since been deleted doesn't count.
-    await this.reloadTable();
-    const { table } = this;
-    const seats = table.seats.map(({ seat, userId }) => ({ seat, userId }));
-    for (let attempt = 0; !this.table.rematch; attempt++) {
-      try {
-        await this.deps.store.createRematch(
-          table.id,
-          {
-            inviteCode: newInviteCode(),
-            hostId: user.id,
-            gameVersionId: table.gameVersionId,
-            options: table.options,
-            playerCount: table.playerCount,
-            seed: this.deps.newSeed(),
-          },
-          seats,
-        );
-      } catch (error) {
-        // A clashing invite code: try another. (Or someone else's rematch got there first.)
-        if (!(error instanceof ConflictError) || attempt >= 4) throw error;
-      }
-      await this.reloadTable();
-    }
+    this.table = (await startRematch(this.deps, this.table, user)).table;
     this.broadcastTable();
   }
 
@@ -756,11 +734,68 @@ export function tableInfo(
     }),
     botsAllowed: botFor(game) !== null,
     readingScores,
-    rematch: table.rematch && {
-      code: table.rematch.inviteCode,
-      by: table.seats.find((s) => s.userId === table.rematch?.hostId)?.seat ?? null,
-    },
+    rematch: liveRematch(table)
+      ? {
+          code: table.rematch.inviteCode,
+          by: table.seats.find((s) => s.userId === table.rematch?.hostId)?.seat ?? null,
+        }
+      : null,
   };
+}
+
+/** The table's rematch, unless it's over (then pressing Rematch starts a new one). */
+function liveRematch(table: Table): table is Table & { rematch: NonNullable<Table['rematch']> } {
+  return table.rematch !== null && !isOver(table.rematch.status);
+}
+
+/**
+ * A new table from a finished one: same game and options, a new shuffle, everyone
+ * (bots too) already in the same seat, and whoever asked as host. It waits in its
+ * lobby, so anyone who doesn't want to play can stand up before the host starts it.
+ * If the table already has a rematch that isn't over, that's the one (it isn't
+ * started twice). Gives the old table, fresh from the store, and the rematch's code.
+ * Used by the table's room, and from history when nobody has the table open.
+ */
+export async function startRematch(
+  deps: Deps,
+  from: Table,
+  user: User,
+): Promise<{ table: Table; code: string }> {
+  // Fresh from the store: a rematch that has since been deleted or played doesn't count.
+  const reload = async () => {
+    const fresh = await deps.store.getTable(from.id);
+    if (!fresh) throw new Error(`Table ${from.id} disappeared`);
+    return fresh;
+  };
+  let table = await reload();
+  if (table.status !== 'finished') {
+    throw new RoomError('WRONG_STATUS', 'A rematch can start once the game is over');
+  }
+  if (!table.seats.some((s) => s.userId === user.id)) {
+    throw new RoomError('NOT_SEATED', "You don't have a seat at this table");
+  }
+  const seats = table.seats.map(({ seat, userId }) => ({ seat, userId }));
+  for (let attempt = 0; !liveRematch(table); attempt++) {
+    try {
+      await deps.store.createRematch(
+        table.id,
+        {
+          inviteCode: newInviteCode(),
+          hostId: user.id,
+          gameVersionId: table.gameVersionId,
+          options: table.options,
+          playerCount: table.playerCount,
+          seed: deps.newSeed(),
+        },
+        seats,
+      );
+    } catch (error) {
+      // A clashing invite code: try another. (Or someone else's rematch got there first.)
+      if (!(error instanceof ConflictError) || attempt >= 4) throw error;
+    }
+    table = await reload();
+  }
+  return { table, code: table.rematch.inviteCode };
 }
 
 /** The bot for a game, if bots can play it: only built-in games have bots. */

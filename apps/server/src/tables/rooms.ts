@@ -6,7 +6,7 @@ import type { WebSocket } from '@fastify/websocket';
 import type { Deps } from '../deps';
 import type { GameCatalog } from '../games/catalog';
 import type { Table, User } from '../store/types';
-import { TableRoom } from './room';
+import { startRematch, TableRoom } from './room';
 
 export class Rooms {
   private loading = new Map<string, Promise<TableRoom>>();
@@ -49,6 +49,17 @@ export class Rooms {
     this.loading.delete(table.id);
     this.ready.delete(table.id);
     await room.delete();
+  }
+
+  /**
+   * Starts (or joins) a finished table's rematch and gives its code: through the
+   * table's room if someone has it open, so they're told, or else straight away.
+   * Throws RoomError if the game isn't finished or the user wasn't seated.
+   */
+  async rematch(table: Table, user: User): Promise<string> {
+    const loading = this.loading.get(table.id);
+    if (loading) return (await loading).rematchFor(user);
+    return (await startRematch(this.deps, table, user)).code;
   }
 
   /** Whether the user has this table open right now. */

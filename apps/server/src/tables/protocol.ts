@@ -195,9 +195,19 @@ export interface PastGame {
   seats: { seat: number; displayName: string; bot: boolean }[];
   /** Your seat. */
   you: number;
+  /** Each seat's team number (by seat), for team colours, also when it ended early. */
+  seatTeams: number[];
   winners: number[];
   /** Final scores, one entry per team (one-player teams for games without partners). */
-  teams: { players: number[]; score: number }[] | null;
+  teams: { team: number; players: number[]; score: number }[] | null;
+  /** The lowest score wins (hearts), so the teams that didn't win go lowest first. */
+  lowestWins: boolean;
+}
+
+/** A game in your history, for the filter chips: how many times it's there. */
+export interface PastGameCount {
+  game: { slug: string; name: string };
+  count: number;
 }
 
 /** Games played and won, per game; finished games only. */
