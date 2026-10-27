@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=../../.env src/index.ts",
+    "start": "prisma migrate deploy && tsx src/index.ts",
     "db:check": "tsx --env-file-if-exists=../../.env src/db-check.ts",
     "db:generate": "prisma generate",
     "postinstall": "prisma generate",
@@ -21,6 +22,7 @@
     "@card-table/engine": "workspace:*",
     "@card-table/games": "workspace:*",
     "@fastify/cookie": "^11.1.2",
+    "@fastify/static": "^10.1.7",
     "@fastify/websocket": "^11.3.3",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",

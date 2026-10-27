@@ -7,4 +7,11 @@ describe('configFromEnv', () => {
     expect(configFromEnv({ NODE_ENV: 'development' }).localOrigins).toBe(true);
     expect(configFromEnv({ NODE_ENV: 'production' }).localOrigins).toBe(false);
   });
+
+  it('serves the built website in production only', () => {
+    expect(configFromEnv({}).webDir).toBeNull();
+    expect(configFromEnv({ NODE_ENV: 'production' }).webDir?.replaceAll('\\', '/')).toMatch(
+      /apps\/web\/dist$/,
+    );
+  });
 });

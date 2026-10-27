@@ -1576,3 +1576,24 @@ build checklist, done before Phase 6.
   The results page stops offering "Join the rematch" once it's over.
 - **Prisma can't compare two columns**, so "you won" is written out as "your seat is seat
   0 and 0 is a winner, or seat 1 and 1 is a winner…" for all ten seats a table can have.
+
+## 2026-10-27: Test deployment (Phase 6)
+
+- **Render, one web service** (chosen by Arjun). Vercel was ruled out: it runs code as
+  short-lived functions, but tables live in the server's memory, players hold WebSockets
+  open for a whole game, and bots and idle-turn nudges run on timers. Settings and steps
+  are in docs/deploying.md.
+- **The server serves the built website** in production (`config.webDir`, from
+  `NODE_ENV=production`), with `@fastify/static` (dependency approved by Arjun). Page
+  addresses such as `/t/K7QX2M9PLA` get `index.html`; unknown `/api` addresses stay a JSON
+  404. Files in `/assets` have a content hash in their name and are cached for a year;
+  everything else is `no-cache`, so a deploy shows up at once. One address means the
+  browser code, cookies and the WebSocket origin check work unchanged.
+- **The test site uses the dev database** (decided by Arjun): it is the dev environment.
+  Local play and family games share the same tables.
+- **Started with `tsx`, not compiled**: the workspace packages export TypeScript sources,
+  and tsx is already how the server runs. Migrations run in the start command (`prisma
+  migrate deploy`), since Render's free plan has no separate pre-deploy step and there is
+  one instance.
+- **Real sign-in emails come next, separately** (decided by Arjun). Until then guests play
+  without email, and sign-in links appear in Render's logs.

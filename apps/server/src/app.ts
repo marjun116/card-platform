@@ -1,3 +1,4 @@
+import fastifyStatic from '@fastify/static';
 import websocket from '@fastify/websocket';
 import Fastify, { type FastifyInstance } from 'fastify';
 import { consoleMailer } from './auth/mailer';
@@ -76,6 +77,7 @@ export async function buildApp(overrides: Partial<Deps> = {}): Promise<FastifyIn
   tableRoutes(app, deps, catalog, rooms);
   variantRoutes(app, deps, catalog);
   historyRoutes(app, deps, catalog);
+  if (deps.config.webDir) await serveWebsite(app, deps.config.webDir);
 
   // Now and then, once the server is listening: nudge idle turns and delete
   // expired sessions and sign-in links.
@@ -90,6 +92,32 @@ export async function buildApp(overrides: Partial<Deps> = {}): Promise<FastifyIn
   app.addHook('onClose', () => clearInterval(sweep));
 
   return app;
+}
+
+/**
+ * Serves the built website from `root`. Any other page address (/t/K7QX2M9PLA)
+ * gets index.html, and the browser's router shows the page; unknown /api
+ * addresses are still a 404. Files under /assets have their content's hash in
+ * their name, so browsers may keep them for good; everything else is checked
+ * each time, so a new deploy shows up at once.
+ */
+async function serveWebsite(app: FastifyInstance, root: string): Promise<void> {
+  await app.register(fastifyStatic, {
+    root,
+    cacheControl: false,
+    // Also run for the index.html sent below.
+    setHeaders: (reply, path) => {
+      const hashed = /[\\/]assets[\\/]/.test(path);
+      reply.header('cache-control', hashed ? 'public, max-age=31536000, immutable' : 'no-cache');
+    },
+  });
+  app.setNotFoundHandler((request, reply) => {
+    const page = request.method === 'GET' || request.method === 'HEAD';
+    if (!page || request.url.startsWith('/api')) {
+      return reply.code(404).send({ error: 'Not found' });
+    }
+    return reply.sendFile('index.html');
+  });
 }
 
 /** Hides secret query values (sign-in tokens) in a URL before it's logged. */

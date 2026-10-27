@@ -1,9 +1,16 @@
 /** Server settings, read from environment variables (see .env.example). */
+import { fileURLToPath } from 'node:url';
+
 export interface Config {
   /** Where the website is served; magic links point here and WebSocket origins must match it. */
   publicUrl: string;
   /** Send cookies over HTTPS only. On in production. */
   secureCookies: boolean;
+  /**
+   * The built website (apps/web/dist) to serve alongside the API, so both share one
+   * address. Production only: in development Vite serves the website.
+   */
+  webDir: string | null;
   /**
    * Also accept table connections from pages on this computer (localhost), whatever
    * publicUrl says, so a PUBLIC_URL set for playing over wifi doesn't lock you out of
@@ -30,9 +37,13 @@ export interface Config {
 
 const HOUR = 60 * 60 * 1000;
 
+/** Where `pnpm build` puts the website. */
+const WEB_DIST = fileURLToPath(new URL('../../web/dist', import.meta.url));
+
 export const defaultConfig: Config = {
   publicUrl: 'http://localhost:5173',
   secureCookies: false,
+  webDir: null,
   localOrigins: true,
   sessionDays: 90,
   idleNudgeAfterMs: 12 * HOUR,
@@ -50,6 +61,7 @@ export function configFromEnv(env: NodeJS.ProcessEnv = process.env): Config {
     ...defaultConfig,
     publicUrl: env.PUBLIC_URL ?? defaultConfig.publicUrl,
     secureCookies: env.NODE_ENV === 'production',
+    webDir: env.NODE_ENV === 'production' ? WEB_DIST : null,
     localOrigins: env.NODE_ENV !== 'production',
     ...(hours > 0 && { idleNudgeAfterMs: hours * HOUR }),
   };
