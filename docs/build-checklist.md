@@ -396,6 +396,21 @@ Found while playing. Fix one at a time; tick each off when it's fixed.
       games to the right; on phones, your tables and past games on their own pages in the
       menu instead of on Home. Built as Claude suggested (see decisions.md): two columns on
       laptops, and a Past games page with "Your tables" kept on Home on phones.
+- [ ] **Rummy: the cut joker takes centre stage on the felt.** The turned-up cut card sits
+      right in the middle of the table. It should stay visible, but off to the side, not
+      the focus of the screen.
+- [ ] **Rummy: sorting your hand into melds adds a scroll bar on a laptop.** Sorting into
+      melds puts gaps between the groups (keep those), but the hand then gets wide enough
+      that the page scrolls. The hand should fit without scrolling.
+- [ ] **Rummy: arranging your own melds is hard to find and too limited.** Keep "Sort into
+      melds" as the automatic option, and make sorting by hand just as easy, with the same
+      ✓ on groups that are real melds. Grouping by hand already exists (select cards, then
+      Group / Ungroup), but nothing tells you it's there, a new group always goes to the
+      right end, and you can't move groups or cards into the order you want.
+- [ ] **Rummy: at the end, the stock, discard and cut joker cover the winner's hand.** When
+      the opponent who went out shows their cards, the piles in the middle sit on top of
+      part of the hand. You should be able to see all of the shown cards and the stock,
+      discard pile and cut joker at the same time.
 
 ## UI polish
 
@@ -536,7 +551,7 @@ in Phase 4.)
 
 - [x] Hearts
 - [ ] Crazy eights
-- [ ] Rummy
+- [x] Rummy
 - [ ] Gin rummy
 - [x] Euchre
 - [ ] Oh Hell
